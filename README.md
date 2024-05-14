@@ -4,4 +4,4 @@ This project contains the code for a WIP evaluating the synchrony between whole 
 
 1.  Modeling metabolism using *StreamMetabolizer*
 2.  Processing and putting together field & lab data
-3.  <in progress>
+3.  ...in progress!
