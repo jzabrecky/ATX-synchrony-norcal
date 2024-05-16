@@ -1,6 +1,7 @@
 #### data visualization for miniDOT data cleaning
 ### Jordan Zabrecky
-## 1.11.2024
+## last edited: 05.16.2024
+## note that dygraphs does not display graph with current new verion of R (4.4.0)
 
 # This supporting code helped visualize the data cleaning process with
 # the code from "1_reading_and_cleaning_DO_data.R" using the 'dygraphs' package
@@ -79,8 +80,8 @@ view_DO_2023(salmon_2023_cleaning_DO) # looks decent
 # temp cleaning
 view_temp_2022(sfkeel_mir_2022_cleaning) # looks good!
 view_temp_2022(russian_2022_cleaning) # looks good!
-view_temp_2022(salmon_2022_cleaning) # looks good!
+view_temp_2022(salmon_2022_cleaning) # looks good! 5.16.24
 
 view_temp_2023(sfkeel_mir_2023_cleaning) # looks good!
 view_temp_2023(sfkeel_sth_2023_cleaning) # looks good!
-view_temp_2023(salmon_2023_cleaning) # looks good!
+view_temp_2023(salmon_2023_cleaning) # looks good! 5.16.24

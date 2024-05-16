@@ -1,6 +1,6 @@
 #### miniDOT data aggregation and cleaning
 ### Jordan Zabrecky
-## last edited: 05.14.2024
+## last edited: 05.16.2024
 
 # This code pulls data from miniDOT text files and converts them into csv's.
 # Additionally this code adjusts the sensor time offset from PST, removes time when
@@ -198,22 +198,57 @@ salmon_2023_cleaning <- salmon_2023_cleaning %>%
                                              # so just using end of our field season
 # all maintenance times removed below
 salmon_2023_cleaning <- salmon_2023_cleaning %>% 
-  dplyr::filter(date_time <= "2023-07-12 18:00:00" | date_time >= "2023-07-12 19:25:00") %>% 
-  dplyr::filter(date_time <= "2023-07-26 18:49:00" | date_time >= "2023-07-26 19:35:00") %>% 
-  dplyr::filter(date_time <= "2023-08-09 18:25:00" | date_time >= "2023-08-09 19:05:00")
+  filter(date_time <= "2023-07-12 18:00:00" | date_time >= "2023-07-12 19:25:00") %>% 
+  filter(date_time <= "2023-07-26 18:49:00" | date_time >= "2023-07-26 19:35:00") %>% 
+  filter(date_time <= "2023-08-09 18:25:00" | date_time >= "2023-08-09 19:05:00")
 
 #### Final data cleaning ####
-### (removing obvious outliers, linear interpolating removed periods < INSERT
+### (removing outliers, interpolating small amounts of missing data, removing large amounts of bad data)
 
 # still using 'dygraphs' package in "1b_visualizing_DO_data_cleaning.R" 
 # to visualize data and cleaning
 
-# since (for the most part) our temperature looks good, we will try to preserve that data
-# unless we remove >= 10 hours, we will only remove DO for time periods of those lengths
-# DO will be cleaned on a separate object "..._cleaning_DO"
-# DO data missing for <=10 hours (set limit) will then be interpolated
+# since for the most part our temperature looks good, we will try to preserve that data
+# DO will then be cleaned on a separate object "..._cleaning_DO"
+# DO data missing for <=10 hours (set limit!) within linear periods will then be interpolated
 
-## 
+## (1) removing minor outliers
+
+# salmon 2022
+salmon_2022_cleaning_DO <- salmon_2022_cleaning %>% 
+  filter(date_time <= "2022-07-05 13:40:00" | date_time >= "2022-07-05 18:15:00") %>%  # <5 hours
+  filter(date_time <= "2022-07-28 6:40:00" | date_time >= "2022-07-28 8:15:00") # <2 hours
+
+# salmon 2023 
+salmon_2023_cleaning_DO <- salmon_2023_cleaning %>% 
+  filter(date_time <= "2023-07-18 04:26:00" | date_time >= "2023-07-18 10:01:00") %>%  # <6 hours
+  filter(date_time <= "2023-07-21 20:15:00" | date_time >= "2023-07-21 23:10:00") %>%  # <2 hours
+  filter(date_time <= "2023-07-22 10:55:00" | date_time >= "2023-07-22 11:20:00") %>%  # <1 hour
+  filter(date_time <= "2023-07-25 23:20:00" | date_time >= "2023-07-25 23:40:00") %>% # <1 hour
+  filter(date_time <= "2023-08-20 4:13:00" | date_time >= "2023-08-20 6:07:00") %>% # <2 hours
+  filter(date_time <= "2023-08-20 12:33:00" | date_time >= "2023-08-20 13:30:00") # <1 hour
+
+## (2) interpolating missing data using na.approx
+
+salmon_2022_cleaning_DO$DO_mgL <- na.approx(salmon_2022_cleaning_DO$DO_mgL)
+salmon_2023_cleaning_DO$DO_mgL <- na.approx(salmon_2023_cleaning_DO$DO_mgL)
+
+## (3) removing longer periods of biofouling, bad data, etc. that cannot be interpolated
+
+# salmon 2022
+# removing obvious biofouling visible by amplitude increases that go away after
+# sensor maintenance; unlike the Russian, it's much harder to distinguish the biofouling here
+# from true DO, so unfortunately we have to remove those days
+salmon_2022_cleaning_DO <- salmon_2022_cleaning_DO %>% 
+  filter(date_time <= "2022-07-8 11:50:00" | date_time >= "2022-07-11 19:00:00") %>% 
+  filter(date_time <= "2022-07-18 13:40:00" | date_time >= "2022-07-25 19:00:00")
+
+# salmon 2023
+# removing weirdness (super fuzzy with low troughs) 7/19 and 7/22 to 7/25
+# note that when we came to sensor on 7/26 it had been moved to a weird position
+salmon_2023_cleaning_DO <- salmon_2023_cleaning_DO %>% 
+  filter(date_time <= "2023-07-19 09:00:00" | date_time >= "2023-07-20 02:20:00") %>% 
+  filter(date_time <= "2023-07-22 20:45:00" | date_time >= "2023-07-25 8:25:00")
 
 ##------------old
 
@@ -331,10 +366,9 @@ salmon_2023_cleaning_DO <- salmon_2023_cleaning %>%
   dplyr::filter(date_time <= "2023-08-20 4:13:00" | date_time >= "2023-08-20 6:07:00") %>% 
   dplyr::filter(date_time <= "2023-08-20 12:33:00" | date_time >= "2023-08-20 13:30:00")
 
-#### Merging data back together and tidying ####
+#### Merging data back together and final tidying ####
 
-# Left join of "cleaning_DO" dataframe to the original cleaning dataframe that has preserved T
-# remember this is problematic right now and you need to look at your notes jordan
+# Left join of "cleaning_DO" dataframe to the original cleaning dataframe that has preserved Temp_C
 sfkeel_mir_2022_final <- left_join(sfkeel_mir_2022_cleaning, sfkeel_mir_2022_cleaning_DO, "date_time")
 russian_2022_final <- left_join(russian_2022_cleaning, russian_2022_cleaning_DO, "date_time")
 salmon_2022_final <- left_join(salmon_2022_cleaning, salmon_2022_cleaning_DO, "date_time")
@@ -342,28 +376,28 @@ sfkeel_mir_2023_final <- sfkeel_mir_2023_cleaning # no DO was removed separately
 sfkeel_sth_2023_final <- left_join(sfkeel_sth_2023_cleaning, sfkeel_sth_2023_cleaning_DO, "date_time")
 salmon_2023_final <- left_join(salmon_2023_cleaning, salmon_2023_cleaning_DO, "date_time")
 
+# making list of final dataframes
+miniDOT_list <- list(salmon_2022_final, salmon_2023_final)
+names(miniDOT_list) <- c("salmon_2022_miniDOT","salmon_2023_miniDOT")
+
 # function to only keep relevant columns (and rename them)
 clean_df <- function(df) {
-  new_df <- df %>% 
-    mutate(Temp_C = Temp_C.x,
-           DO_mgL = DO_mgL.y) %>% 
-    dplyr::select(date_time, Temp_C, DO_mgL)
+  df %>% 
+  mutate(Temp_C = Temp_C.x,
+         DO_mgL = DO_mgL.y) %>% 
+  select(date_time, Temp_C, DO_mgL)
 }
 
 # applying above function to each data frame
-sfkeel_mir_2022_final <- clean_df(sfkeel_mir_2022_final)
-russian_2022_final <- clean_df(russian_2022_final)
-salmon_2022_final <- clean_df(salmon_2022_final)
-sfkeel_sth_2023_final <- clean_df(sfkeel_sth_2023_final)
-salmon_2023_final <- clean_df(salmon_2023_final)
+miniDOT_final <- lapply(miniDOT_list, clean_df)
 
 # since sfkeel mir 2023 had no left_join() applied, we will do that manually
+# later note-- this is not necessary??? check if this is necessary
 sfkeel_mir_2023_final <- sfkeel_mir_2023_final %>% 
   dplyr::select(date_time, Temp_C, DO_mgL)
 
 #### Saving cleaned csv's ####
-setwd("~/metabolism-norcal-2022-23/data/miniDOT")
-write.csv(sfkeel_mir_2023_final, "sfkeel_mir_2023_miniDOT_clean.csv", 
-          row.names = FALSE)
-write.csv(salmon_2023_final, "salmon_2023_miniDOT_clean.csv",
-          row.names = FALSE)
+
+path <- paste(getwd(), "/data/miniDOT/", sep = "")
+lapply(names(miniDOT_final), function(x) write.csv(miniDOT_final[[x]], file = paste(path, x, ".csv", sep = ""), 
+                                                   row.names = FALSE))
