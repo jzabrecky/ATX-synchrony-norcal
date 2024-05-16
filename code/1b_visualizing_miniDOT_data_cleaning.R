@@ -78,7 +78,7 @@ view_DO_2023(sfkeel_sth_2023_cleaning_DO) # looks decent
 view_DO_2023(salmon_2023_cleaning_DO) # looks decent
 
 # temp cleaning
-view_temp_2022(sfkeel_mir_2022_cleaning) # looks good!
+view_temp_2022(sfkeel_mir_2022_cleaning) # need to remove weirdness here too
 view_temp_2022(russian_2022_cleaning) # looks good!
 view_temp_2022(salmon_2022_cleaning) # looks good! 5.16.24
 

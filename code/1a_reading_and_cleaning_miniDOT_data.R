@@ -29,38 +29,34 @@ create_df <- function(source_path) {
 time_fix <- function(flnm) {
   flnm$date_time <- as_datetime(flnm$Time_Sec, tz = "America/Los_Angeles")
   flnm %>% 
-    dplyr::select(date_time, BV_Volts, Temp_C, DO_mgL, Q)
+    select(date_time, BV_Volts, Temp_C, DO_mgL, Q)
 }
 
 ## Reading miniDOT data for each river site, making a data frame,
 ## and then applying a function to convert time into PST
 
-# save directory path info
-path <- getwd()
-
 ## 2022
 
 # south fork eel @ miranda
-sfkeel_mir_2022 <- create_df("~/metabolism-norcal-2022-23/data/miniDOT/
-                             2022_raw_data/Miranda_663402")
+sfkeel_mir_2022 <- create_df("data/miniDOT/2022_raw_data/Miranda_663402")
 sfkeel_mir_2022 <- time_fix(sfkeel_mir_2022)
 
 # russian 
-russian_2022 <- create_df("2022_raw_data/Russian_491496")
+russian_2022 <- create_df("data/miniDOT/2022_raw_data/Russian_491496")
 russian_2022 <- time_fix(russian_2022)
 
 # salmon
-salmon_2022 <- create_df(paste(path,"/data/miniDOT/2022_raw_data/Salmon_521120", sep = ""))
+salmon_2022 <- create_df("data/miniDOT/2022_raw_data/Salmon_521120")
 salmon_2022 <- time_fix(salmon_2022)
 
 ## 2023
 
 # south fork eel @ miranda
-sfkeel_mir_2023 <- create_df("~/metabolism-norcal-22-23/data/miniDOT/2023_raw_data/Miranda_663402")
+sfkeel_mir_2023 <- create_df("data/miniDOT/2023_raw_data/Miranda_663402")
 sfkeel_mir_2023 <- time_fix(sfkeel_mir_2023)
 
 # south fork eel @ standish hickey
-sfkeel_sth_2023 <- create_df("data/miniDOT/2023 raw data/Standish_Hickey_521120")
+sfkeel_sth_2023 <- create_df("data/miniDOT/2023_raw_data/Standish_Hickey_521120")
 sfkeel_sth_2023 <- time_fix(sfkeel_sth_2023)
 
 # salmon
@@ -80,7 +76,6 @@ quality_check <- function(miniDOT) {
 }
 
 # applying quality_check function to all dataframes
-
 sfkeel_mir_2022_cleaning <- quality_check(sfkeel_mir_2022)
 russian_2022_cleaning <- quality_check(russian_2022)
 salmon_2022_cleaning <- quality_check(salmon_2022)
@@ -205,6 +200,8 @@ salmon_2023_cleaning <- salmon_2023_cleaning %>%
 #### Final data cleaning ####
 ### (removing outliers, interpolating small amounts of missing data, removing large amounts of bad data)
 
+### STILL WRONG HERE, need to interpolate missing times with external script
+
 # still using 'dygraphs' package in "1b_visualizing_DO_data_cleaning.R" 
 # to visualize data and cleaning
 
@@ -214,10 +211,35 @@ salmon_2023_cleaning <- salmon_2023_cleaning %>%
 
 ## (1) removing minor outliers
 
+# south fork eel @ miranda 2022
+sfkeel_mir_2022_cleaning_DO <- sfkeel_mir_2022_cleaning
+sfkeel_mir_2022_cleaning_DO <- sfkeel_mir_2022_cleaning %>% 
+  filter(date_time <= "2022-08-18 23:45:00" | date_time >= "2022-08-18 23:50:00") %>% # <1 hour 
+  filter(date_time <= "2022-08-21 12:05:00" | date_time >= "2022-08-21 12:45:00") %>% # <1 hour 
+  filter(date_time <= "2022-08-22 11:20:00" | date_time >= "2022-08-22 14:00:00") %>% # <3 hours
+  filter(date_time <= "2022-08-28 06:20:00" | date_time >= "2022-08-28 08:05:00") %>% # <2 hours
+  filter(date_time <= "2022-08-28 08:12:00" | date_time >= "2022-08-28 10:20:00") %>% # <2 hours
+  filter(date_time <= "2022-08-28 11:28:00" | date_time >= "2022-08-28 13:50:00") %>% # <3 hours
+  filter(date_time <= "2022-08-30 03:20:00" | date_time >= "2022-08-30 06:20:00") %>% # <4 hours
+  filter(date_time <= "2022-09-01 03:35:00" | date_time >= "2022-09-01 06:13:00") %>% # <3 hours
+  filter(date_time <= "2022-09-01 22:50:00" | date_time >= "2022-09-01 23:30:00") %>% # <1 hour
+  filter(date_time <= "2022-09-02 13:35:00" | date_time >= "2022-09-02 15:10:00") %>% # <2 hours
+  filter(date_time <= "2022-09-03 10:50:00" | date_time >= "2022-09-03 11:40:00") %>% # <2 hours
+  filter(date_time <= "2022-09-04 14:25:00" | date_time >= "2022-09-04 14:50:00") %>% # <1 hour
+  filter(date_time <= "2022-09-04 18:40:00" | date_time >= "2022-09-04 19:25:00") %>% # <2 hours
+  filter(date_time <= "2022-09-05 04:35:00" | date_time >= "2022-09-05 06:24:00") %>% # <2 hours 
+  filter(date_time <= "2022-09-05 06:35:00" | date_time >= "2022-09-05 08:34:00") %>% # <2 hours 
+  filter(date_time <= "2022-09-05 09:54:00" | date_time >= "2022-09-05 10:39:00") %>% # <2 hours
+  filter(date_time <= "2022-09-05 12:40:00" | date_time >= "2022-09-05 15:08:00") %>% # <3 hours
+  filter(date_time <= "2022-09-08 00:25:00" | date_time >= "2022-09-08 02:10:00") %>% # <2 hours 
+  filter(date_time <= "2022-09-11 05:10:00" | date_time >= "2022-09-11 06:30:00") %>% # <2 hours
+  filter(date_time <= "2022-09-12 06:45:00" | date_time >= "2022-09-12 07:05:00") %>% # <1 hour
+  filter(date_time <= "2022-09-13 10:30:00" | date_time >= "2022-09-13 11:05:00") # <1 hour
+
 # salmon 2022
 salmon_2022_cleaning_DO <- salmon_2022_cleaning %>% 
   filter(date_time <= "2022-07-05 13:40:00" | date_time >= "2022-07-05 18:15:00") %>%  # <5 hours
-  filter(date_time <= "2022-07-28 6:40:00" | date_time >= "2022-07-28 8:15:00") # <2 hours
+  filter(date_time <= "2022-07-28 06:40:00" | date_time >= "2022-07-28 08:15:00") # <2 hours
 
 # salmon 2023 
 salmon_2023_cleaning_DO <- salmon_2023_cleaning %>% 
@@ -225,15 +247,38 @@ salmon_2023_cleaning_DO <- salmon_2023_cleaning %>%
   filter(date_time <= "2023-07-21 20:15:00" | date_time >= "2023-07-21 23:10:00") %>%  # <2 hours
   filter(date_time <= "2023-07-22 10:55:00" | date_time >= "2023-07-22 11:20:00") %>%  # <1 hour
   filter(date_time <= "2023-07-25 23:20:00" | date_time >= "2023-07-25 23:40:00") %>% # <1 hour
-  filter(date_time <= "2023-08-20 4:13:00" | date_time >= "2023-08-20 6:07:00") %>% # <2 hours
+  filter(date_time <= "2023-08-20 04:13:00" | date_time >= "2023-08-20 06:07:00") %>% # <2 hours
   filter(date_time <= "2023-08-20 12:33:00" | date_time >= "2023-08-20 13:30:00") # <1 hour
 
-## (2) interpolating missing data using na.approx
+## (2) interpolating missing data using other script: "1c_split_interpolate_data.R"
 
+# this script will fill create a time series for every five minutes and fill in 
+# missing variables via linear interpolation
+
+# temperature
+sfkeel_mir_2022_cleaning <- na.approx(sfkeel_mir_2022_cleaning)
+
+# dissolved oxygen
+sfkeel_2022_mir_cleaning_DO$DO_mgL <- na.approx(sfkeel_2022_mir_cleaning_DO$DO_mgL)
 salmon_2022_cleaning_DO$DO_mgL <- na.approx(salmon_2022_cleaning_DO$DO_mgL)
 salmon_2023_cleaning_DO$DO_mgL <- na.approx(salmon_2023_cleaning_DO$DO_mgL)
 
 ## (3) removing longer periods of biofouling, bad data, etc. that cannot be interpolated
+
+# removing time where egg sac had been laid directly on sensor foil
+# observed at 7/28/2022 pickup -> data all from ~50 hours beforehand seems wonky
+# and strangeness before 7/14/2022 pickup with large oscillations on 5-min intervals
+sfkeel_mir_2022_cleaning_DO <- sfkeel_mir_2022_cleaning_DO %>%
+  filter(date_time <= "2022-07-13 19:35:00" | date_time >= "2022-07-14 09:15:00")
+  filter(date_time <= "2022-07-25 10:05:00" | date_time >= "2022-07-28 09:20:00") %>% 
+# need to remove oscillating strangeness for temperature as well
+# temperature looks normal for extended time when egg sac laid on foil
+sfkeel_mir_2022_cleaning <- sfkeel_mir_2022_cleaning %>% 
+  filter(date_time <= "2022-07-13 19:35:00" | date_time >= "2022-07-14 09:15:00") #%>% 
+  filter(date_time <= "2022-07-25 10:05:00" | date_time >= "2022-07-25 19:25:00")
+  
+
+# getting rid of this weird temperature drop
 
 # salmon 2022
 # removing obvious biofouling visible by amplitude increases that go away after
@@ -401,3 +446,7 @@ sfkeel_mir_2023_final <- sfkeel_mir_2023_final %>%
 path <- paste(getwd(), "/data/miniDOT/", sep = "")
 lapply(names(miniDOT_final), function(x) write.csv(miniDOT_final[[x]], file = paste(path, x, ".csv", sep = ""), 
                                                    row.names = FALSE))
+
+# rgdal playing around ADD THIS TO RELEVANT step
+url <- "https://cran.r-project.org/src/contrib/Archive/rgdal/rgdal_1.6-6.tar.gz"
+install.packages(url, type = "source", repos = NULL)
