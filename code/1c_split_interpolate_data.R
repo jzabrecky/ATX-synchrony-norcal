@@ -1,13 +1,12 @@
 #### data visualization for miniDOT data cleaning
-### Original code author unknown? (from Joanna Blaszczak)
-## modified 3.2.24
+### Jordan Zabrecky //Original code author unknown? (from Joanna Blaszczak)
+## last edited: 05.16.2024
 
-# This supporting code helps split and interpolate data to match 
-# 5 minute intervals of miniDOT data
-# Modification involved changing output date time field to be named
+# This supporting code helps split and interpolate data to match5 minute intervals 
+# of miniDOT data. This was modified by changing output date time field to be named
 # "date_time" rather than "DateTime" for consistency with miniDOT data
 
-Create_Filled_TS <- function(x, samp_freq, parameterValue){
+create_filled_TS <- function(x, samp_freq, parameterValue){
   # x is the data frame
   # samp_freq is the frequency you want (e.g., if you want 5 minutes, type in "5M")
   # parameterValue is what you are trying to fill

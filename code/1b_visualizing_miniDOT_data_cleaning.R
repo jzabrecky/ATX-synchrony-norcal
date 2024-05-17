@@ -1,12 +1,12 @@
 #### data visualization for miniDOT data cleaning
 ### Jordan Zabrecky
-## last edited: 05.16.2024
+## last edited: 05.17.2024
 ## note that dygraphs does not display graph with current new verion of R (4.4.0)
 
 # This supporting code helped visualize the data cleaning process with
 # the code from "1_reading_and_cleaning_DO_data.R" using the 'dygraphs' package
 
-#### Loading libraries and creating functions to quickly visualize ####
+#### (1) Loading libraries and creating functions to quickly visualize ####
 
 ## Loading libraries
 lapply(c("dygraphs","xts"), require, character.only = T)
@@ -66,22 +66,24 @@ view_temp_2023 <- function(x) {
 }
 
 
-#### Visualizations (dygraphs) ####
+#### (2) Visualizations (dygraphs) ####
 
 # DO cleaning
-view_DO_2022(sfkeel_mir_2022_cleaning_DO) # looks decent.
-view_DO_2022(russian_2022_cleaning_DO) # looks decent.
-view_DO_2022(salmon_2022_cleaning_DO)  # lost a lot of days but looks decent now
+view_DO_2022(sfkeel_mir_2022_cleaning_DO) # looks decent. (05.17.24)
+view_DO_2022(russian_2022_cleaning_DO) # looks decent. (05.17.24)
+view_DO_2022(salmon_2022_cleaning_DO)  # lost a lot of days but looks decent now (05.16.24)
 
-view_DO_2023(sfkeel_mir_2023_cleaning) # looks good! ("_DO" file does not exist bc it was so great)
-view_DO_2023(sfkeel_sth_2023_cleaning_DO) # looks decent
-view_DO_2023(salmon_2023_cleaning_DO) # looks decent
+view_DO_2023(sfkeel_mir_2023_cleaning_DO) # looks good! (05.17.24)
+view_DO_2023(sfkeel_sth_2023_cleaning_DO) # looks decent (05.17.24)
+view_DO_2023(salmon_2023_cleaning_DO) # looks decent (05.17.24)
+# curious that DO does not hit as high of a max here-- fire effects?
 
 # temp cleaning
-view_temp_2022(sfkeel_mir_2022_cleaning) # need to remove weirdness here too
-view_temp_2022(russian_2022_cleaning) # looks good!
-view_temp_2022(salmon_2022_cleaning) # looks good! 5.16.24
+view_temp_2022(sfkeel_mir_2022_cleaning) # decided to remove period between weird oscillations 
+                                        # where T seems unrealistically low (05.17.24)
+view_temp_2022(russian_2022_cleaning) # looks good! (05.17.24)
+view_temp_2022(salmon_2022_cleaning) # looks good! (05.16.24)
 
-view_temp_2023(sfkeel_mir_2023_cleaning) # looks good!
-view_temp_2023(sfkeel_sth_2023_cleaning) # looks good!
-view_temp_2023(salmon_2023_cleaning) # looks good! 5.16.24
+view_temp_2023(sfkeel_mir_2023_cleaning) # looks good! (05.17.24)
+view_temp_2023(sfkeel_sth_2023_cleaning) # looks good! (05.17.24)
+view_temp_2023(salmon_2023_cleaning) # looks good! (05.16.24)
