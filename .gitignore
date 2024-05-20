@@ -1,4 +1,7 @@
+# R session & data files
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
+# select data (GLDAS, NLDAS, etc.)
+data/GLDAS/

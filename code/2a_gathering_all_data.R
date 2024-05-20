@@ -27,14 +27,16 @@ miniDOT <- ldply(list.files(pattern = "_miniDOT_clean.csv"), function(filename) 
 })
 # !!!dealing with this as a list of multiple files will take time when the work comes
 sfkeel_mir_2023_miniDOT <- read.csv("sfkeel_mir_2023_miniDOT_clean.csv")
-salmon_2023_miniDOT <- read.csv("salmon_2023_miniDOT.csv")
-salmon_2022_miniDOT <- read.csv("salmon_2022_miniDOT.csv")
+salmon_2023_miniDOT <- read.csv("data/miniDOT/salmon_2023_miniDOT.csv")
+salmon_2022_miniDOT <- read.csv("data/miniDOT/salmon_2022_miniDOT.csv")
 
 # converting date_time from character to POSIXct
 miniDOT$date_time <- as.POSIXct(miniDOT$date_time, format = "%Y-%m-%d %H:%M:%S")
 sfkeel_mir_2023_miniDOT$date_time <- as.POSIXct(sfkeel_mir_2023_miniDOT$date_time, format = "%Y-%m-%d %H:%M:%S")
 salmon_2023_miniDOT$date_time <- as.POSIXct(salmon_2023_miniDOT$date_time, format = "%Y-%m-%d %H:%M:%S")
 salmon_2022_miniDOT$date_time <- as.POSIXct(salmon_2022_miniDOT$date_time, format = "%Y-%m-%d %H:%M:%S")
+which(is.na(salmon_2022_miniDOT))
+which(is.na(salmon_2023_miniDOT))
 
 # omit missing rows (as we preserved temperature but also removed DO from some days)
 salmon_2022_miniDOT <- na.omit(salmon_2022_miniDOT)
@@ -55,9 +57,9 @@ class(salmon_2022_miniDOT$date_time)
 
 # lastly need to interpolate values for missing DO and temperature will want to move this back to script 1 
 # so you don't fill in places with more than 3 hours or whatever missing
-setwd("~/metabolism-norcal-2022-23/code") 
+setwd("~/code") 
 # will use function from supporting R script "2_split_interpolate_data"
-source("2b_split_interpolate_data.R")
+source("code/1c_split_interpolate_data.R")
 
 ### AGAIN WILL MOVE THIS BACK TO SCRIPT 1 LATER
 sfkeel_mir_2023_DO <- Create_Filled_TS(sfkeel_mir_2023_miniDOT, "5M", "DO_mgL") %>% 
@@ -87,7 +89,7 @@ salmon_Q <- salmon_Q %>%
 
 # need to interpolate between 15-minute intervals
 sfkeel_mir_Q <- Create_Filled_TS(sfkeel_mir_Q, "5M", "X_00060_00000")
-salmon_Q <- Create_Filled_TS(salmon_Q, "5M", "X_00060_00000")
+salmon_Q <- create_filled_TS(salmon_Q, "5M", "X_00060_00000")
 
 # filter above
 sfkeel_mir_Q <- sfkeel_mir_Q %>% 
@@ -106,7 +108,7 @@ source("2c_GLDAS_associated_functions.R")
 
 # getting saving directory info and info for main folder to use other scripts
 supporting <- getwd() # path that will allow us to use functions from other scripts in main folder
-setwd("~/metabolism-norcal-2022-23/data/GLDAS")
+setwd("data/GLDAS")
 path <- getwd() # path that we will save our data download and processing to
 
 # downloading and processing data for each site
@@ -120,6 +122,8 @@ salmon_GLDAS <- Baro_dwld_processing("salmon", 41.3771369, -123.4770326,"2022-06
 # If not already installed, use the devtools packge to install StreamLightUtils
 #devtools::install_github("psavoy/StreamLightUtils")
 #devtools::install_github("psavoy/StreamLight")
+
+# put stuff about rgdal here
 
 ## (4.1) Downloading and processing NLDAS data
 

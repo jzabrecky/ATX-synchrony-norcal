@@ -92,8 +92,8 @@ Baro_dwld_processing <- function(site, latitude, longitude, start, end, file_loc
   
   # Split, interpolate, and convert
   setwd(supporting_path) # moving working directory to be able to use script below
-  source("2b_split_interpolate_data.R")
-  baro_5M <- Create_Filled_TS(baro, "5M", "pressure")
+  source("1c_split_interpolate_data.R")
+  baro_5M <- create_filled_TS(baro, "5M", "pressure")
   baro_5M$pressure_mmHg<-baro_5M$Filled_Var/133.322 # Convert pressure in Pa to mmHg
   
   # using tidyverse to make dataframe for final output
