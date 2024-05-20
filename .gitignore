@@ -5,3 +5,6 @@
 .Ruserdata
 # select data (GLDAS, NLDAS, etc.)
 data/GLDAS/
+data/NLDAS/
+# for now (while doing trial runs!)
+data/metab_model_inputs/

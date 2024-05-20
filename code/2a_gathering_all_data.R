@@ -135,15 +135,16 @@ site_table <- as.data.frame(rbind(c("sfkeelmir", 40.198173, -123.775930),
 colnames(site_table) <- c("Site_ID", "Lat", "Lon")
 
 # downloading site NLDAS data with function from "StreamLightUtils"
-NLDAS_DL_bulk(save_dir = "~/metabolism-norcal-22-23/data/NLDAS",
+NLDAS_DL_bulk(save_dir = "data/NLDAS",
               site_locs = site_table, startDate = "2022-06-15")
 
 # making list of downloaded sites from above (getting list from folder and removing "_NLDAS.asc")
-site_list <- stringr::str_sub(list.files("~/metabolism-norcal-22-23/data/NLDAS"),
+site_list <- stringr::str_sub(list.files("data/NLDAS"),
                               1, -11)
 
 # processing the downloaded NLDAS data using function from "StreamLightUtils"
-NLDAS_processed <- NLDAS_proc(read_dir = "~/metabolism-norcal-2022-23/data/NLDAS",
+directory <- getwd()
+NLDAS_processed <- NLDAS_proc(read_dir = directory,
                               site_list)
 
 NLDAS_proc <- function(read_dir, Site_IDs, write_output = FALSE, save_dir = NULL){
@@ -223,7 +224,7 @@ NLDAS_formatting <- function(df){
   light <- df[,c("date_time","SW")]
   
   # Split, interpolate, and convert
-  light_5M <- Create_Filled_TS(light, "5M", "SW")
+  light_5M <- create_filled_TS(light, "5M", "SW")
   light_5M <- light_5M[,c("date_time","Filled_Var")]
   colnames(light_5M) <- c("date_time","SW")
   
@@ -309,6 +310,6 @@ salmon_2023[59067:60000]
 sfkeel_mir_2023$date_time <- sfkeel_mir_2023$date_time + 1
 salmon_2023$date_time <- salmon_2023$date_time + 1
 salmon_2022$date_time <- salmon_2022$date_time + 1
-setwd("~/metabolism-norcal-2022-23/data/model_inputs")
-write.csv(salmon_2023, "salmon_2023_05162024.csv", row.names = FALSE)
-write.csv(salmon_2022, "salmon_2022_05162024.csv", row.names = FALSE)
+setwd("data/metab_model_inputs")
+write.csv(salmon_2023, "salmon_2023_05202024.csv", row.names = FALSE)
+write.csv(salmon_2022, "salmon_2022_05202024.csv", row.names = FALSE)

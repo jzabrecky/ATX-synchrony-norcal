@@ -6,13 +6,9 @@
 # Additionally this code adjusts the sensor time offset from PST, removes time when
 # sensor was out of water, and cleans outlying values
 
-# to do: need to make sure create_filled_TS is filling in missing 5 minute vars
-# create new time series for removing maintenance times and make sure it's the same length
-# if not longer after create_filled_TS
-
 #### (1) Loading packages and reading in data #### 
 
-## loading necessary packages
+## Loading necessary packages
 lapply(c("tidyverse","lubridate","data.table","here"),
        require, character.only = T)
 
@@ -419,10 +415,3 @@ names(miniDOT_list) <- c("sfkeel_mir_2022_miniDOT", "russian_2022_miniDOT", "sal
 path <- paste(getwd(), "/data/miniDOT/", sep = "")
 lapply(names(miniDOT_list), function(x) write.csv(miniDOT_list[[x]], file = paste(path, x, ".csv", sep = ""), 
                                                    row.names = FALSE))
-
-## not seeming to have 00:00:00 issue but keep an eye out for it in the future
-
-#### PUT ON SCRIPT 1d
-# rgdal playing around ADD THIS TO RELEVANT step
-url <- "https://cran.r-project.org/src/contrib/Archive/rgdal/rgdal_1.6-6.tar.gz"
-install.packages(url, type = "source", repos = NULL)
