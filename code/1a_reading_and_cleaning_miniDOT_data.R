@@ -32,7 +32,7 @@ time_fix <- function(flnm) {
     select(date_time, BV_Volts, Temp_C, DO_mgL, Q)
 }
 
-## Reading miniDOT data for each river site, making a data frame,
+## reading miniDOT data for each river site, making a data frame,
 ## and then applying a function to convert time into PST
 
 ## 2022
@@ -85,7 +85,7 @@ salmon_2023_cleaning <- quality_check(salmon_2023)
 # turns out all of our data is Q > 0.7!
 
 ## (b) applying time offsets in accordance to screenshots of miniDOT time vs. actual PST time
-# taken prior to launch
+## taken prior to launch
 
 # south fork eel @ miranda 2022: 09:30:11 should be 09:33:58
 sfkeel_mir_2022_cleaning$date_time <- sfkeel_mir_2022_cleaning$date_time + (60*3) + 47

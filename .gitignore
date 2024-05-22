@@ -6,5 +6,7 @@
 # select data (GLDAS, NLDAS, etc.)
 data/GLDAS/
 data/NLDAS/
+data/MODIS/
+data/misc_to_delete/
 # for now (while doing trial runs!)
 data/metab_model_inputs/
