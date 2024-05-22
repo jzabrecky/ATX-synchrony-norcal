@@ -86,5 +86,4 @@ baro_sfkeel_mir <- baro_dwld_processing("sfkeel_mir", 40.198173, -123.775930, "2
 baro_sfkeel_sth <- baro_dwld_processing("sfkeel_sth", 39.876268, -123.727924, "2023-06-15", 
                                    "2023-10-01", path, supporting)
 
-### FINALIZE THIS SECTION
-## WITHOUT RESETTING WORKING DIRECTORIES :)
+## I think this is all good to go now, just need to double check from beginning!

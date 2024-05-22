@@ -41,7 +41,6 @@ GLDAS_press_DL <- function(save_dir, Site_ID, Lat, Lon, startDate, endDate){
 GLDAS_proc <- function(read_dir, save_dir, Site, Lat, Lon){
   # reading in the table, skipping the first 40 lines of header information
   # nd removing the last row which contains a calculated mean value
-  #setwd(read_dir)
   file_name <- paste(read_dir, Site, "_GLDAS.asc", sep = "")
   nldas <- read.table(file_name, skip = 13, nrows = length(readLines(file_name)) - 13)
   colnames(nldas) <- c("DateTime", "pressure")
