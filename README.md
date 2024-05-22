@@ -1,4 +1,4 @@
-# atx-synchrony-norcal
+# ATX-synchrony-norcal
 
 This project contains the code for a WIP evaluating the synchrony between whole river gross primary productivity and benthic cyanobacterial accrual and anatoxin production in northern California. The code follows the order:
 
