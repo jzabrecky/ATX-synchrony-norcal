@@ -33,8 +33,12 @@ miniDOT_data <- ldply(list.files(path = "./data/miniDOT/", pattern = "_miniDOT.c
   return(d)
 })
 
-# converting date_time from string to POSIXct class
+# converting date_time from character to POSIXct class
 miniDOT_data$date_time <- as_datetime(miniDOT_data$date_time)
+
+# change timezone attribution to PST without changing the actual time!
+miniDOT_data$date_time <- force_tz(miniDOT_data$date_time, tzone = "America/Los_Angeles")
+
 
 #### (2) Retreiving USGS discharge data ####
 
@@ -57,7 +61,7 @@ source("code/1c_split_interpolate_data.R")
 
 # function to apply to list of discharge dataframes
 clean_discharge <- function(df) {
-  df <- df %>% mutate(date_time = as_datetime(dateTime))
+  df <- df %>% mutate(date_time = as_datetime(dateTime, tz = "America/Los_Angeles"))
   new_df <- create_filled_TS(df, "5M", "X_00060_00000") %>% 
     mutate(discharge_m3_s = Filled_Var / 35.3147) %>% 
     dplyr::select(date_time, discharge_m3_s)
@@ -78,13 +82,13 @@ supporting <- "H:/ATX-synchrony-norcal/code/" # directory where we can access "1
 
 # downloading each site separately
 baro_russian <- baro_dwld_processing("russian", 38.806883, -123.007017, "2022-06-15", 
-                                     "2022-10-01", path, supporting)
+                                     "2022-10-01", path, supporting, "America/Los_Angeles")
 baro_salmon <- baro_dwld_processing("salmon", 41.3771369, -123.4770326, "2022-06-15",
-                                    "2023-10-01", path, supporting)
+                                    "2023-10-01", path, supporting, "America/Los_Angeles")
 baro_sfkeel_mir <- baro_dwld_processing("sfkeel_mir", 40.198173, -123.775930, "2022-06-15", 
-                                   "2023-10-01", path, supporting)
+                                   "2023-10-01", path, supporting, "America/Los_Angeles")
 baro_sfkeel_sth <- baro_dwld_processing("sfkeel_sth", 39.876268, -123.727924, "2023-06-15", 
-                                   "2023-10-01", path, supporting)
+                                   "2023-10-01", path, supporting, "America/Los_Angeles")
 
 #### (4) Gathering NLDAS light data & MODIS leaf area index using "StreamLight" package ####
 
@@ -111,6 +115,8 @@ site_list <- stringr::str_sub(list.files("data/NLDAS"), 1, -11)
 # processing the downloaded NLDAS data using function from "StreamLightUtils"
 directory <- "H:/ATX-synchrony-norcal/data/NLDAS" # where NLDAS .asc files are located
 NLDAS_processed <- NLDAS_proc(read_dir = directory, site_list)
+
+# fix time-- also is this in PST?
 
 ## (b) downloading and processing MODIS data
 
@@ -173,12 +179,14 @@ tree_heights <- tree_heights[-(length(site_list) + 1),]
 ## Estimate width based on mode of discharge
 #### HOW SHOULD I DO THIS??
 
-#### (6) Incorporating depth-discharge relationship ####
+#### (5) Incorporating depth-discharge relationship ####
 
 ## russian 
 
 # using past relationship from transect of discharge measurement for now...
 RUS$depth <- (0.08601*RUS$discharge) + 0.31433
+russian_Q <- discharge$russian
+russian_Q$depth_m <- (0.08601*russian_Q$discharge_m3_s) + 0.31433
 
 ## salmon
 
@@ -186,7 +194,69 @@ RUS$depth <- (0.08601*RUS$discharge) + 0.31433
 SAL$depth <- exp((0.32207*log(SAL$discharge)) - 1.03866)
 
 ## south fork eel @ miranda
-
-
+# NEED TO REPLACE THIS
+SFE$depth <- (0.13306*SFE$discharge) + 0.11178
+sfkeel_mir_Q <- discharge$sfkeel_mir
+sfkeel_mir_Q$depth <- (0.13306*sfkeel_mir_Q$discharge_m3_s) + 0.11178
 
 ## south fork eel @ standish hickey
+
+#### (6) Putting it all together ####
+
+## this is quickly done to output a couple more metabolism estimates
+##
+
+NLDAS_formatting <- function(df){
+  
+  df$origin <- as.Date(paste0(df$Year, "-01-01"),tz = "UTC") - days(1) # this seems stupid
+  df$Date <- as.Date(df$DOY, origin = df$origin, tz = "UTC") 
+  df$DateTime_UTC <- lubridate::ymd_hms(paste(df$Date, " ", df$Hour, ":00:00"))
+  df <- df[,c("DateTime_UTC","SW")] #time zone clearly wrong
+  # adjust time zone
+  df$date_time <- with_tz(df$DateTime_UTC, tzone = "America/Los_Angeles")
+  
+  light <- df[,c("date_time","SW")]
+  
+  # Split, interpolate, and convert
+  light_5M <- create_filled_TS(light, "5M", "SW")
+  light_5M <- light_5M[,c("date_time","Filled_Var")]
+  colnames(light_5M) <- c("date_time","SW")
+  
+  return(light_5M)
+  
+}
+
+NLDAS_sfkeel_mir <- NLDAS_formatting(NLDAS_processed$sfkeel_mir) %>% 
+  dplyr::filter(date_time <= "2022-10-01 00:00:00")
+attr(NLDAS_sfkeel_mir$date_time,"tzone")
+attr(sfkeel_mir_DO$date_time,"tzone") # this shouldn't be UTC
+attr(baro_sfkeel_mir$date_time, "tzone") # double check this is PST
+attr(sfkeel_mir_Q$date_time, "tzone")
+sfkeel_mir_DO <- miniDOT_data %>% 
+  dplyr::filter(file == "sfkeel_mir_2022_miniDOT.csv") %>% 
+  dplyr::select(date_time, Temp_C, DO_mgL)
+class(NLDAS_sfkeel_mir$date_time)
+class(sfkeel_mir_DO$date_time)
+sfkeelmir <- list(sfkeel_mir_DO, NLDAS_sfkeel_mir, baro_sfkeel_mir, sfkeel_mir_Q)
+sfkeelmir <- sfkeelmir %>% reduce(left_join, by = "date_time")
+anyNA(sfkeelmir) # yay!
+
+NLDAS_russian <- NLDAS_formatting(NLDAS_processed$russian)
+russian_DO <- miniDOT_data %>% 
+  dplyr::filter(file == "russian_2022_miniDOT.csv") %>% 
+  dplyr::select(date_time, Temp_C, DO_mgL)
+russian <- list(russian_DO, NLDAS_russian, baro_russian, russian_Q)
+russian <- russian %>% reduce(left_join, by = "date_time")
+anyNA(russian)
+
+# hopefully don't have 00:00:00 issue....
+class(sfkeelmir$date_time)
+attr(sfkeelmir$date_time, "tzone")
+class(russian$date_time)
+attr(russian$date_time, "tzone")
+getwd()
+setwd("..")
+write.csv(sfkeelmir, "data/metab_model_inputs/sfkeel_mir_2022_05232024.csv", row.names = FALSE)
+write.csv(russian, "data/metab_model_inputs/russian_2022_05232024.csv", row.names = FALSE)
+?write.csv()
+## MAY WANT TO CHANGE PRESSURE TO WHAT IS NEEDED FOR METAB EARL

@@ -38,31 +38,29 @@ GLDAS_press_DL <- function(save_dir, Site_ID, Lat, Lon, startDate, endDate){
 }
 
 # this function processes downloaded GLDAS data and uses it to write a usable csv
-GLDAS_proc <- function(read_dir, save_dir, Site, Lat, Lon){
+GLDAS_proc <- function(read_dir, save_dir, Site, Lat, Lon, local_tz){
   # reading in the table, skipping the first 40 lines of header information
   # nd removing the last row which contains a calculated mean value
   file_name <- paste(read_dir, Site, "_GLDAS.asc", sep = "")
-  nldas <- read.table(file_name, skip = 13, nrows = length(readLines(file_name)) - 13)
-  colnames(nldas) <- c("DateTime", "pressure")
+  gldas <- read.table(file_name, skip = 13, nrows = length(readLines(file_name)) - 13)
+  colnames(gldas) <- c("DateTime", "pressure")
   
   ## Adding in date and time information
   # splitting date and time
   library(stringr)
-  datetime <- data.frame(str_split_fixed(nldas$DateTime, "T", 2))
+  datetime <- data.frame(str_split_fixed(gldas$DateTime, "T", 2))
   
   # extracting the hour information
-  nldas[, "Time"] <- as.numeric(substr(datetime[,2], 1, 2))
+  gldas[, "Time"] <- as.numeric(substr(datetime[,2], 1, 2))
   
   # adding a POSIX time column
-  nldas[, "pos_time"] <- as.POSIXct(paste(datetime[, 1], " ",
-                                          as.matrix(sprintf("%02d", nldas[, "Time"])), sep = ""), format = "%Y-%m-%d %H",
+  gldas[, "UTC_time"] <- as.POSIXct(paste(datetime[, 1], " ",
+                                          as.matrix(sprintf("%02d", gldas[, "Time"])), sep = ""), format = "%Y-%m-%d %H",
                                     tz = "UTC")
-  
-  # converting into local time
-  nldas[, "local_time"] <- format(nldas[, "pos_time"], tz = "America/Los_Angeles")
+  gldas[, "local_time"] <- as_datetime(gldas[, "UTC_time"], tz = local_tz)
   
   # selecting the final column
-  final <- nldas[, c("local_time", "pressure")]
+  final <- gldas[, c("UTC_time", "local_time", "pressure")]
   
   # writing the final output
   write.csv(final, paste(path, Site, "_GLDAS_pressurePA.csv", sep = ""), quote = FALSE, row.names = FALSE)
@@ -73,23 +71,34 @@ GLDAS_proc <- function(read_dir, save_dir, Site, Lat, Lon){
 # note that it also calls to other script "1c_split_interpolate_data.R" to create
 # the 5-minute interval time series to match miniDOT data
 # so supporting_path is the pathway to that file
-baro_dwld_processing <- function(site, latitude, longitude, start, end, file_location, supporting_path){
+baro_dwld_processing <- function(site, latitude, longitude, start, end, file_location, supporting_path, local_tz){
   
+  # download .asc file from GLDAS using above function
   GLDAS_press_DL(file_location, site, latitude, longitude, start, end)
   
+  # process .asc into a csv using above function
   GLDAS_proc(file_location,
              file_location,
-             site, latitude, longitude)
+             site, latitude, longitude, local_tz)
   
+  # read csv
   baro <- read.csv(paste(file_location, site,"_GLDAS_pressurePA.csv", sep = ""))
-  baro$date_time <- as.POSIXct(as.character(baro$local_time), format = "%Y-%m-%d %H:%M:%S")
+  
+  # making local_time a POSIXct object and saving the timezome information
+  baro$date_time <- as_datetime(as.character(baro$local_time))
+  baro$date_time <- force_tz(baro$date_time, tzone = local_tz)
+  
+  # subsetting dataframe
   baro <- baro[,c("date_time","pressure")]
   
   ## split, interpolate, and convert
   # accessing other script for function
   source(paste(supporting_path, "1c_split_interpolate_data.R", sep = ""))
+  # creating filled time series
   baro_5M <- create_filled_TS(baro, "5M", "pressure")
-  baro_5M$pressure_mmHg<-baro_5M$Filled_Var/133.322 # Convert pressure in Pa to mmHg
+  
+  # convert pressure in Pa to mmHg <- CHANGE THIS TO mbar!
+  baro_5M$pressure_mmHg<-baro_5M$Filled_Var/133.322
   
   # using tidyverse to make dataframe for final output
   library(tidyverse)
