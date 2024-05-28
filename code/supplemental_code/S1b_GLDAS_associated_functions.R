@@ -93,7 +93,7 @@ baro_dwld_processing <- function(site, latitude, longitude, start, end, file_loc
   
   ## split, interpolate, and convert
   # accessing other script for function
-  source(paste(supporting_path, "1c_split_interpolate_data.R", sep = ""))
+  source(paste(supporting_path, "S1a_split_interpolate_data.R", sep = ""))
   # creating filled time series
   baro_5M <- create_filled_TS(baro, "5M", "pressure")
   

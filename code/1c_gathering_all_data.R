@@ -33,12 +33,8 @@ miniDOT_data <- ldply(list.files(path = "./data/miniDOT/", pattern = "_miniDOT.c
   return(d)
 })
 
-# converting date_time from character to POSIXct class
-miniDOT_data$date_time <- as_datetime(miniDOT_data$date_time)
-
-# change timezone attribution to PST without changing the actual time!
-miniDOT_data$date_time <- force_tz(miniDOT_data$date_time, tzone = "America/Los_Angeles")
-
+# converting date_time from character to POSIXct class & indicate time zone
+miniDOT_data$date_time <- as_datetime(miniDOT_data$date_time, tz = "America/Los_Angeles")
 
 #### (2) Retreiving USGS discharge data ####
 
@@ -57,7 +53,7 @@ names(discharge) <- c("russian", "salmon", "sfkeel_mir", "sfkeel_sth")
 ## Create 5-minute filled time series to match miniDOT and tidy up dataframes
 
 # use "create_filled_TS" function from other script
-source("code/1c_split_interpolate_data.R")
+source("code/supplemental_code/S1a_split_interpolate_data.R")
 
 # function to apply to list of discharge dataframes
 clean_discharge <- function(df) {
@@ -73,12 +69,15 @@ discharge <- lapply(discharge, function(x) clean_discharge(x))
 
 #### (3) Gathering GLDAS pressure data ####
 
-# using functions from supporting script "1e_GLDAS_associated_functions.R"
-source("code/1e_GLDAS_associated_functions.R")
+# using functions from supporting script "S1b_GLDAS_associated_functions.R"
+source("code/supplemental_code/S1b_GLDAS_associated_functions.R")
 
 # setting directory specs for download
 path <- "data/GLDAS/" # where we will save the file
-supporting <- "H:/ATX-synchrony-norcal/code/" # directory where we can access "1c_split_interpolate_data.R"
+
+# directory where we can access "S1a_split_interpolate_data.R" while using the GLDAS script
+base_wd <- getwd() # saving our base working directory
+supporting <- paste(base_wd, "/code/supplemental_code/", sep = "")
 
 # downloading each site separately
 baro_russian <- baro_dwld_processing("russian", 38.806883, -123.007017, "2022-06-15", 
@@ -113,7 +112,7 @@ NLDAS_DL_bulk(save_dir = "data/NLDAS",
 site_list <- stringr::str_sub(list.files("data/NLDAS"), 1, -11)
 
 # processing the downloaded NLDAS data using function from "StreamLightUtils"
-directory <- "H:/ATX-synchrony-norcal/data/NLDAS" # where NLDAS .asc files are located
+directory <- paste(base_wd, "/data/NLDAS", sep =) # where NLDAS .asc files are located
 NLDAS_processed <- NLDAS_proc(read_dir = directory, site_list)
 
 # fix time-- also is this in PST?

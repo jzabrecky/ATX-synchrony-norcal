@@ -135,7 +135,7 @@ russian_2022_cleaning <- russian_2022_cleaning %>%
   # readjusted brick so maintenance time longer than normal here
   filter(date_time <= "2022-08-17 07:50:00" | date_time >= "2022-08-17 10:15:00") %>% 
   # last maintenance time with no end date because sensor was stolen :(
-  filter(date_time <= "2022-09-01 9:30:00")
+  filter(date_time <= "2022-09-01 7:40:00")
 
 # salmon 2022
 salmon_2022_cleaning <- salmon_2022_cleaning %>% 
@@ -306,7 +306,7 @@ salmon_2023_cleaning_DO <- salmon_2023_cleaning %>%
 
 # this script will fill create a time series for every five minutes and fill in 
 # missing variables via linear interpolation via the "create_filled_TS" function
-source("code/1c_split_interpolate_data.R")
+source("code/supplemental_code/S1a_split_interpolate_data.R")
 
 # need to round to nearest 5 minutes first
 round_5M <- function(df) {
