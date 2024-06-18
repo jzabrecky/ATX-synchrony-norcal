@@ -1,7 +1,7 @@
 #### functions associated with downloading and processing GLDAS data
 ### gathered & edited by Jordan Zabrecky
 ### past code authors... members of Blaszczak lab???
-## last edited 05.20.2024
+## last edited 06.18.2024
 
 # This code downloads data from GLDAS, stores it, and also
 # includes a function for processing and interpolating it
@@ -40,7 +40,7 @@ GLDAS_press_DL <- function(save_dir, Site_ID, Lat, Lon, startDate, endDate){
 # this function processes downloaded GLDAS data and uses it to write a usable csv
 GLDAS_proc <- function(read_dir, save_dir, Site, Lat, Lon, local_tz){
   # reading in the table, skipping the first 40 lines of header information
-  # nd removing the last row which contains a calculated mean value
+  # and removing the last row which contains a calculated mean value
   file_name <- paste(read_dir, Site, "_GLDAS.asc", sep = "")
   gldas <- read.table(file_name, skip = 13, nrows = length(readLines(file_name)) - 13)
   colnames(gldas) <- c("DateTime", "pressure")
@@ -64,14 +64,11 @@ GLDAS_proc <- function(read_dir, save_dir, Site, Lat, Lon, local_tz){
   
   # writing the final output
   write.csv(final, paste(path, Site, "_GLDAS_pressurePA.csv", sep = ""), quote = FALSE, row.names = FALSE)
-  
 }
 
-# this function combines the prior two functions and also further alters the produced csv
-# note that it also calls to other script "1c_split_interpolate_data.R" to create
-# the 5-minute interval time series to match miniDOT data
-# so supporting_path is the pathway to that file
-baro_dwld_processing <- function(site, latitude, longitude, start, end, file_location, supporting_path, local_tz){
+# this function combines the prior two functions to download .asc file and create
+# the .csv in one line
+baro_dwld_processing <- function(site, latitude, longitude, start, end, file_location, local_tz){
   
   # download .asc file from GLDAS using above function
   GLDAS_press_DL(file_location, site, latitude, longitude, start, end)
@@ -80,6 +77,12 @@ baro_dwld_processing <- function(site, latitude, longitude, start, end, file_loc
   GLDAS_proc(file_location,
              file_location,
              site, latitude, longitude, local_tz)
+}
+
+# this function reads the GLDAS csv from the "GLDAS_proc" function 
+# and uses the supporting script from "S1a_split_interpolate_data.R"
+# to fill in data for 5-min intervals and make it usable to model metabolism
+baro_make_df <- function(file_location, site, local_tz, supporting_path) {
   
   # read csv
   baro <- read.csv(paste(file_location, site,"_GLDAS_pressurePA.csv", sep = ""))

@@ -41,11 +41,17 @@ miniDOT_data$date_time <- as_datetime(miniDOT_data$date_time, tz = "America/Los_
 # USGS site numbers
 USGS_gages <- c("11463000", "11522500", "11476500", "11475800")
 
-# mean daily discharge 
+# mean daily discharge in cfs
 param <- "00060"
 
 # use "DataRetrieval" to download data
 discharge <- lapply(USGS_gages, function(x) readNWISuv(x, param, "2022-06-15","2023-10-01"))
+
+discharge_sub <- discharge$sfkeel_mir
+discharge_sub <- discharge_sub %>% 
+  dplyr::filter(dateTime >= "2023-06-15 00:00:00" & dateTime <= "2023-09-28 0:00:00")
+
+median(discharge_sub$discharge_m3_s)
 
 # adding names of each river to list
 names(discharge) <- c("russian", "salmon", "sfkeel_mir", "sfkeel_sth")
@@ -79,15 +85,25 @@ path <- "data/GLDAS/" # where we will save the file
 base_wd <- getwd() # saving our base working directory
 supporting <- paste(base_wd, "/code/supplemental_code/", sep = "")
 
-# downloading each site separately
-baro_russian <- baro_dwld_processing("russian", 38.806883, -123.007017, "2022-06-15", 
-                                     "2022-10-01", path, supporting, "America/Los_Angeles")
-baro_salmon <- baro_dwld_processing("salmon", 41.3771369, -123.4770326, "2022-06-15",
-                                    "2023-10-01", path, supporting, "America/Los_Angeles")
-baro_sfkeel_mir <- baro_dwld_processing("sfkeel_mir", 40.198173, -123.775930, "2022-06-15", 
-                                   "2023-10-01", path, supporting, "America/Los_Angeles")
-baro_sfkeel_sth <- baro_dwld_processing("sfkeel_sth", 39.876268, -123.727924, "2023-06-15", 
-                                   "2023-10-01", path, supporting, "America/Los_Angeles")
+# downloading each site separately and processing .asc file
+### SOMETHING WRONG WITH DOWNLOADING
+GLDAS_press_DL(path, "test", 38.806883, -123.007017, "2022-06-15", "2022-10-01")
+
+baro_dwld_processing("russian", 38.806883, -123.007017, "2022-06-15", 
+                     "2022-10-01", path, "America/Los_Angeles")
+baro_dwld_processing("salmon", 41.3771369, -123.4770326, "2022-06-15",
+                     "2023-10-01", path, "America/Los_Angeles")
+baro_dwld_processing("sfkeel_mir", 40.198173, -123.775930, "2022-06-15", 
+                     "2023-10-01", path, "America/Los_Angeles")
+baro_dwld_processing("sfkeel_sth", 39.876268, -123.727924, "2023-06-15", 
+                     "2023-10-01", path, "America/Los_Angeles")
+
+# making 5-min interpolated data frames
+baro_russian <- baro_make_df(path, "russian", "America/Los_Angeles", supporting)
+baro_salmon <- baro_make_df(path, "salmon", "America/Los_Angeles", supporting)
+baro_sfkeel_mir <- baro_make_df(path, "sfkeel_mir", "America/Los_Angeles", supporting)
+baro_sfkeel_sth <- baro_make_df(path, "sfkeel_sth", "America/Los_Angeles", supporting)
+## NEED TO GET OLD .ASC FILE FROM LAPTOP
 
 #### (4) Gathering NLDAS light data & MODIS leaf area index using "StreamLight" package ####
 
@@ -112,10 +128,8 @@ NLDAS_DL_bulk(save_dir = "data/NLDAS",
 site_list <- stringr::str_sub(list.files("data/NLDAS"), 1, -11)
 
 # processing the downloaded NLDAS data using function from "StreamLightUtils"
-directory <- paste(base_wd, "/data/NLDAS", sep =) # where NLDAS .asc files are located
+directory <- paste(base_wd, "/data/NLDAS", sep = "") # where NLDAS .asc files are located
 NLDAS_processed <- NLDAS_proc(read_dir = directory, site_list)
-
-# fix time-- also is this in PST?
 
 ## (b) downloading and processing MODIS data
 
@@ -157,26 +171,97 @@ SL_driver <- make_driver(site_table, NLDAS_processed, MODIS_processed,
 
 # use modified version of script that uses local download of Simard et al. 2011
 # obtained from https://webmap.ornl.gov/ogc/dataset.jsp?ds_id=10023
-source("../../code/1f_modified_extract_height.R")
+source("../../code/supplemental_code/S1c_modified_extract_height.R")
 
 # making empty data frame for tree heights for each site
-tree_heights <- data.frame(matrix(ncol = 4))
-colnames(tree_heights) <- c("Site_ID", "Lat", "Lon", "TH")
+streamLight_info <- data.frame(matrix(ncol = 4))
+colnames(streamLight_info) <- c("Site_ID", "Lat", "Lon", "TH")
                            
 # getting tree height for each site
 for(i in 1:length(site_table)) {
   temp <- extract_height(Site_ID = site_table[i, "Site_ID"], Lat = site_table[i, "Lat"], 
                                     Lon = site_table[i, "Lon"], site_crs = site_table[i, "epsg_crs"], 
                                     simard_loc = "../../data/MODIS/simard2011.asc")
-  tree_heights <- bind_rows(temp[,1:4], tree_heights)
-  tree_heights[-(length(site) + 1)]
+  streamLight_info <- bind_rows(temp[,1:4], streamLight_info)
 }
 
 # removing empty row from data frame
-tree_heights <- tree_heights[-(length(site_list) + 1),]
+streamLight_info <- streamLight_info[-(length(site_list) + 1),]
 
-## Estimate width based on mode of discharge
-#### HOW SHOULD I DO THIS??
+## River width
+
+## curently using mode from kayak river depth measurements
+## ONLY HAVE THIS INFORMATION FOR SOUTH FORK EEL
+
+# read kayak information
+setwd("../depth_measurements")
+kayak <- read.csv("sfkeel_kayak_measurements.csv")
+
+# converting date as string to date object
+kayak$Date <- mdy(kayak$Date)
+
+# get rid of dplyr masking!!
+filter <- dplyr::filter
+select <- dplyr::select
+
+# get widths and see median of width
+# south fork eel @ standish hickey
+width_sfkeel_sth <- kayak %>% 
+  filter(Site == "SfkEel_Standish") %>% 
+  filter(Meas_Type == "Width") %>% 
+  select(Date, Site, Width_m) %>% 
+  na.omit()
+median(width_sfkeel_sth$Width_m) # 17.8 m
+mean(width_sfkeel_sth$Width_m)
+
+# south fork eel @ miranda
+width_sfkeel_mir <- kayak %>% 
+  filter(Site == "SfkEel_Miranda") %>% 
+  filter(Meas_Type == "Width") %>% 
+  select(Date, Site, Width_m) %>% 
+  group_by(Date) %>% 
+  na.omit()
+median(width_sfkeel_mir$Width_m) # 20.31 m
+mean(width_sfkeel_mir$Width_m)
+
+## Channel azimuths
+
+# estimated externally using satellite images
+streamLight_info$azimuth <- c(340, 95, 230, 140)
+
+## Run StreamLight model for each site
+
+# running model separately for now...
+streamLight_sfkeel_mir <- stream_light(SL_driver$sfkeel_mir, Lat = streamLight_info$Lat[2], 
+                                      Lon = streamLight_info$Lon[2], 
+                                      channel_azimuth = streamLight_info$azimuth[2],
+                                      bottom_width = mean(width_sfkeel_mir$Width_m),
+                                      BH = 0.1, # default
+                                      BS = 100, # default
+                                      WL = 0.1, # default- look into changing this?
+                                      TH = streamLight_info$TH[2],
+                                      overhang = streamLight_info$TH[2] * 0.1, # default
+                                      overhang_height = NA, # default
+                                      x_LAD = 1) # default
+
+streamLight_sfkeel_sth <- stream_light(SL_driver$sfkeel_sth, Lat = streamLight_info$Lat[1], 
+                                       Lon = streamLight_info$Lon[1], 
+                                       channel_azimuth = streamLight_info$azimuth[1],
+                                       bottom_width = mean(width_sfkeel_mir$Width_m),
+                                       BH = 0.1, # default
+                                       BS = 100, # default
+                                       WL = 0.1, # default- look into changing this?
+                                       TH = streamLight_info$TH[2],
+                                       overhang = streamLight_info$TH[1] * 0.1, # default
+                                       overhang_height = NA, # default
+                                       x_LAD = 1) # default
+
+# yay! success! just need to get it to run for them all at once!
+# will involve reordering table
+# also may investigate how changing the water depth changes the result
+
+#### TO DO :) FINISH STREAMLIGHT
+
 
 #### (5) Incorporating depth-discharge relationship ####
 
@@ -193,6 +278,8 @@ russian_Q$depth_m <- (0.08601*russian_Q$discharge_m3_s) + 0.31433
 SAL$depth <- exp((0.32207*log(SAL$discharge)) - 1.03866)
 
 ## south fork eel @ miranda
+
+
 # NEED TO REPLACE THIS
 SFE$depth <- (0.13306*SFE$discharge) + 0.11178
 sfkeel_mir_Q <- discharge$sfkeel_mir
@@ -205,6 +292,8 @@ sfkeel_mir_Q$depth <- (0.13306*sfkeel_mir_Q$discharge_m3_s) + 0.11178
 ## this is quickly done to output a couple more metabolism estimates
 ##
 
+
+### OLD- throw out later!!!
 NLDAS_formatting <- function(df){
   
   df$origin <- as.Date(paste0(df$Year, "-01-01"),tz = "UTC") - days(1) # this seems stupid

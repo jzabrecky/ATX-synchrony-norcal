@@ -8,10 +8,10 @@ library(dataRetrieval)
 library(lubridate)
 
 ##Load depth data
-setwd("C:/Users/alice.carter/git/UCFR-metabolism")
-site_dat <- read_csv('data/site_data.csv')%>%
-    filter(!is.na(sitecode))
-UCFR_depth<- read_csv("data/UCFR_depth_summary.csv")
+setwd("../..")
+site_dat <- read_csv('data/misc_to_del/site_data.csv')%>%
+    dplyr::filter(!is.na(sitecode))
+UCFR_depth<- read_csv("data/misc_to_del/UCFR_depth_summary.csv")
 UCFR_depth$date <- as.Date(UCFR_depth$date, format="%m-%d-%Y")
 start.20<-as.Date("2020-07-13")
 end.21<-as.Date("2021-11-01")
@@ -32,7 +32,7 @@ for (i in 1:6){
     dailyflow[[i]]$dateTime <- as.Date(dailyflow[[i]]$dateTime) #reformat date
     dailyflow[[i]]$q.m3s<-dailyflow[[i]]$X_00060_00003/35.31 #transform from cubic feet per second to cubic meters per second
     names(dailyflow[[i]])<-c("agency", "site", "date","q.cfs","code", "tz", "q.cms") # change column header names
-    dailyflow[[i]]<-select(dailyflow[[i]],
+    dailyflow[[i]]<-dplyr::select(dailyflow[[i]],
                            c(-'agency', -'site', -'q.cfs', -'code', -'tz')) # remove unecessary data
     dailyflow[[i]]$site<-rep(site_dat$sitecode[[i]],
                              length(dailyflow[[i]]$date)) # add column with site name
@@ -42,7 +42,7 @@ for (i in 1:6){
 ## Turn list into data frame in long format
 daily.q <- do.call(rbind.data.frame, dailyflow)
 
-daily.q.sub <- filter(daily.q, date >= start.20  & date <= end.21)
+daily.q.sub <- dplyr::filter(daily.q, date >= start.20  & date <= end.21)
 write_csv(daily.q.sub, 'discharge_UCFRsites_2020.csv')
 
 ## Join discharge with depth and width data (by date)
@@ -118,7 +118,7 @@ intercept = summary(model3)$fixed[1,1]
 coef <- ranef(model3)$site
 fits <- tibble(site = factor(site_dat$sitecode,
                              levels = c('PL', "DL", "GR", "GC", "BM", "BN"))) %>%
-    mutate(intercept = intercept + coef[1:6],
+    dplyr::mutate(intercept = intercept + coef[1:6],
            slope = rep(slope, 6),
            min_q = log(sapply(!!dailyflow, function(x) min(x$q.cms, na.rm = T))),
            max_q = log(sapply(!!dailyflow, function(x) max(x$q.cms, na.rm = T))),
