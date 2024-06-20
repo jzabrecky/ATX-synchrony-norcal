@@ -7,4 +7,5 @@
 data/GLDAS/
 data/NLDAS/
 data/MODIS/
-data/misc_to_delete/
+data/misc_to_del/
+data/StreamLight/

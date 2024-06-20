@@ -5,6 +5,7 @@
 # This data modified the "extract_height" function from the "StreamLight" 
 # package to allow for use of a locally downloaded .asc file from 
 # Simard et al. (2011) from https://webmap.ornl.gov/ogc/dataset.jsp?ds_id=10023
+# and, additionally, only returns tree height rather than full table
 
 # new parameter: 
 #'@param simard_loc location of downloaded Simard et al. (2011) .asc file of global tree heights
@@ -36,5 +37,8 @@ extract_height <- function(Site_ID, Lat, Lon, site_crs, simard_loc){
   #Bind together the final information
   bound <- setNames(data.frame(Site_ID, Lat, Lon, TH), c("Site_ID", "Lat", "Lon", "TH"))
   
-  return(bound)
+  #return(bound)
+  
+  # only interested in returning the tree height
+  return(bound$TH)
 } #End extract_height function

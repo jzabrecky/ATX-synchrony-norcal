@@ -24,7 +24,7 @@ lapply(c("dataRetrieval", "lubridate", "plyr", "tidyverse", "StreamLight", "Stre
 #url <- "https://cran.r-project.org/src/contrib/Archive/rgdal/rgdal_1.6-6.tar.gz"
 #install.packages(url, type = "source", repos = NULL)
 # However, there may be issues doing this with later version of R 
-# (I had issues with R 4.4.0, but it works with 4.2.3)
+# (I had issues with R 4.4.0, but it works with 4.2.3 and 4.3.2)
 
 ## Reading in miniDOT data
 miniDOT_data <- ldply(list.files(path = "./data/miniDOT/", pattern = "_miniDOT.csv"), function(filename) {
@@ -47,14 +47,9 @@ param <- "00060"
 # use "DataRetrieval" to download data
 discharge <- lapply(USGS_gages, function(x) readNWISuv(x, param, "2022-06-15","2023-10-01"))
 
-discharge_sub <- discharge$sfkeel_mir
-discharge_sub <- discharge_sub %>% 
-  dplyr::filter(dateTime >= "2023-06-15 00:00:00" & dateTime <= "2023-09-28 0:00:00")
-
-median(discharge_sub$discharge_m3_s)
-
 # adding names of each river to list
-names(discharge) <- c("russian", "salmon", "sfkeel_mir", "sfkeel_sth")
+site_names <- c("russian", "salmon", "sfkeel_mir", "sfkeel_sth")
+names(discharge) <- site_names
 
 ## Create 5-minute filled time series to match miniDOT and tidy up dataframes
 
@@ -86,8 +81,9 @@ base_wd <- getwd() # saving our base working directory
 supporting <- paste(base_wd, "/code/supplemental_code/", sep = "")
 
 # downloading each site separately and processing .asc file
-### SOMETHING WRONG WITH DOWNLOADING
-GLDAS_press_DL(path, "test", 38.806883, -123.007017, "2022-06-15", "2022-10-01")
+### SOMETHING WRONG WITH DOWNLOADING (though it seemed to work for a singular test file?? unsure...)
+## may address this weekend?
+GLDAS_press_DL(path, "russian", 38.806883, -123.007017, "2022-06-15", "2022-10-01")
 
 baro_dwld_processing("russian", 38.806883, -123.007017, "2022-06-15", 
                      "2022-10-01", path, "America/Los_Angeles")
@@ -99,11 +95,8 @@ baro_dwld_processing("sfkeel_sth", 39.876268, -123.727924, "2023-06-15",
                      "2023-10-01", path, "America/Los_Angeles")
 
 # making 5-min interpolated data frames
-baro_russian <- baro_make_df(path, "russian", "America/Los_Angeles", supporting)
-baro_salmon <- baro_make_df(path, "salmon", "America/Los_Angeles", supporting)
-baro_sfkeel_mir <- baro_make_df(path, "sfkeel_mir", "America/Los_Angeles", supporting)
-baro_sfkeel_sth <- baro_make_df(path, "sfkeel_sth", "America/Los_Angeles", supporting)
-## NEED TO GET OLD .ASC FILE FROM LAPTOP
+GLDAS_processed <- lapply(site_names, function(x) baro_make_df(path, x, "America/Los_Angeles", supporting))
+names(GLDAS_processed) <- site_names # adding names to list
 
 #### (4) Gathering NLDAS light data & MODIS leaf area index using "StreamLight" package ####
 
@@ -171,65 +164,121 @@ SL_driver <- make_driver(site_table, NLDAS_processed, MODIS_processed,
 
 # use modified version of script that uses local download of Simard et al. 2011
 # obtained from https://webmap.ornl.gov/ogc/dataset.jsp?ds_id=10023
+# and only returns the tree height instead of a full table
 source("../../code/supplemental_code/S1c_modified_extract_height.R")
 
-# making empty data frame for tree heights for each site
-streamLight_info <- data.frame(matrix(ncol = 4))
-colnames(streamLight_info) <- c("Site_ID", "Lat", "Lon", "TH")
-                           
-# getting tree height for each site
-for(i in 1:length(site_table)) {
-  temp <- extract_height(Site_ID = site_table[i, "Site_ID"], Lat = site_table[i, "Lat"], 
-                                    Lon = site_table[i, "Lon"], site_crs = site_table[i, "epsg_crs"], 
-                                    simard_loc = "../../data/MODIS/simard2011.asc")
-  streamLight_info <- bind_rows(temp[,1:4], streamLight_info)
-}
+# making new table for information necessary to use StreamLight
+streamLight_info <- site_table
 
-# removing empty row from data frame
-streamLight_info <- streamLight_info[-(length(site_list) + 1),]
+# getting tree height for each site
+for(i in 1:nrow(streamLight_info)) {
+  streamLight_info$TH[i] <- extract_height(Site_ID = streamLight_info[i, "Site_ID"], 
+                                           Lat = streamLight_info[i, "Lat"], 
+                                           Lon = streamLight_info[i, "Lon"], 
+                                           site_crs = streamLight_info[i, "epsg_crs"], 
+                                           simard_loc = "../../data/MODIS/simard2011.asc")
+}
 
 ## River width
 
-## curently using mode from kayak river depth measurements
-## ONLY HAVE THIS INFORMATION FOR SOUTH FORK EEL
+# currently, only have kayak depth measurements for the south fork eel
+# for now, will use depth measurements from measuring discharge for the russian
+# and will just use a value from the depth-discharge relationship joanna made
+# using USGS cross section data
 
-# read kayak information
+# read in data
 setwd("../depth_measurements")
 kayak <- read.csv("sfkeel_kayak_measurements.csv")
+sontek <- read.csv("russian_sontek_discharge.csv")
 
 # converting date as string to date object
 kayak$Date <- mdy(kayak$Date)
+
+# pulling down date for russian sontek discharge data
+sontek <- sontek %>% 
+  mutate_all(~replace(., . == "", NA)) %>%  # fill in missing values with NA
+  fill(date, .direction = "down") # pull down the date
+sontek$date <- mdy(sontek$date)
 
 # get rid of dplyr masking!!
 filter <- dplyr::filter
 select <- dplyr::select
 
-# get widths and see median of width
-# south fork eel @ standish hickey
-width_sfkeel_sth <- kayak %>% 
-  filter(Site == "SfkEel_Standish") %>% 
-  filter(Meas_Type == "Width") %>% 
-  select(Date, Site, Width_m) %>% 
-  na.omit()
-median(width_sfkeel_sth$Width_m) # 17.8 m
-mean(width_sfkeel_sth$Width_m)
+# south fork eel @ miranda & standish hickey
+# use average width measurement across all accurately measured transects
+streamLight_info$bottom_width[3] = apply(kayak %>% filter(Site == "SfkEel_Miranda") %>%
+                                           filter(Meas_Type == "Width") %>% 
+                                           select(Width_m) %>% 
+                                           na.omit(), 2,  mean)
+streamLight_info$bottom_width[4] = apply(kayak %>% filter(Site == "SfkEel_Standish") %>% 
+                                          filter(Meas_Type == "Width") %>% 
+                                          select(Width_m) %>% 
+                                          na.omit(), 2, mean)
 
-# south fork eel @ miranda
-width_sfkeel_mir <- kayak %>% 
-  filter(Site == "SfkEel_Miranda") %>% 
-  filter(Meas_Type == "Width") %>% 
-  select(Date, Site, Width_m) %>% 
-  group_by(Date) %>% 
-  na.omit()
-median(width_sfkeel_mir$Width_m) # 20.31 m
-mean(width_sfkeel_mir$Width_m)
+# russian
+streamLight_info$bottom_width[1] = apply(sontek %>% filter(depth_cm == 0) %>% 
+                                           mutate(start_end = case_when(is.na(time) ~ "end",
+                                                                        TRUE ~ "start")) %>% 
+                                           select(date, start_end, distance_m) %>% 
+                                           spread(key = start_end, value = distance_m) %>% 
+                                           mutate(width_m = abs(start - end)) %>%
+                                           select(width_m), 2, mean)
+
+# salmon
+## just going to assume same width as sfk eel @ miranda for now
+## need to get transect widths from Laurel :)
+streamLight_info$bottom_width[2] = streamLight_info$bottom_width[3]
 
 ## Channel azimuths
 
 # estimated externally using satellite images
-streamLight_info$azimuth <- c(340, 95, 230, 140)
+# russian = 135, salmon = 245, sfkeel_mir = 330, sfkeel_sth = 275
+streamLight_info$azimuth <- c(135, 245, 330, 275)
+
+## Bank height, bank slope, water level, overhang, overhang height, leaf angle distribution  
+## (using defaults)
+streamLight_info$BH <- rep(0.1, 4)
+streamLight_info$BS <- rep(100, 4)
+streamLight_info$WL <- rep(0.1, 4)
+streamLight_info$overhang <- streamLight_info$TH * 0.1 # default is 10% of TH
+streamLight_info$overhand_height <- rep(NA, 4) # NA will assume 75% of TH
+streamLight_info$X_LAD <- rep(1, 4)
 
 ## Run StreamLight model for each site
+
+# function to batch run models
+StreamLight_batch_models <- function(Site, driver_file, save_dir){
+  # get the model driver SHOULD CHANGE THIS
+  driver_file <- readRDS(paste(read_dir, "/", Site, "_driver.rds", sep = ""))
+  
+  # get model parameters for the site
+  site_p <- params[params[, "Site_ID"] == Site, ]
+  
+  # run the model
+  modeled <- stream_light(
+    driver_file, 
+    Lat = site_p[, "Lat"], 
+    Lon = site_p[, "Lon"],
+    channel_azimuth = site_p[, "azimuth"], 
+    bottom_width = site_p[, "bottom_width"], 
+    BH = site_p[, "BH"],
+    BS = site_p[, "BS"], 
+    WL = site_p[, "WL"], 
+    TH = site_p[, "TH"], 
+    overhang = site_p[, "overhang"],
+    overhang_height = site_p[, "overhang_height"], 
+    x_LAD = site_p[, "x"]
+  )
+  
+  # save the output
+  saveRDS(modeled, paste(save_dir, "/", Site, "_predicted.rds", sep = ""))
+  
+}
+
+# set directories
+
+
+lapply(streamLight_info[,"Site_ID"], )
 
 # running model separately for now...
 streamLight_sfkeel_mir <- stream_light(SL_driver$sfkeel_mir, Lat = streamLight_info$Lat[2], 
@@ -243,18 +292,6 @@ streamLight_sfkeel_mir <- stream_light(SL_driver$sfkeel_mir, Lat = streamLight_i
                                       overhang = streamLight_info$TH[2] * 0.1, # default
                                       overhang_height = NA, # default
                                       x_LAD = 1) # default
-
-streamLight_sfkeel_sth <- stream_light(SL_driver$sfkeel_sth, Lat = streamLight_info$Lat[1], 
-                                       Lon = streamLight_info$Lon[1], 
-                                       channel_azimuth = streamLight_info$azimuth[1],
-                                       bottom_width = mean(width_sfkeel_mir$Width_m),
-                                       BH = 0.1, # default
-                                       BS = 100, # default
-                                       WL = 0.1, # default- look into changing this?
-                                       TH = streamLight_info$TH[2],
-                                       overhang = streamLight_info$TH[1] * 0.1, # default
-                                       overhang_height = NA, # default
-                                       x_LAD = 1) # default
 
 # yay! success! just need to get it to run for them all at once!
 # will involve reordering table

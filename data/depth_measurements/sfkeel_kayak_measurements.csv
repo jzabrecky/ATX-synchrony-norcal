@@ -1,4 +1,4 @@
-﻿Date,Site,Transect,Meas_Type,Depth_cm_initial,Depth_ft_initial,Width_m,Depth_cm_final,Approx_lat,Approx_long,Width_method,notes
+Date,Site,Transect,Meas_Type,Depth_cm_initial,Depth_ft_initial,Width_m,Depth_cm_final,Approx_lat,Approx_long,Width_method,notes
 7/9/2023,SfkEel_Miranda,1,Width,,,17.7,,40.1814697,-123.7779815,measuring_tape,
 7/9/2023,SfkEel_Miranda,1,Depth,103,,,103,,,,
 7/9/2023,SfkEel_Miranda,1,Depth,,6.8,,207,,,,
