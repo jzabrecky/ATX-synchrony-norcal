@@ -13,7 +13,7 @@
 
 ## Loading necessary packages
 lapply(c("dataRetrieval", "lubridate", "plyr", "tidyverse", "StreamLight", "StreamLightUtils",
-         "zoo"), require, character.only = T)
+         "zoo", "brms"), require, character.only = T)
 
 ## if "StreamLight" & "StreamLightUtils" have not yet been downloaded...
 #devtools::install_github("psavoy/StreamLightUtils")
@@ -60,7 +60,7 @@ source("code/supplemental_code/S1a_split_interpolate_data.R")
 clean_discharge <- function(df) {
   df <- df %>% mutate(date_time = as_datetime(dateTime, tz = "America/Los_Angeles"))
   new_df <- create_filled_TS(df, "5M", "X_00060_00000") %>% 
-    mutate(discharge_m3_s = Filled_Var / 35.3147) %>% 
+    mutate(discharge_m3_s = Filled_Var / 35.31) %>% 
     dplyr::select(date_time, discharge_m3_s)
   return(new_df)
 }
@@ -293,10 +293,46 @@ discharge$russian$depth_m <- (0.08601 * discharge$russian$discharge_m3_s) + 0.31
 
 # using past relationship modeled with USGS channel cross-section data
 discharge$salmon$depth_m <- exp((0.32207 * log(discharge$salmon$discharge_m3_s)) - 1.03866)
-SAL$depth <- exp((0.32207*log(SAL$discharge)) - 1.03866)
 
 ## south fork eel @ miranda
 
+# calculating average depth per kayak run
+depth_Q_sfkeel_mir <- kayak_sfkeel %>% 
+  filter(Site == "SfkEel_Miranda", Meas_Type == "Depth") %>% 
+  filter(Transect != 18) %>% # removed transects 18 as first date was half depth of later two dates
+  filter(Transect != 5 & Transect != 12) %>% # removed transects 5 & 12 as first date was ~0.3 m lower than second date
+  # this may be either because our GPS was slightly off or differences when taking depths across transects between two different kayakers
+  group_by(Date) %>% 
+  summarize(depth_m = mean(Depth_cm_final) / 100)
+
+# getting daily discharge data and adding it to depth-discharge data frame
+depth_Q_sfkeel_mir <- left_join(depth_Q_sfkeel_mir, 
+                                readNWISdv("11476500", param, depth_Q_sfkeel_mir$Date[1], depth_Q_sfkeel_mir$Date[3]))
+
+# editing data frame and calculating discharge as cms
+depth_Q_sfkeel_mir <- depth_Q_sfkeel_mir %>% 
+  mutate(discharge_m3_s = X_00060_00003 / 35.31) %>% 
+  select(Date, depth_m, discharge_m3_s)
+
+# model relationship between depth and discharge 
+# depth ~ log(discharge) shows most linear relationship
+
+# use bayesian regression model
+
+#### LEFT OFF HERE-- reference Alice's code
+
+# frequentist linear regression model
+test2 <- lm(depth_m ~ log(discharge_m3_s), data = depth_Q_sfkeel_mir)
+summary(test2)
+
+# bayesian linear regression model
+brm(depth_m ~ log(discharge_m3_s), data = depth_Q_sfkeel_mir)
+# this alone is not 
+
+# test plots
+plot(depth_Q_sfkeel_mir$depth_m, depth_Q_sfkeel_mir$discharge_m3_s)
+plot(log(depth_Q_sfkeel_mir$depth_m), log(depth_Q_sfkeel_mir$discharge_m3_s))
+plot(depth_Q_sfkeel_mir$depth_m, log(depth_Q_sfkeel_mir$discharge_m3_s))
 
 # NEED TO REPLACE THIS
 SFE$depth <- (0.13306*SFE$discharge) + 0.11178
