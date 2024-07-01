@@ -80,11 +80,7 @@ path <- "data/GLDAS/" # where we will save the file
 base_wd <- getwd() # saving our base working directory
 supporting <- paste(base_wd, "/code/supplemental_code/", sep = "")
 
-# downloading each site separately and processing .asc file
-### SOMETHING WRONG WITH DOWNLOADING (though it seemed to work for a singular test file?? unsure...)
-## may address this weekend?
-GLDAS_press_DL(path, "russian", 38.806883, -123.007017, "2022-06-15", "2022-10-01")
-
+# downloading GLDAS .asc file and processing it into a saved .csv file
 baro_dwld_processing("russian", 38.806883, -123.007017, "2022-06-15", 
                      "2022-10-01", path, "America/Los_Angeles")
 baro_dwld_processing("salmon", 41.3771369, -123.4770326, "2022-06-15",

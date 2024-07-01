@@ -62,6 +62,11 @@ GLDAS_proc <- function(read_dir, save_dir, Site, Lat, Lon, local_tz){
   # selecting the final column
   final <- gldas[, c("UTC_time", "local_time", "pressure")]
   
+  # changing name of column
+  library(tidyverse)
+  final <- final %>%
+    rename(pressure_PA = pressure)
+  
   # writing the final output
   write.csv(final, paste(path, Site, "_GLDAS_pressurePA.csv", sep = ""), quote = FALSE, row.names = FALSE)
 }
@@ -100,13 +105,13 @@ baro_make_df <- function(file_location, site, local_tz, supporting_path) {
   # creating filled time series
   baro_5M <- create_filled_TS(baro, "5M", "pressure")
   
-  # convert pressure in Pa to mmHg <- CHANGE THIS TO mbar!
-  baro_5M$pressure_mmHg<-baro_5M$Filled_Var/133.322
+  # convert pressure in Pa to mbar (input for streamMetabolizer)
+  baro_5M$pressure_mbar<-baro_5M$Filled_Var/100
   
   # using tidyverse to make dataframe for final output
   library(tidyverse)
   baro_final <- baro_5M %>% 
-    dplyr::select(date_time, pressure_mmHg)
+    dplyr::select(date_time, pressure_mbar)
   
   return(baro_final)
 }
