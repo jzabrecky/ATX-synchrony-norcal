@@ -179,16 +179,17 @@ for(i in 1:nrow(streamLight_info)) {
 
 # currently, only have kayak depth measurements for the south fork eel
 # for now, will use depth measurements from measuring discharge for the russian
-# and will just use a value from the depth-discharge relationship joanna made
-# using USGS cross section data
+# since the river was much higher in 2023 when we did the kayak run
+# but could also just maybe still use those widths because they may be more accurate?
 
 # read in data
 setwd("../depth_measurements")
-kayak <- read.csv("sfkeel_kayak_measurements.csv")
+kayak_sfkeel <- read.csv("sfkeel_kayak_measurements.csv")
+### kayak salmon river insert here ###
 sontek <- read.csv("russian_sontek_discharge.csv")
 
 # converting date as string to date object
-kayak$Date <- mdy(kayak$Date)
+kayak_sfkeel$Date <- mdy(kayak$Date)
 
 # pulling down date for russian sontek discharge data
 sontek <- sontek %>% 
@@ -202,14 +203,14 @@ select <- dplyr::select
 
 # south fork eel @ miranda & standish hickey
 # use average width measurement across all accurately measured transects
-streamLight_info$bottom_width[3] = apply(kayak %>% filter(Site == "SfkEel_Miranda") %>%
+streamLight_info$bottom_width[3] = apply(kayak_sfkeel %>% filter(Site == "SfkEel_Miranda") %>%
                                            filter(Meas_Type == "Width") %>% 
                                            select(Width_m) %>% 
                                            na.omit(), 2,  mean)
-streamLight_info$bottom_width[4] = apply(kayak %>% filter(Site == "SfkEel_Standish") %>% 
-                                          filter(Meas_Type == "Width") %>% 
-                                          select(Width_m) %>% 
-                                          na.omit(), 2, mean)
+streamLight_info$bottom_width[4] = apply(kayak_sfkeel %>% filter(Site == "SfkEel_Standish") %>% 
+                                           filter(Meas_Type == "Width") %>% 
+                                           select(Width_m) %>% 
+                                           na.omit(), 2, mean)
 
 # russian
 streamLight_info$bottom_width[1] = apply(sontek %>% filter(depth_cm == 0) %>% 
@@ -237,22 +238,23 @@ streamLight_info$BH <- rep(0.1, 4)
 streamLight_info$BS <- rep(100, 4)
 streamLight_info$WL <- rep(0.1, 4)
 streamLight_info$overhang <- streamLight_info$TH * 0.1 # default is 10% of TH
-streamLight_info$overhand_height <- rep(NA, 4) # NA will assume 75% of TH
+streamLight_info$overhang_height <- rep(NA, 4) # NA will assume 75% of TH
 streamLight_info$X_LAD <- rep(1, 4)
 
 ## Run StreamLight model for each site
 
 # function to batch run models
-StreamLight_batch_models <- function(Site, driver_file, save_dir){
-  # get the model driver SHOULD CHANGE THIS
-  driver_file <- readRDS(paste(read_dir, "/", Site, "_driver.rds", sep = ""))
+StreamLight_batch_models <- function(site, driver_file, save_dir){
   
   # get model parameters for the site
-  site_p <- params[params[, "Site_ID"] == Site, ]
+  site_p <- streamLight_info[streamLight_info[, "Site_ID"] == site, ]
+  
+  # get specific site driver
+  site_driver <- driver_file[[site]]
   
   # run the model
   modeled <- stream_light(
-    driver_file, 
+    site_driver, #[site]? 
     Lat = site_p[, "Lat"], 
     Lon = site_p[, "Lon"],
     channel_azimuth = site_p[, "azimuth"], 
@@ -263,51 +265,34 @@ StreamLight_batch_models <- function(Site, driver_file, save_dir){
     TH = site_p[, "TH"], 
     overhang = site_p[, "overhang"],
     overhang_height = site_p[, "overhang_height"], 
-    x_LAD = site_p[, "x"]
+    x_LAD = site_p[, "X_LAD"]
   )
   
   # save the output
-  saveRDS(modeled, paste(save_dir, "/", Site, "_predicted.rds", sep = ""))
+  saveRDS(modeled, paste(save_dir, "/", site, "_predicted.rds", sep = ""))
   
+  # add object to list 
+  return(modeled)
 }
 
-# set directories
+# set save directory
+directory <- setwd("../../data/StreamLight")
 
-
-lapply(streamLight_info[,"Site_ID"], )
-
-# running model separately for now...
-streamLight_sfkeel_mir <- stream_light(SL_driver$sfkeel_mir, Lat = streamLight_info$Lat[2], 
-                                      Lon = streamLight_info$Lon[2], 
-                                      channel_azimuth = streamLight_info$azimuth[2],
-                                      bottom_width = mean(width_sfkeel_mir$Width_m),
-                                      BH = 0.1, # default
-                                      BS = 100, # default
-                                      WL = 0.1, # default- look into changing this?
-                                      TH = streamLight_info$TH[2],
-                                      overhang = streamLight_info$TH[2] * 0.1, # default
-                                      overhang_height = NA, # default
-                                      x_LAD = 1) # default
-
-# yay! success! just need to get it to run for them all at once!
-# will involve reordering table
-# also may investigate how changing the water depth changes the result
-
-#### TO DO :) FINISH STREAMLIGHT
-
+# apply function for all sites (confirmed code success by comparing with single site runs!)
+streamLight_processed <- lapply(streamLight_info[,"Site_ID"], function(x) StreamLight_batch_models(x, SL_driver, directory))
+names(streamLight_processed) <- site_names
 
 #### (5) Incorporating depth-discharge relationship ####
 
 ## russian 
 
 # using past relationship from transect of discharge measurement for now...
-RUS$depth <- (0.08601*RUS$discharge) + 0.31433
-russian_Q <- discharge$russian
-russian_Q$depth_m <- (0.08601*russian_Q$discharge_m3_s) + 0.31433
+discharge$russian$depth_m <- (0.08601 * discharge$russian$discharge_m3_s) + 0.31433
 
 ## salmon
 
 # using past relationship modeled with USGS channel cross-section data
+discharge$salmon$depth_m <- exp((0.32207 * log(discharge$salmon$discharge_m3_s)) - 1.03866)
 SAL$depth <- exp((0.32207*log(SAL$discharge)) - 1.03866)
 
 ## south fork eel @ miranda
