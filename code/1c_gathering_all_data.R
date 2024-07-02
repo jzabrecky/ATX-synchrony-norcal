@@ -13,7 +13,7 @@
 
 ## Loading necessary packages
 lapply(c("dataRetrieval", "lubridate", "plyr", "tidyverse", "StreamLight", "StreamLightUtils",
-         "zoo", "brms"), require, character.only = T)
+         "zoo"), require, character.only = T)
 
 ## if "StreamLight" & "StreamLightUtils" have not yet been downloaded...
 #devtools::install_github("psavoy/StreamLightUtils")
@@ -189,7 +189,7 @@ kayak_sfkeel <- read.csv("sfkeel_kayak_measurements.csv")
 sontek <- read.csv("russian_sontek_discharge.csv")
 
 # converting date as string to date object
-kayak_sfkeel$Date <- mdy(kayak$Date)
+kayak_sfkeel$Date <- mdy(kayak_sfkeel$Date)
 
 # pulling down date for russian sontek discharge data
 sontek <- sontek %>% 
@@ -284,6 +284,25 @@ names(streamLight_processed) <- site_names
 
 #### (5) Incorporating depth-discharge relationship ####
 
+# function to plot and visualize depth-discharge relationship
+Q_depth_plot <- function(x, y , model) {
+  ggplot() +
+    geom_point(aes(x = x, y = y), size = 3, color = "darkblue") + 
+    geom_abline(slope = model$coefficients[[2]], intercept = model$coefficients[[1]], size=1.5, 
+                color="skyblue", linetype = "dotted") +
+    xlab("Discharge (cms)")+
+    ylab("Depth (m)")+
+    theme_bw()
+}
+
+# function to clean discharge downloads
+edit_Q_depth_df <- function(data) {
+  new <- data %>% 
+    mutate(discharge_m3_s = X_00060_00003 / 35.31) %>% 
+    select(Date, depth_m, discharge_m3_s)
+  return(new)
+}
+
 ## russian 
 
 # using past relationship from transect of discharge measurement for now...
@@ -308,38 +327,45 @@ depth_Q_sfkeel_mir <- kayak_sfkeel %>%
 # getting daily discharge data and adding it to depth-discharge data frame
 depth_Q_sfkeel_mir <- left_join(depth_Q_sfkeel_mir, 
                                 readNWISdv("11476500", param, depth_Q_sfkeel_mir$Date[1], depth_Q_sfkeel_mir$Date[3]))
-
-# editing data frame and calculating discharge as cms
-depth_Q_sfkeel_mir <- depth_Q_sfkeel_mir %>% 
-  mutate(discharge_m3_s = X_00060_00003 / 35.31) %>% 
-  select(Date, depth_m, discharge_m3_s)
+depth_Q_sfkeel_mir <- edit_Q_depth_df(depth_Q_sfkeel_mir)
 
 # model relationship between depth and discharge 
-# depth ~ log(discharge) shows most linear relationship
-
-# use bayesian regression model
-
-#### LEFT OFF HERE-- reference Alice's code
-
+# log(depth) ~ log(discharge) shows most linear relationship
+# likely underestimates all but summer depths, but we are not modelling metabolism then
 # frequentist linear regression model
-test2 <- lm(depth_m ~ log(discharge_m3_s), data = depth_Q_sfkeel_mir)
-summary(test2)
+sfkeel_mir_lm <- lm(log(depth_m) ~ log(discharge_m3_s), data = depth_Q_sfkeel_mir)
+# having issues with brm divergent transitions so will stick with above
 
-# bayesian linear regression model
-brm(depth_m ~ log(discharge_m3_s), data = depth_Q_sfkeel_mir)
-# this alone is not 
+# plot relationship
+Q_depth_plot(log(depth_Q_sfkeel_mir$discharge_m3_s), log(depth_Q_sfkeel_mir$depth_m), sfkeel_mir_lm)
 
-# test plots
-plot(depth_Q_sfkeel_mir$depth_m, depth_Q_sfkeel_mir$discharge_m3_s)
-plot(log(depth_Q_sfkeel_mir$depth_m), log(depth_Q_sfkeel_mir$discharge_m3_s))
-plot(depth_Q_sfkeel_mir$depth_m, log(depth_Q_sfkeel_mir$discharge_m3_s))
-
-# NEED TO REPLACE THIS
-SFE$depth <- (0.13306*SFE$discharge) + 0.11178
-sfkeel_mir_Q <- discharge$sfkeel_mir
-sfkeel_mir_Q$depth <- (0.13306*sfkeel_mir_Q$discharge_m3_s) + 0.11178
+# use model to fill in depth on discharge plot NEED TO FIX THIS
+discharge$sfkeel_mir$depth_m <- exp(sfkeel_mir_lm$coefficients[[1]] + (log(discharge$sfkeel_mir[[2]]) * sfkeel_mir_lm$coefficients[[2]]))
 
 ## south fork eel @ standish hickey
+
+# calculating average depth per kayak run
+depth_Q_sfkeel_sth <- kayak_sfkeel %>% 
+  filter(Site == "SfkEel_Standish", Meas_Type == "Depth") %>% 
+  group_by(Date) %>%  # not seeing any weird transect issues here!
+  summarize(depth_m = mean(Depth_cm_final) / 100)
+# also makes sense that this site is as deep despite lower discharge-- more pools
+
+# getting daily discharge data and adding it to depth-discharge data frame
+depth_Q_sfkeel_sth <- left_join(depth_Q_sfkeel_sth, 
+                                readNWISdv("11475800", param, depth_Q_sfkeel_sth$Date[1], depth_Q_sfkeel_sth$Date[3]))
+depth_Q_sfkeel_sth <- edit_Q_depth_df(depth_Q_sfkeel_sth)
+
+# model relationship between depth and discharge
+# log(depth) ~ discharge shows most linear relationship
+# though not as good of a fit overall as miranda
+sfkeel_sth_lm <- lm(log(depth_m) ~ discharge_m3_s, data = depth_Q_sfkeel_sth)
+
+# plot relationship
+Q_depth_plot(depth_Q_sfkeel_sth$discharge_m3_s, log(depth_Q_sfkeel_sth$depth_m), sfkeel_sth_lm)
+
+# use model to fill in depth on discharge plot NEED TO FIX THIS
+discharge$sfkeel_sth$depth_m <- exp(sfkeel_sth_lm$coefficients[[1]] + (discharge$sfkeel_sth[[2]] * sfkeel_sth_lm$coefficients[[2]]))
 
 #### (6) Putting it all together ####
 
