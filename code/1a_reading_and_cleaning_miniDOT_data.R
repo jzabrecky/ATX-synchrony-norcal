@@ -9,7 +9,7 @@
 #### (1) Loading packages and reading in data #### 
 
 ## Loading necessary packages
-lapply(c("tidyverse","lubridate","data.table","here"),
+lapply(c("tidyverse","lubridate","data.table","here", "zoo"),
        require, character.only = T)
 
 ## Reading in data
@@ -410,6 +410,17 @@ miniDOT_list <- list(sfkeel_mir_2022_miniDOT, russian_2022_miniDOT, salmon_2022_
                      sfkeel_mir_2023_miniDOT, sfkeel_sth_2023_miniDOT, salmon_2023_miniDOT)
 names(miniDOT_list) <- c("sfkeel_mir_2022_miniDOT", "russian_2022_miniDOT", "salmon_2022_miniDOT", 
                          "sfkeel_mir_2023_miniDOT", "sfkeel_sth_2023_miniDOT", "salmon_2023_miniDOT")
+
+# making a function to change POSIXct column to character to avoid issue in some
+# versions of R where POSIXct drops the "00:00:00" / midnight time when saved to csv
+fix_time_issue <- function(df) {
+  new_df <- df %>% 
+    mutate(date_time = as.character(format(date_time))) %>% 
+  return(new_df)
+}
+
+# applying function to list
+miniDOT_list <- lapply(miniDOT_list, function(x) fix_time_issue(x))
 
 # saving csv's
 path <- paste(getwd(), "/data/miniDOT/", sep = "")
