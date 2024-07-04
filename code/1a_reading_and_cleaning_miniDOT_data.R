@@ -1,6 +1,6 @@
 #### miniDOT data aggregation and cleaning
 ### Jordan Zabrecky
-## last edited: 05.17.2024
+## last edited: 07.03.2024
 
 # This code pulls data from miniDOT text files and converts them into csv's.
 # Additionally this code adjusts the sensor time offset from PST, removes time when

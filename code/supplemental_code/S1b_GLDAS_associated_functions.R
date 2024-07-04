@@ -1,7 +1,7 @@
 #### functions associated with downloading and processing GLDAS data
 ### gathered & edited by Jordan Zabrecky
 ### past code authors... members of Blaszczak lab???
-## last edited 06.18.2024
+## last edited 07.04.2024
 
 # This code downloads data from GLDAS, stores it, and also
 # includes a function for processing and interpolating it

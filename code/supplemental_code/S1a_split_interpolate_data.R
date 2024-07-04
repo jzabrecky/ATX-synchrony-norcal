@@ -1,6 +1,6 @@
 #### data visualization for miniDOT data cleaning
 ### Jordan Zabrecky //Original code author unknown? (from Joanna Blaszczak)
-## last edited: 05.16.2024
+## last edited: 06.18.2024
 
 # This supporting code helps split and interpolate data to match 5-minute intervals 
 # of miniDOT data. This was modified by changing output date time field to be named

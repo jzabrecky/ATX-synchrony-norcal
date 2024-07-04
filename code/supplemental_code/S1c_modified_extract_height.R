@@ -1,6 +1,6 @@
 #### functions associated with downloading and processing GLDAS data
 ### edited from "StreamLight" Package by Jordan Zabrecky
-## last edited 05.20.2024
+## last edited 06.19.2024
 
 # This data modified the "extract_height" function from the "StreamLight" 
 # package to allow for use of a locally downloaded .asc file from 

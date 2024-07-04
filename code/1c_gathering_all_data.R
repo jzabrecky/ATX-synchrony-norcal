@@ -1,13 +1,13 @@
 #### gathering all data to model metabolism
 ### Jordan Zabrecky
-## last edited 05.20.2024
+## last edited 07.04.2024
 
 # This code gathers the necessary components for metabolism modeling
 # including the (1) cleaned miniDOT data from "1a_reading_and_cleaning_miniDOT_data.R",
 # (2) USGS gage discharge data, (3) GLDAS pressure data, 
-# (4) NLDAS light and MODIS leaf area index data using StreamLight, and 
-# (5) depth-discharge relationship information. In step (6) a final csv is 
-# created with all this information to be used to model metabolism in "1g_modeling_metabolism"
+# (4) surface light data using StreamLight, and depth-discharge relationship information. 
+# In step (6) a final csv is created with all this information to be used to 
+# model metabolism in "1d_modeling_metabolism"
 
 #### (1) Loading packages and reading in data #### 
 

@@ -1,11 +1,13 @@
-# R session & data files
+# ignore R session & data files
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
-# select data (GLDAS, NLDAS, etc.)
+# ignore select data folders (GLDAS, NLDAS, etc.)
 data/GLDAS/
 data/NLDAS/
 data/MODIS/
 data/misc_to_del/
 data/StreamLight/
+# ignore .rds files
+*.rds
