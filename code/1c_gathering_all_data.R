@@ -257,6 +257,9 @@ streamLight_info$X_LAD <- rep(1, nrow(streamLight_info))
 
 ## Run StreamLight model for each site
 
+# change working directory
+setwd("../StreamLight")
+
 # function to batch run models
 StreamLight_batch_models <- function(site, driver_file, save_dir){
   
@@ -290,7 +293,7 @@ StreamLight_batch_models <- function(site, driver_file, save_dir){
 }
 
 # set save directory
-directory <- setwd("../../data/StreamLight")
+directory <- getwd()
 
 # apply function for all sites (confirmed code success by comparing with single site runs!)
 streamLight_modeled <- lapply(streamLight_info[,"Site_ID"], function(x) StreamLight_batch_models(x, SL_driver, directory))
