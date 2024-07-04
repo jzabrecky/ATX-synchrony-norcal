@@ -65,7 +65,13 @@ GLDAS_proc <- function(read_dir, save_dir, Site, Lat, Lon, local_tz){
   # changing name of column
   library(tidyverse)
   final <- final %>%
-    rename(pressure_PA = pressure)
+    dplyr::rename(pressure_PA = pressure) %>% 
+    # avoid any midnight saving issues... save POSIXct as character
+    mutate(local_time_char = as.character(format(local_time)),
+           UTC_time_char = as.character(format(UTC_time))) %>% 
+    dplyr::select(UTC_time_char, local_time_char, pressure_PA) %>% 
+    dplyr::rename(UTC_time = UTC_time_char,
+           local_time = local_time_char)
   
   # writing the final output
   write.csv(final, paste(path, Site, "_GLDAS_pressurePA.csv", sep = ""), quote = FALSE, row.names = FALSE)
@@ -97,13 +103,13 @@ baro_make_df <- function(file_location, site, local_tz, supporting_path) {
   baro$date_time <- force_tz(baro$date_time, tzone = local_tz)
   
   # subsetting dataframe
-  baro <- baro[,c("date_time","pressure")]
+  baro <- baro[,c("date_time","pressure_PA")]
   
   ## split, interpolate, and convert
   # accessing other script for function
   source(paste(supporting_path, "S1a_split_interpolate_data.R", sep = ""))
   # creating filled time series
-  baro_5M <- create_filled_TS(baro, "5M", "pressure")
+  baro_5M <- create_filled_TS(baro, "5M", "pressure_PA")
   
   # convert pressure in Pa to mbar (input for streamMetabolizer)
   baro_5M$pressure_mbar<-baro_5M$Filled_Var/100

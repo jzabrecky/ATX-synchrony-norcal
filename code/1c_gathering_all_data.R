@@ -29,12 +29,21 @@ lapply(c("dataRetrieval", "lubridate", "plyr", "tidyverse", "StreamLight", "Stre
 ## Reading in miniDOT data
 miniDOT_data <- ldply(list.files(path = "./data/miniDOT/", pattern = "_miniDOT.csv"), function(filename) {
   d <- read.csv(paste("data/miniDOT/", filename, sep = ""))
-  d$file <- filename
+  d$site_year = filename %>% stringr::str_remove("_miniDOT.csv")
+  d$site = d$site_year %>% str_sub(end=-6)
   return(d)
 })
 
+# removing NAs 
+# (salmon 2022, 2023 & south fork eel @ sth 2023 have missing DO that we removed
+# due to biofouling, etc. , but we kept temperature since it seemed correct)
+miniDOT_data <- na.omit(miniDOT_data)
+
 # converting date_time from character to POSIXct class & indicate time zone
 miniDOT_data$date_time <- as_datetime(miniDOT_data$date_time, tz = "America/Los_Angeles")
+
+# separating large dataframe into a list of dataframes
+miniDOT_list <- split(miniDOT_data, miniDOT_data$site)
 
 #### (2) Retreiving USGS discharge data ####
 
@@ -182,6 +191,9 @@ for(i in 1:nrow(streamLight_info)) {
 # since the river was much higher in 2023 when we did the kayak run
 # but could also just maybe still use those widths because they may be more accurate?
 
+# add column to data frame
+streamLight_info$bottom_width = NA
+
 # read in data
 setwd("../depth_measurements")
 kayak_sfkeel <- read.csv("sfkeel_kayak_measurements.csv")
@@ -200,9 +212,11 @@ sontek$date <- mdy(sontek$date)
 # get rid of dplyr masking!!
 filter <- dplyr::filter
 select <- dplyr::select
+summarize <- dplyr::summarize
 
 # south fork eel @ miranda & standish hickey
 # use average width measurement across all accurately measured transects
+# just using numbers as indexing rather than names due to small amount of sites :)
 streamLight_info$bottom_width[3] = apply(kayak_sfkeel %>% filter(Site == "SfkEel_Miranda") %>%
                                            filter(Meas_Type == "Width") %>% 
                                            select(Width_m) %>% 
@@ -234,12 +248,12 @@ streamLight_info$azimuth <- c(135, 245, 330, 275)
 
 ## Bank height, bank slope, water level, overhang, overhang height, leaf angle distribution  
 ## (using defaults)
-streamLight_info$BH <- rep(0.1, 4)
-streamLight_info$BS <- rep(100, 4)
-streamLight_info$WL <- rep(0.1, 4)
+streamLight_info$BH <- rep(0.1, nrow(streamLight_info))
+streamLight_info$BS <- rep(100, nrow(streamLight_info))
+streamLight_info$WL <- rep(0.1, nrow(streamLight_info))
 streamLight_info$overhang <- streamLight_info$TH * 0.1 # default is 10% of TH
-streamLight_info$overhang_height <- rep(NA, 4) # NA will assume 75% of TH
-streamLight_info$X_LAD <- rep(1, 4)
+streamLight_info$overhang_height <- rep(NA, nrow(streamLight_info)) # NA will assume 75% of TH
+streamLight_info$X_LAD <- rep(1, nrow(streamLight_info))
 
 ## Run StreamLight model for each site
 
@@ -279,8 +293,22 @@ StreamLight_batch_models <- function(site, driver_file, save_dir){
 directory <- setwd("../../data/StreamLight")
 
 # apply function for all sites (confirmed code success by comparing with single site runs!)
-streamLight_processed <- lapply(streamLight_info[,"Site_ID"], function(x) StreamLight_batch_models(x, SL_driver, directory))
-names(streamLight_processed) <- site_names
+streamLight_modeled <- lapply(streamLight_info[,"Site_ID"], function(x) StreamLight_batch_models(x, SL_driver, directory))
+
+# adding appropriate names to streamLight data list
+names(streamLight_modeled) <- site_names
+
+# function to apply to list of modeled streamLight dataframes
+clean_streamLight <- function(df) {
+  df <- df %>% dplyr::rename(date_time = local_time)
+  new_df <- create_filled_TS(df, "5M", "PAR_surface") %>% 
+    dplyr::select(date_time, Filled_Var) %>% 
+    dplyr::rename(PAR_surface = Filled_Var)
+  return(new_df)
+}
+
+# applying function to dataframe list
+streamLight_processed <- lapply(streamLight_modeled, function(x) clean_streamLight(x))
 
 #### (5) Incorporating depth-discharge relationship ####
 
@@ -288,8 +316,8 @@ names(streamLight_processed) <- site_names
 Q_depth_plot <- function(x, y , model) {
   ggplot() +
     geom_point(aes(x = x, y = y), size = 3, color = "darkblue") + 
-    geom_abline(slope = model$coefficients[[2]], intercept = model$coefficients[[1]], size=1.5, 
-                color="skyblue", linetype = "dotted") +
+    geom_abline(slope = model$coefficients[[2]], intercept = model$coefficients[[1]], 
+                linewidth =1.5, color="skyblue", linetype = "dotted") +
     xlab("Discharge (cms)")+
     ylab("Depth (m)")+
     theme_bw()
@@ -317,9 +345,9 @@ discharge$salmon$depth_m <- exp((0.32207 * log(discharge$salmon$discharge_m3_s))
 
 # calculating average depth per kayak run
 depth_Q_sfkeel_mir <- kayak_sfkeel %>% 
-  filter(Site == "SfkEel_Miranda", Meas_Type == "Depth") %>% 
+  filter(Site == "SfkEel_Miranda", Meas_Type == "Depth") %>%
   filter(Transect != 18) %>% # removed transects 18 as first date was half depth of later two dates
-  filter(Transect != 5 & Transect != 12) %>% # removed transects 5 & 12 as first date was ~0.3 m lower than second date
+  filter(Transect != 5 & Transect != 12) %>%  # removed transects 5 & 12 as first date was ~0.3 m lower than second date
   # this may be either because our GPS was slightly off or differences when taking depths across transects between two different kayakers
   group_by(Date) %>% 
   summarize(depth_m = mean(Depth_cm_final) / 100)
@@ -369,62 +397,30 @@ discharge$sfkeel_sth$depth_m <- exp(sfkeel_sth_lm$coefficients[[1]] + (discharge
 
 #### (6) Putting it all together ####
 
-## this is quickly done to output a couple more metabolism estimates
-##
+# set working directory
+setwd("../metab_model_inputs")
 
+# create empty vector for all sites
+combined <- data.frame()
 
-### OLD- throw out later!!!
-NLDAS_formatting <- function(df){
-  
-  df$origin <- as.Date(paste0(df$Year, "-01-01"),tz = "UTC") - days(1) # this seems stupid
-  df$Date <- as.Date(df$DOY, origin = df$origin, tz = "UTC") 
-  df$DateTime_UTC <- lubridate::ymd_hms(paste(df$Date, " ", df$Hour, ":00:00"))
-  df <- df[,c("DateTime_UTC","SW")] #time zone clearly wrong
-  # adjust time zone
-  df$date_time <- with_tz(df$DateTime_UTC, tzone = "America/Los_Angeles")
-  
-  light <- df[,c("date_time","SW")]
-  
-  # Split, interpolate, and convert
-  light_5M <- create_filled_TS(light, "5M", "SW")
-  light_5M <- light_5M[,c("date_time","Filled_Var")]
-  colnames(light_5M) <- c("date_time","SW")
-  
-  return(light_5M)
-  
+# combine all into a single dataframe per site
+# can use indexing because all lists are in same site order
+for(i in 1:length(miniDOT_list)) {
+  single_site <- (list(miniDOT_list[[i]], discharge[[i]], GLDAS_processed[[i]], streamLight_processed[[i]])) %>% 
+    join_all(by = "date_time", type = "left")
+  combined <- rbind(combined, single_site)
 }
 
-NLDAS_sfkeel_mir <- NLDAS_formatting(NLDAS_processed$sfkeel_mir) %>% 
-  dplyr::filter(date_time <= "2022-10-01 00:00:00")
-attr(NLDAS_sfkeel_mir$date_time,"tzone")
-attr(sfkeel_mir_DO$date_time,"tzone") # this shouldn't be UTC
-attr(baro_sfkeel_mir$date_time, "tzone") # double check this is PST
-attr(sfkeel_mir_Q$date_time, "tzone")
-sfkeel_mir_DO <- miniDOT_data %>% 
-  dplyr::filter(file == "sfkeel_mir_2022_miniDOT.csv") %>% 
-  dplyr::select(date_time, Temp_C, DO_mgL)
-class(NLDAS_sfkeel_mir$date_time)
-class(sfkeel_mir_DO$date_time)
-sfkeelmir <- list(sfkeel_mir_DO, NLDAS_sfkeel_mir, baro_sfkeel_mir, sfkeel_mir_Q)
-sfkeelmir <- sfkeelmir %>% reduce(left_join, by = "date_time")
-anyNA(sfkeelmir) # yay!
+# checking for weirdness
+anyNA(combined) # no NAs!
+eval(nrow(combined) == nrow(miniDOT_data)) # we have all our original DO data!
 
-NLDAS_russian <- NLDAS_formatting(NLDAS_processed$russian)
-russian_DO <- miniDOT_data %>% 
-  dplyr::filter(file == "russian_2022_miniDOT.csv") %>% 
-  dplyr::select(date_time, Temp_C, DO_mgL)
-russian <- list(russian_DO, NLDAS_russian, baro_russian, russian_Q)
-russian <- russian %>% reduce(left_join, by = "date_time")
-anyNA(russian)
+# changing date_time to character to avoid any saving issues like before
+combined$date_time <- as.character(format(combined$date_time))
 
-# hopefully don't have 00:00:00 issue....
-class(sfkeelmir$date_time)
-attr(sfkeelmir$date_time, "tzone")
-class(russian$date_time)
-attr(russian$date_time, "tzone")
-getwd()
-setwd("..")
-write.csv(sfkeelmir, "data/metab_model_inputs/sfkeel_mir_2022_05232024.csv", row.names = FALSE)
-write.csv(russian, "data/metab_model_inputs/russian_2022_05232024.csv", row.names = FALSE)
-?write.csv()
-## MAY WANT TO CHANGE PRESSURE TO WHAT IS NEEDED FOR METAB EARL
+# making a list for each site_year
+final <- split(combined, combined$site_year)
+
+# saving csvs for metabolism model input
+lapply(names(final), function(x) write.csv(final[[x]], file = paste(x, "_modelinputs", ".csv", sep = ""), 
+                                           row.names = FALSE))
