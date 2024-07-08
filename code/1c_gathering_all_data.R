@@ -370,7 +370,7 @@ sfkeel_mir_lm <- lm(log(depth_m) ~ log(discharge_m3_s), data = depth_Q_sfkeel_mi
 # plot relationship
 Q_depth_plot(log(depth_Q_sfkeel_mir$discharge_m3_s), log(depth_Q_sfkeel_mir$depth_m), sfkeel_mir_lm)
 
-# use model to fill in depth on discharge plot NEED TO FIX THIS
+# use model to fill in depth on discharge plot
 discharge$sfkeel_mir$depth_m <- exp(sfkeel_mir_lm$coefficients[[1]] + (log(discharge$sfkeel_mir[[2]]) * sfkeel_mir_lm$coefficients[[2]]))
 
 ## south fork eel @ standish hickey
@@ -390,13 +390,14 @@ depth_Q_sfkeel_sth <- edit_Q_depth_df(depth_Q_sfkeel_sth)
 # model relationship between depth and discharge
 # log(depth) ~ discharge shows most linear relationship
 # though not as good of a fit overall as miranda
-sfkeel_sth_lm <- lm(log(depth_m) ~ discharge_m3_s, data = depth_Q_sfkeel_sth)
+# however, due to Leopold and Maddock (1953) hydraulic theory, we'll stick with log-log
+sfkeel_sth_lm <- lm(log(depth_m) ~ log(discharge_m3_s), data = depth_Q_sfkeel_sth)
 
 # plot relationship
-Q_depth_plot(depth_Q_sfkeel_sth$discharge_m3_s, log(depth_Q_sfkeel_sth$depth_m), sfkeel_sth_lm)
+Q_depth_plot(log(depth_Q_sfkeel_sth$discharge_m3_s), log(depth_Q_sfkeel_sth$depth_m), sfkeel_sth_lm)
 
 # use model to fill in depth on discharge plot NEED TO FIX THIS
-discharge$sfkeel_sth$depth_m <- exp(sfkeel_sth_lm$coefficients[[1]] + (discharge$sfkeel_sth[[2]] * sfkeel_sth_lm$coefficients[[2]]))
+discharge$sfkeel_sth$depth_m <- exp(sfkeel_sth_lm$coefficients[[1]] + (log(discharge$sfkeel_sth[[2]]) * sfkeel_sth_lm$coefficients[[2]]))
 
 #### (6) Putting it all together ####
 
