@@ -15,7 +15,7 @@ lapply(c("rstan", "StanHeaders", "streamMetabolizer", "tidyverse", "plyr"),
 # if "streamMetabolizer" is not downloaded, see documentation here for downloading:
 # https://github.com/DOI-USGS/streamMetabolizer
 
-## Reading in model input data
+## Reading in model input data (from starting working directory)
 model_inputs <- ldply(list.files(path = "./data/metab_model_inputs/", pattern = "modelinputs"), function(filename) {
   d <- read.csv(paste("data/metab_model_inputs/", filename, sep = ""))
   return(d)
@@ -57,14 +57,14 @@ metab_prep <- function(df) {
            # StreamLight gives us PAR in the appropriate units
            light = PAR_surface,
            discharge = discharge_m3_s) %>% 
-    select(solar.time, DO.obs, DO.sat, depth, temp.water, light, discharge)
+    dplyr::select(solar.time, DO.obs, DO.sat, depth, temp.water, light, discharge)
   return(new_df)
 }
 
 # apply function to dataframes
 inputs_prepped <- lapply(inputs_list, function(x) metab_prep(x))
 
-#### (3) Final visual check of inputs and then modelling metabolism ####
+#### (3) Modelling metabolism and saving & viewing outputs ####
 
 # function to visualize inputs 
 visualize_inputs <- function(df){
@@ -109,7 +109,7 @@ bayes_name_new <- mm_name(type='bayes', pool_K600="binned",
 bayes_specs_new <- specs(bayes_name_new) # may need to adjust in the future
 
 # function to easily save output data after model run
-writefiles <- function(data_fit, data_metab, subfolder, SiteID){
+write_files <- function(data_fit, data_metab, subfolder, SiteID){
   for (i in seq_along(data_fit)) {
     filename = paste(".", subfolder, SiteID, names(data_fit)[i], ".csv", sep="")
     write.csv(data_fit[[i]], filename)
@@ -123,9 +123,95 @@ writefiles <- function(data_fit, data_metab, subfolder, SiteID){
   saveRDS(data_metab, paste(".", subfolder, SiteID, "metab_obj.rds", sep=""))
 }
 
+# function to create plot of binning
+plot_binning <- function(site_fit, site_metab, title = NULL) {
+  SM_output <- site_fit$daily
+  SM_day <- get_data_daily(site_metab)
+  SM_KQbin <- site_fit$KQ_binned # date and time index NA?
+  SM_specs <- get_specs(site_metab)
+  
+  day <- data.frame(SM_day$discharge.daily, SM_output$K600_daily_50pct, rep('daily', dim(SM_output)[1]))
+  colnames(day)<-c('Q', 'K600', 'Group')
+  
+  nodes<-data.frame(exp(as.numeric(as.character(SM_specs$K600_lnQ_nodes_centers))), exp(SM_KQbin$lnK600_lnQ_nodes_50pct), rep('node', dim(SM_KQbin)[1]))
+  colnames(nodes)<-c('Q', 'K600', 'Group')
+  KQ_plot<-rbind(day,nodes)
+  
+  ggplot(data=KQ_plot, aes(x=log(Q), y=K600, group=Group, colour=Group)) + 
+    geom_point(size=3) +
+    #geom_line() + 
+    scale_color_manual(name="K-Q",
+                       breaks = c("daily", "node"),
+                       values=c("grey", "purple"),
+                       labels=c("Daily","Bin")) +
+    ylab("K600") +
+    xlab("logQ") +
+    ggtitle(title) +
+    theme_bw() +
+    theme(legend.position = "top")
+}
+
+# function to create plot of ER vs. K600
+plot_ER_K600 <- function(metab_fit, title) {
+  # get data from fit list
+  data <- metab_fit$daily
+
+  # make plot
+  ggplot(data = data, aes(x = ER_daily_mean, y = K600_daily_mean)) +
+    geom_point(color = "dodgerblue3", size = 3) +
+    ylab("K600 daily mean") +
+    xlab("ER daily mean") +
+    ggtitle(title) + 
+    theme_bw()
+}
+
+# function to create plot of K600 over time
+plot_K600 <- function(metab_fit, title) {
+  # get data from fit list
+  data <- metab_fit$daily
+  
+  # make plot
+  ggplot(data = data, aes(x = date, y = K600_daily_mean)) +
+    geom_point(color = "dodgerblue", size = 3) +
+    ylab("K600 daily mean") +
+    xlab("Date") +
+    ggtitle(title) +
+    theme_bw()
+}
+
 # set working directory
 setwd("data/metab_model_outputs")
 
 ## south fork eel @ miranda 2022
+
+# visualize_inputs
 visualize_inputs(inputs_prepped$sfkeel_mir_2022)
+
+# run model
 sfkeel_mir_2022 <- metab(bayes_specs_new, data = inputs_prepped$sfkeel_mir_2022)
+sfkeel_mir_2022_fit <- get_fit(sfkeel_mir_2022)
+
+# check warnings
+sfkeel_mir_2022_fit[["warnings"]]
+
+# check rhat for convergence
+sfkeel_mir_2022_fit$overall %>%
+  dplyr::select(ends_with('Rhat'))
+
+# save files
+write_files(sfkeel_mir_2022_fit, sfkeel_mir_2022, "/sfkeel_mir_2022/20240708/", 
+            "sfkeel_mir_2022")
+
+# visualizing outputs
+plot_binning(sfkeel_mir_2022_fit, sfkeel_mir_2022, 
+             title = "South Fork Eel @ Miranda, 2022")
+plot_metab_preds(predict_metab(sfkeel_mir_2022))
+plot_DO_preds(predict_DO(sfkeel_mir_2022))
+plot_ER_K600(sfkeel_mir_2022_fit, title = "South Fork Eel @ Miranda, 2022")
+plot_K600(sfkeel_mir_2022_fit, title = "South Fork Eel @ Miranda, 2022")
+
+# K600 and ER correlation test
+cor.test(sfkeel_mir_2022_fit$daily$K600_daily_mean, sfkeel_mir_2022_fit$daily$ER_daily_mean)
+
+# remove large .rmd before starting next model (to avoid R crashing)
+rm(sfkeel_mir_2022)

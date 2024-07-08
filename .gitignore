@@ -9,5 +9,7 @@ data/NLDAS/
 data/MODIS/
 data/misc_to_del/
 data/StreamLight/
-# ignore .rds files
+data/metab_model_inputs/old_to_delete
+# ignore .rds and .png files
 *.rds
+*.png
