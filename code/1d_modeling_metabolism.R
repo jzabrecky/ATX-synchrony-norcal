@@ -106,7 +106,8 @@ visualize_inputs <- function(df){
 bayes_name_new <- mm_name(type='bayes', pool_K600="binned",
                           err_obs_iid=TRUE, err_proc_iid = TRUE,
                           ode_method = "trapezoid", deficit_src='DO_mod', engine='stan')
-bayes_specs_new <- specs(bayes_name_new) # may need to adjust in the future
+bayes_specs_new <- specs(bayes_name_new, burnin_steps = 1000, saved_steps = 1000,
+                         thin_steps = 2) # trying to go for more iterations?
 
 # function to easily save output data after model run
 write_files <- function(data_fit, data_metab, subfolder, SiteID){
@@ -199,7 +200,7 @@ sfkeel_mir_2022_fit$overall %>%
   dplyr::select(ends_with('Rhat'))
 
 # save files
-write_files(sfkeel_mir_2022_fit, sfkeel_mir_2022, "/sfkeel_mir_2022/20240708/", 
+write_files(sfkeel_mir_2022_fit, sfkeel_mir_2022, "/sfkeel_mir_2022/20240709/", 
             "sfkeel_mir_2022")
 
 # visualizing outputs

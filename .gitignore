@@ -10,6 +10,8 @@ data/MODIS/
 data/misc_to_del/
 data/StreamLight/
 data/metab_model_inputs/old_to_delete
+# for now, while doing diagnostics
+data/metab_model_outputs/
 # ignore .rds and .png files
 *.rds
 *.png
