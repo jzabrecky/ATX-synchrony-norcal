@@ -102,13 +102,6 @@ visualize_inputs <- function(df){
   print(othervar_plots)
 }
 
-# setting bayesian model specifications
-bayes_name_new <- mm_name(type='bayes', pool_K600="binned",
-                          err_obs_iid=TRUE, err_proc_iid = TRUE,
-                          ode_method = "trapezoid", deficit_src='DO_mod', engine='stan')
-bayes_specs_new <- specs(bayes_name_new, burnin_steps = 1000, saved_steps = 1000,
-                         thin_steps = 2) # trying to go for more iterations?
-
 # function to easily save output data after model run
 write_files <- function(data_fit, data_metab, subfolder, SiteID){
   for (i in seq_along(data_fit)) {
@@ -185,15 +178,44 @@ setwd("data/metab_model_outputs")
 
 ## south fork eel @ miranda 2022
 
+# USING A SUBSET FOR NOW
+test <- inputs_prepped$sfkeel_mir_2022_barochange %>% 
+  dplyr::filter(solar.time >= "2022-08-01 00:00:00" & solar.time <= "2022-08-05 00:00:00")
+
 # visualize_inputs
 visualize_inputs(inputs_prepped$sfkeel_mir_2022)
 
+# setting model specs
+# setting bayesian model specifications
+bayes_name_sfkeel_mir_2022 <- mm_name(type='bayes', pool_K600="binned",
+                                      err_obs_iid=TRUE, err_proc_iid = TRUE,
+                                      ode_method = "trapezoid", deficit_src='DO_mod', engine='stan')
+bayes_specs_sfkeel_mir_2022 <- specs(bayes_name_sfkeel_mir_2022, burnin_steps = 1000, saved_steps = 3000,
+                                     thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)# trying to go for more iterations?
+
+bayes_specs_sfkeel_mir_2022
+
+# changing to fit range of log(Q) for site
+bayes_specs_sfkeel_mir_2022$K600_lnQ_nodes_centers <- c(-1.5, -1, -.5, 0, .5, 1, 1.5)
+bayes_specs_sfkeel_mir_2022$K600_lnQ_nodediffs_sdlog <- 0.5 / 2  # need to change for centers .5 apart rather than 1
+
+# TEST MODEL
+test_week_bayes_barochange <- metab(bayes_specs_sfkeel_mir_2022, data = test)
+test_week_bayes_barochange_fit <- get_fit(test_week_bayes_barochange)
+
 # run model
-sfkeel_mir_2022 <- metab(bayes_specs_new, data = inputs_prepped$sfkeel_mir_2022)
+sfkeel_mir_2022 <- metab(bayes_specs_sfkeel_mir_2022, data = inputs_prepped$sfkeel_mir_2022)
 sfkeel_mir_2022_fit <- get_fit(sfkeel_mir_2022)
 
 # check warnings
 sfkeel_mir_2022_fit[["warnings"]]
+test_week_bayes_fit[["warnings"]]
+test_week_bayes_barochange[["warnings"]]
+
+# inspect MCMC chain
+rstan::traceplot(get_mcmc(test_week_bayes), pars='GPP_daily', nrow=3)
+rstan::traceplot(get_mcmc(test_week_bayes), pars='ER_daily', nrow=3)
+rstan::traceplot(get_mcmc(test_week_bayes), pars='K600_daily', nrow=3)
 
 # check rhat for convergence
 sfkeel_mir_2022_fit$overall %>%
@@ -203,16 +225,126 @@ sfkeel_mir_2022_fit$overall %>%
 write_files(sfkeel_mir_2022_fit, sfkeel_mir_2022, "/sfkeel_mir_2022/20240709/", 
             "sfkeel_mir_2022")
 
+write_files(test_week_bayes_fit, test_week_bayes, "/sfkeel_mir_2022/week_test/20240709/",
+            "sfkeel_mir_2022")
+
 # visualizing outputs
 plot_binning(sfkeel_mir_2022_fit, sfkeel_mir_2022, 
              title = "South Fork Eel @ Miranda, 2022")
 plot_metab_preds(predict_metab(sfkeel_mir_2022))
-plot_DO_preds(predict_DO(sfkeel_mir_2022))
+plot_DO_preds(predict_DO(sfkeel_mir_2022, date_start = "2022-08-01", date_end = "2022-08-03"))
 plot_ER_K600(sfkeel_mir_2022_fit, title = "South Fork Eel @ Miranda, 2022")
 plot_K600(sfkeel_mir_2022_fit, title = "South Fork Eel @ Miranda, 2022")
+
+plot_DO_preds(predict_DO(test_week_bayes))
+plot_ER_K600(test_week_bayes_fit, title = "South Fork Eel @ Miranda, 2022")
 
 # K600 and ER correlation test
 cor.test(sfkeel_mir_2022_fit$daily$K600_daily_mean, sfkeel_mir_2022_fit$daily$ER_daily_mean)
 
 # remove large .rmd before starting next model (to avoid R crashing)
 rm(sfkeel_mir_2022)
+rm(test_week_bayes)
+test_week_bayes <- readRDS("sfkeel_mir_2022/week_test/20240709/sfkeel_mir_2022metab_obj.rds")
+
+### misc. plots to test
+
+# DO data
+lims <- as.POSIXct(strptime(c("2022-08-01 00:00", "2022-08-03 00:00"), 
+                            format = "%Y-%m-%d %H:%M"))
+# metab prepped
+ggplot(data = inputs_prepped$sfkeel_mir_2022, aes(x = solar.time, y = temp.water)) +
+  scale_x_datetime(limits = lims) +
+  geom_point(color = "blue")
+ggplot(data = inputs_prepped$sfkeel_mir_2022, aes(x = solar.time, y = DO.obs)) +
+  scale_x_datetime(limits = lims) +
+  geom_point(color = "green")
+ggplot(data = inputs_prepped$sfkeel_mir_2022, aes(x = solar.time, y = light)) +
+  scale_x_datetime(limits = lims) +
+  geom_point(color = "red")
+ggplot(data = inputs_list$sfkeel_mir_2022, aes(x = date_time, y = Temp_C)) +
+  scale_x_datetime(limits = lims) +
+  geom_point()
+
+# same plot
+stupid <- inputs_prepped$sfkeel_mir_2022 %>% 
+  mutate(streamLight = light / 50) %>% 
+  dplyr::select(solar.time, temp.water, DO.obs, streamLight) %>% 
+  dplyr::filter(solar.time >= "2022-08-01 00:00" & solar.time <= "2022-08-03 00:00")
+
+stupid <- stupid %>% 
+  pivot_longer(cols = 2:4, names_to = "type", values_to = "value")
+
+ggplot(data = stupid, aes(x = solar.time, y = value, color = type)) +
+  geom_point() +
+  scale_color_manual(values = c("green", "red", "blue")) +
+  scale_y_continuous(sec.axis = sec_axis(~ . * 50, name = "streamLight axis"))
+
+
+# looking at old with just NLDAS
+old_sfkeel <- read.csv("R:/Blaszczak_Lab/Ongoing Projects/JMZ/metabolism-norcal-2022-23/data/model_inputs/sfkeel_mir_2022_05232024.csv")
+old_sfkeel$date_time <- as.POSIXct(old_sfkeel$date_time, format = "%Y-%m-%d %H:%M:%S", 
+                                   tz= "America/Los_Angeles")
+
+old_prep <- function(df, longitude) {
+  # function from "streamMetabolizer" to calculate solar time
+  df$solar.time <- calc_solar_time(df$date_time, longitude = longitude) # CHECK THAT THIS IS PST AND NOT UTC
+  # need to calculate mbar for "calc_DO_sat()" function from "streamMetabolizer"
+  df$mbar <- df$pressure_mmHg * 1.33322 # SHOULD CALCULATE MBAR FROM PA OF GLDAS!!!
+  df$DO.sat <- calc_DO_sat(temp.water = df$Temp_C, pressure.air = df$mbar,
+                           salinity.water = 0, model = "garcia-benson")
+  # renaming columns to match "streamMetabolizer" inputs and selecting only those needed
+  df <- df %>% 
+    dplyr::rename(DO.obs = DO_mgL, depth = depth, temp.water = Temp_C, light = SW,
+                  discharge = discharge_m3_s) %>% 
+    dplyr::select(solar.time, DO.obs, DO.sat, depth, temp.water, light, discharge)
+  
+  return(df)
+}
+
+test <- old_prep(old_sfkeel, -123.775930)
+
+ggplot(data = test, aes(x = solar.time, y = light)) +
+  scale_x_datetime(limits = lims) +
+  geom_point(color = "red") +
+  ggtitle("NLDAS only (no streamLight")
+
+#### TEST EXAMPLE FROM PACKAGE
+dat <- data_metab(num_days='3', res='15', day_start=4, day_end=28)
+bayes_name <- mm_name(type='bayes', pool_K600='none', err_obs_iid=TRUE, err_proc_iid=TRUE)
+bayes_name
+bayes_specs <- specs(bayes_name)
+bayes_specs
+
+bayes_specs <- revise(bayes_specs, burnin_steps=100, saved_steps=200, n_cores=1, GPP_daily_mu=3, GPP_daily_sigma=2)
+mm <- metab(bayes_specs, data=dat)
+mm
+predict_metab(mm)
+plot_metab_preds(mm)
+get_params(mm)
+predict_DO(mm) %>% head()
+plot_DO_preds(mm)
+mcmc <- get_mcmc(mm)
+rstan::traceplot(mcmc, pars='K600_daily', nrow=3)
+
+### AN ASIDE- barometer test
+extech <- read.csv("data/local_pressure/extech_2022.csv")
+extech <- extech %>% 
+  mutate(river = substr(site, start = 1, stop = 3)) %>% 
+  dplyr::filter(river == "EEL") %>% 
+  mutate(pressure_mbar_extech = pressure_mmHg * 1.33)
+
+extech$date_time <- mdy_hm(paste(extech$date_time, extech$time))
+view(inputs_list$sfkeel_mir_2022)
+test <- inputs_list$sfkeel_mir_2022 %>% 
+  mutate(pressure_mbar_GLDAS = pressure_mbar) %>% 
+  dplyr::select(date_time, pressure_mbar_GLDAS)
+
+both_pressures <- merge(extech, test, by = "date_time")
+plot(both_pressures$pressure_mbar_extech, both_pressures$pressure_mbar_GLDAS)
+
+cor.test(both_pressures$pressure_mbar_extech, both_pressures$pressure_mbar_GLDAS)
+
+relationship <- lm(pressure_mbar_extech ~ pressure_mbar_GLDAS, data = both_pressures)
+inputs_list$sfkeel_mir_2022_barochange <- inputs_list$sfkeel_mir_2022
+inputs_list$sfkeel_mir_2022_barochange$pressure_mbar <- relationship$coefficients[1] + (relationship$coefficients[2] * inputs_list$sfkeel_mir_2022_barochange$pressure_mbar)
