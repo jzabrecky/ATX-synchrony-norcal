@@ -15,6 +15,11 @@
 lapply(c("dataRetrieval", "lubridate", "plyr", "tidyverse", "StreamLight", "StreamLightUtils",
          "zoo"), require, character.only = T)
 
+# get rid of any dplyr masking!
+filter <- dplyr::filter
+select <- dplyr::select
+summarize <- dplyr::summarize
+
 ## if "StreamLight" & "StreamLightUtils" have not yet been downloaded...
 #devtools::install_github("psavoy/StreamLightUtils")
 #devtools::install_github("psavoy/StreamLight")
@@ -70,7 +75,7 @@ clean_discharge <- function(df) {
   df <- df %>% mutate(date_time = as_datetime(dateTime, tz = "America/Los_Angeles"))
   new_df <- create_filled_TS(df, "5M", "X_00060_00000") %>% 
     mutate(discharge_m3_s = Filled_Var / 35.31) %>% 
-    dplyr::select(date_time, discharge_m3_s)
+    select(date_time, discharge_m3_s)
   return(new_df)
 }
 
@@ -102,6 +107,101 @@ baro_dwld_processing("sfkeel_sth", 39.876268, -123.727924, "2023-06-15",
 # making 5-min interpolated data frames
 GLDAS_processed <- lapply(site_names, function(x) baro_make_df(path, x, "America/Los_Angeles", supporting))
 names(GLDAS_processed) <- site_names # adding names to list
+
+# our local point-measures of barometry are slightly different, likely because GLDAS is coarse
+# and we are in a mountainous area, so we will adjust the GLDAS data with these measurements
+
+# reading in extech local barometric pressure data
+extech_data <- ldply(list.files(path = "./data/local_pressure", pattern = ".csv"), function(filename) {
+  df <- read.csv(paste("data/local_pressure/", filename, sep = ""))
+  new_df <- df %>% 
+    mutate(river = substr(site, start = 1, stop = 3),
+           date_time = mdy_hm(paste(date, time), tz = "America/Los_Angeles"),
+           year = year(date_time),
+           pressure_mbar_extech = pressure_mmHg * 1.333) %>% 
+    na.omit() %>% 
+    select(date_time, year, river, site, pressure_mbar_extech)
+})
+
+# to preserve processed data, will make a new list
+GLDAS_adjusted <- GLDAS_processed
+
+## russian
+
+# get russian data and merge with GLDAS processed data
+extech_russian <- extech_data %>% 
+  filter(river == "RUS")
+extech_russian <- merge(extech_russian, GLDAS_processed$russian)
+
+# visualize data and test correlation
+plot(extech_russian$pressure_mbar, extech_russian$pressure_mbar_extech)
+cor.test(extech_russian$pressure_mbar_extech, extech_russian$pressure_mbar) # highly correlated!
+
+# linear regression model
+mbar_lm_russian <- lm(pressure_mbar_extech ~ pressure_mbar, data = extech_russian)
+
+# applying regression model to adjusted data list
+GLDAS_adjusted$russian$pressure_mbar <- mbar_lm_russian$coefficients[1] + 
+  (GLDAS_processed$russian$pressure_mbar * mbar_lm_russian$coefficients[2])
+
+## salmon
+
+# get salmon data and merge with GLDAS processed data
+extech_salmon <- extech_data %>% 
+  filter(river == "SAL")
+extech_salmon <- merge(extech_salmon, GLDAS_processed$salmon)
+
+# visualize data and test correlation
+plot(extech_salmon$pressure_mbar, extech_salmon$pressure_mbar_extech)
+cor.test(extech_salmon$pressure_mbar_extech, extech_salmon$pressure_mbar) # highly correlated!
+
+# linear regression model
+mbar_lm_salmon <- lm(pressure_mbar_extech ~ pressure_mbar, data = extech_salmon)
+
+# applying regression model to adjusted data list
+GLDAS_adjusted$salmon$pressure_mbar <- mbar_lm_salmon$coefficients[1] + 
+  (GLDAS_processed$salmon$pressure_mbar * mbar_lm_salmon$coefficients[2]) 
+
+## south fork eel @ miranda
+
+# get miranda data and merge with GLDAS processed data
+extech_sfkeel_mir <- extech_data %>% 
+  filter(site != "EEL-STH" & river == "EEL")
+extech_sfkeel_mir <- merge(extech_sfkeel_mir, GLDAS_processed$sfkeel_mir)
+
+# visualize data and test correlation
+plot(extech_sfkeel_mir$pressure_mbar, extech_sfkeel_mir$pressure_mbar_extech)
+
+# appears to be a massive outlier highly dissimilar from observations before and after
+# on same day-- likely a tired field work typo
+extech_sfkeel_mir <- extech_sfkeel_mir[-which(extech_sfkeel_mir$pressure_mbar_extech == max(extech_sfkeel_mir$pressure_mbar_extech)),]
+
+cor.test(extech_sfkeel_mir$pressure_mbar_extech, extech_sfkeel_mir$pressure_mbar) # highly correlated!
+
+# linear regression model
+mbar_lm_sfkeel_mir <- lm(pressure_mbar_extech ~ pressure_mbar, data = extech_sfkeel_mir)
+
+# applying regression model to adjusted data list
+GLDAS_adjusted$sfkeel_mir$pressure_mbar <- mbar_lm_sfkeel_mir$coefficients[1] + 
+  (GLDAS_processed$sfkeel_mir$pressure_mbar * mbar_lm_sfkeel_mir$coefficients[2])
+
+## south fork eel @ standish hickey
+
+# get standish hickey data and merge with GLDAS processed data
+extech_sfkeel_sth <- extech_data %>% 
+  filter(site == "EEL-STH")
+extech_sfkeel_sth <- merge(extech_sfkeel_sth, GLDAS_processed$sfkeel_sth)
+
+# visualize data and test correlation
+plot(extech_sfkeel_sth$pressure_mbar, extech_sfkeel_sth$pressure_mbar_extech)
+cor.test(extech_sfkeel_sth$pressure_mbar_extech, extech_sfkeel_sth$pressure_mbar) # highly correlated!
+
+# linear regression model
+mbar_lm_sfkeel_sth <- lm(pressure_mbar_extech ~ pressure_mbar, data = extech_sfkeel_sth)
+
+# applying regression model to adjusted data list
+GLDAS_adjusted$sfkeel_sth$pressure_mbar <- mbar_lm_sfkeel_sth$coefficients[1] + 
+  (GLDAS_processed$sfkeel_sth$pressure_mbar * mbar_lm_sfkeel_sth$coefficients[2])
 
 #### (4) Gathering NLDAS light data & MODIS leaf area index using "StreamLight" package ####
 
@@ -209,11 +309,6 @@ sontek <- sontek %>%
   fill(date, .direction = "down") # pull down the date
 sontek$date <- mdy(sontek$date)
 
-# get rid of dplyr masking!!
-filter <- dplyr::filter
-select <- dplyr::select
-summarize <- dplyr::summarize
-
 # south fork eel @ miranda & standish hickey
 # use average width measurement across all accurately measured transects
 # just using numbers as indexing rather than names due to small amount of sites :)
@@ -303,10 +398,10 @@ names(streamLight_modeled) <- site_names
 
 # function to apply to list of modeled streamLight dataframes
 clean_streamLight <- function(df) {
-  df <- df %>% dplyr::rename(date_time = local_time)
+  df <- df %>% rename(date_time = local_time)
   new_df <- create_filled_TS(df, "5M", "PAR_surface") %>% 
-    dplyr::select(date_time, Filled_Var) %>% 
-    dplyr::rename(PAR_surface = Filled_Var)
+    select(date_time, Filled_Var) %>% 
+    rename(PAR_surface = Filled_Var)
   return(new_df)
 }
 
@@ -410,7 +505,7 @@ combined <- data.frame()
 # combine all into a single dataframe per site
 # can use indexing because all lists are in same site order
 for(i in 1:length(miniDOT_list)) {
-  single_site <- (list(miniDOT_list[[i]], discharge[[i]], GLDAS_processed[[i]], streamLight_processed[[i]])) %>% 
+  single_site <- (list(miniDOT_list[[i]], discharge[[i]], GLDAS_adjusted[[i]], streamLight_processed[[i]])) %>% 
     join_all(by = "date_time", type = "left")
   combined <- rbind(combined, single_site)
 }

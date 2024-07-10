@@ -1,4 +1,4 @@
-date_time,time,site,pressure_mmHg
+date,time,site,pressure_mmHg
 6/24/2022,18:00,RUS-4S,749.2
 6/27/2022,10:30,SAL-4S,749.5
 6/27/2022,14:30,SAL-2UP,746.8
