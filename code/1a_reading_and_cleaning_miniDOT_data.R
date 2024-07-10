@@ -9,8 +9,13 @@
 #### (1) Loading packages and reading in data #### 
 
 ## Loading necessary packages
-lapply(c("tidyverse","lubridate","data.table","here", "zoo"),
+lapply(c("tidyverse","lubridate","data.table","here", "zoo", "dplyr"),
        require, character.only = T)
+
+# get rid of any potential masking!
+select <- dplyr::select
+filter <- dplyr::filter
+rename <- dplyr::rename
 
 ## Reading in data
 
@@ -155,7 +160,7 @@ sfkeel_mir_2023_cleaning <- sfkeel_mir_2023_cleaning %>%
   filter(date_time <= "2023-06-25 10:45:00" | date_time >= "2023-06-25 11:55:00") %>% 
   filter(date_time <= "2023-07-03 11:55:00" | date_time >= "2023-07-03 12:30:00") %>% 
   filter(date_time <= "2023-07-10 09:20:00" | date_time >= "2023-07-10 09:50:00") %>% 
-  filter(date_time <= "2023-07-17 11:26:00" | date_time >= "2023-07-17 12:05:00") %>% 
+  filter(date_time <= "2023-07-17 11:26:00" | date_time >= "2023-07-17 12:05:00") %>%
   filter(date_time <= "2023-07-24 10:56:00" | date_time >= "2023-07-24 11:45:00") %>% 
   filter(date_time <= "2023-07-31 10:26:00" | date_time >= "2023-07-31 10:57:00") %>% 
   filter(date_time <= "2023-08-07 10:25:00" | date_time >= "2023-08-07 10:55:00") %>% 
@@ -175,7 +180,7 @@ sfkeel_sth_2023_cleaning <- sfkeel_sth_2023_cleaning %>%
   filter(date_time <= "2023-06-25 18:10:00" | date_time >= "2023-06-25 18:15:00") %>% # moved brick further out
   filter(date_time <= "2023-07-03 08:35:00" | date_time >= "2023-07-03 09:20:00") %>% 
   filter(date_time <= "2023-07-11 09:35:00" | date_time >= "2023-07-11 10:00:00") %>% 
-  filter(date_time <= "2023-07-17 08:34:00" | date_time >= "2023-07-17 09:10:00") %>% 
+  filter(date_time <= "2023-07-17 08:34:00" | date_time >= "2023-07-17 09:10:00") %>% # forgot to turn DO sensor on this week 
   filter(date_time <= "2023-07-24 18:42:00" | date_time >= "2023-07-24 19:07:00") %>% 
   filter(date_time <= "2023-07-31 08:01:00" | date_time >= "2023-07-31 08:31:00") %>% 
   filter(date_time <= "2023-08-07 07:45:00" | date_time >= "2023-08-07 08:20:00") %>% 
@@ -345,6 +350,14 @@ sfkeel_sth_2023_cleaning <- interpolate_temp(sfkeel_sth_2023_cleaning)
 sfkeel_sth_2023_cleaning_DO <- interpolate_DO(sfkeel_sth_2023_cleaning_DO)
 salmon_2023_cleaning <- interpolate_temp(salmon_2023_cleaning)
 salmon_2023_cleaning_DO <- interpolate_DO(salmon_2023_cleaning_DO)
+
+# for standish hickey, we have a week period where we were missing data, so we need
+# to remove interpolation from then
+sfkeel_sth_2023_cleaning <- sfkeel_sth_2023_cleaning %>% 
+  filter(date_time <= "2023-07-17 11:26:00" | date_time >= "2023-07-24 19:07:00")
+sfkeel_sth_2023_cleaning_DO <- sfkeel_sth_2023_cleaning_DO %>% 
+  filter(date_time <= "2023-07-17 11:26:00" | date_time >= "2023-07-24 19:07:00")
+  
 
 ## (c) removing longer periods of biofouling, bad data, etc. that cannot be interpolated
 
