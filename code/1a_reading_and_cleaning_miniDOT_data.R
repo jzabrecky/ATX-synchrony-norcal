@@ -1,6 +1,6 @@
 #### miniDOT data aggregation and cleaning
 ### Jordan Zabrecky
-## last edited: 07.03.2024
+## last edited: 07.10.2024
 
 # This code pulls data from miniDOT text files and converts them into csv's.
 # Additionally this code adjusts the sensor time offset from PST, removes time when
@@ -358,7 +358,6 @@ sfkeel_sth_2023_cleaning <- sfkeel_sth_2023_cleaning %>%
 sfkeel_sth_2023_cleaning_DO <- sfkeel_sth_2023_cleaning_DO %>% 
   filter(date_time <= "2023-07-17 11:26:00" | date_time >= "2023-07-24 19:07:00")
   
-
 ## (c) removing longer periods of biofouling, bad data, etc. that cannot be interpolated
 
 # south fork eel @ miranda 2022
