@@ -184,14 +184,15 @@ test <- inputs_prepped$sfkeel_mir_2022_barochange %>%
 
 # visualize_inputs
 visualize_inputs(inputs_prepped$sfkeel_mir_2022)
+visualize_inputs(test)
 
 # setting model specs
 # setting bayesian model specifications
 bayes_name_sfkeel_mir_2022 <- mm_name(type='bayes', pool_K600="binned",
                                       err_obs_iid=TRUE, err_proc_iid = TRUE,
                                       ode_method = "trapezoid", deficit_src='DO_mod', engine='stan')
-bayes_specs_sfkeel_mir_2022 <- specs(bayes_name_sfkeel_mir_2022, burnin_steps = 1000, saved_steps = 3000,
-                                     thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)# trying to go for more iterations?
+bayes_specs_sfkeel_mir_2022 <- specs(bayes_name_sfkeel_mir_2022, burnin_steps = 1000, saved_steps = 5000,
+                                     thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10) # trying to go for more iterations?
 
 bayes_specs_sfkeel_mir_2022
 
@@ -210,7 +211,7 @@ sfkeel_mir_2022_fit <- get_fit(sfkeel_mir_2022)
 # check warnings
 sfkeel_mir_2022_fit[["warnings"]]
 test_week_bayes_fit[["warnings"]]
-test_week_bayes_barochange[["warnings"]]
+test_week_bayes_barochange_fit[["warnings"]]
 
 # inspect MCMC chain
 rstan::traceplot(get_mcmc(test_week_bayes), pars='GPP_daily', nrow=3)
@@ -238,6 +239,8 @@ plot_K600(sfkeel_mir_2022_fit, title = "South Fork Eel @ Miranda, 2022")
 
 plot_DO_preds(predict_DO(test_week_bayes))
 plot_ER_K600(test_week_bayes_fit, title = "South Fork Eel @ Miranda, 2022")
+
+plot_DO_preds(predict_DO(test_week_bayes_barochange))
 
 # K600 and ER correlation test
 cor.test(sfkeel_mir_2022_fit$daily$K600_daily_mean, sfkeel_mir_2022_fit$daily$ER_daily_mean)
@@ -348,3 +351,96 @@ cor.test(both_pressures$pressure_mbar_extech, both_pressures$pressure_mbar_GLDAS
 relationship <- lm(pressure_mbar_extech ~ pressure_mbar_GLDAS, data = both_pressures)
 inputs_list$sfkeel_mir_2022_barochange <- inputs_list$sfkeel_mir_2022
 inputs_list$sfkeel_mir_2022_barochange$pressure_mbar <- relationship$coefficients[1] + (relationship$coefficients[2] * inputs_list$sfkeel_mir_2022_barochange$pressure_mbar)
+
+### trial with sfk eel mir 2023 data 
+
+# subset after running above code
+subset2023 <- inputs_prepped$sfkeel_mir_2023 %>% 
+  dplyr::filter(solar.time >= "2023-07-15 00:00:00" & solar.time <= "2023-07-23 00:00:00")
+
+# visualize inputs
+visualize_inputs(subset2023)
+
+# specs
+bayes_name_sfkeel_mir_2023 <- mm_name(type='bayes', pool_K600="binned",
+                                      err_obs_iid=TRUE, err_proc_iid = TRUE,
+                                      ode_method = "trapezoid", deficit_src='DO_mod', engine='stan')
+bayes_specs_sfkeel_mir_2023 <- specs(bayes_name_sfkeel_mir_2023, burnin_steps = 1000, saved_steps = 5000,
+                                     thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)# trying to go for more iterations?
+
+# trial
+sfkeel_mir_2023 <- metab(bayes_specs_sfkeel_mir_2023, data = subset2023)
+sfkeel_mir_2023_fit <- get_fit(sfkeel_mir_2023)
+
+# check warnings
+sfkeel_mir_2023_fit[["warnings"]]
+
+# inspect MCMC chain
+rstan::traceplot(get_mcmc(sfkeel_mir_2023), pars='GPP_daily', nrow=3)
+rstan::traceplot(get_mcmc(sfkeel_mir_2023), pars='ER_daily', nrow=3)
+rstan::traceplot(get_mcmc(sfkeel_mir_2023), pars='K600_daily', nrow=3)
+
+
+# diagnostic plots
+plot_binning(sfkeel_mir_2023_fit, sfkeel_mir_2023, 
+             title = "South Fork Eel @ Miranda, 2023")
+plot_metab_preds(predict_metab(sfkeel_mir_2023))
+plot_DO_preds(predict_DO(sfkeel_mir_2023))
+plot_ER_K600(sfkeel_mir_2023_fit, title = "South Fork Eel @ Miranda, 2023")
+plot_K600(sfkeel_mir_2023_fit, title = "South Fork Eel @ Miranda, 2023")
+
+# save files
+write_files(sfkeel_mir_2023_fit, sfkeel_mir_2023, "/sfkeel_mir_2023/week_test/20240710/",
+            "sfkeel_mir_2023")
+
+# remove rds
+rm(sfkeel_mir_2023)
+sfkeel_mir_2023 <- readRDS("sfkeel_mir_2023/week_test/20240710/sfkeel_mir_2023metab_obj.rds")
+
+### trial with russian data
+russubset <- inputs_prepped$russian_2022 %>% 
+  dplyr::filter(solar.time >= "2022-07-15 00:00:00" & solar.time <= "2022-07-23 00:00:00")
+
+# visualize inputs
+visualize_inputs(russubset)
+
+# specs
+bayes_name_russian_2022 <- mm_name(type='bayes', pool_K600="binned",
+                                      err_obs_iid=TRUE, err_proc_iid = TRUE,
+                                      ode_method = "trapezoid", deficit_src='DO_mod', engine='stan')
+bayes_specs_russian_2022 <- specs(bayes_name_russian_2022, burnin_steps = 1000, saved_steps = 5000,
+                                     thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)# trying to go for more iterations?
+
+# trial
+russian_2022 <- metab(bayes_specs_russian_2022, data = russubset)
+russian_2022_fit <- get_fit(russian_2022)
+
+# check warnings
+russian_2022_fit[["warnings"]]
+
+# diagnostic plots
+plot_binning(russian_2022_fit, russian_2022, 
+             title = "Russian River, 2022")
+plot_metab_preds(predict_metab(russian_2022))
+plot_DO_preds(predict_DO(russian_2022))
+plot_ER_K600(russian_2022_fit, title = "Russian River, 2022")
+plot_K600(russian_2022_fit, title = "Russian River, 2022")
+
+# save files
+write_files(russian_2022_fit, russian_2022, "/russian_2022/week_test/20240710/",
+            "russian_2022")
+
+# cor test
+cor.test(russian_2022_fit$daily$K600_daily_mean, russian_2022_fit$daily$ER_daily_mean)
+# less correlated but still correlated
+
+### test run of MLE version for south fork eel 2022
+bayes_name_sfkeel_mir_2022_MLE <- mm_name(type='mle', pool_K600="binned",
+                                   err_obs_iid=TRUE, err_proc_iid = TRUE,
+                                   ode_method = "trapezoid", deficit_src='DO_mod', engine='stan') # CHANGE ENGINE
+bayes_specs_sfkeel_mir_2022_MLE<- specs(bayes_name_russian_2022, burnin_steps = 1000, saved_steps = 5000,
+                                  thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)# trying to go for more iterations?
+
+sfkeel_mir_2022_fit[["warnings"]]
+
+# full standish hickey trial
