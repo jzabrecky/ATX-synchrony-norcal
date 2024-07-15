@@ -397,7 +397,7 @@ salmon_2022_cleaning_DO <- salmon_2022_cleaning_DO %>%
 # south fork eel @ standish hickey
 sfkeel_sth_2023_cleaning_DO <- sfkeel_sth_2023_cleaning_DO %>% 
   filter(date_time <= "2023-07-06 04:50:00" | date_time >= "2023-07-07 18:35:00") %>% 
-  filter(date_time <= "2023-07-14 09:10:00" | date_time >= "2023-07-17 8:35:00") %>% 
+  filter(date_time <= "2023-07-14 09:10:00" | date_time >= "2023-07-17 11:27:00") %>% # removing all the way to missing data
   filter(date_time <= "2023-07-30 06:00:00" | date_time >= "2023-07-31 00:00:00")
 
 # salmon 2023

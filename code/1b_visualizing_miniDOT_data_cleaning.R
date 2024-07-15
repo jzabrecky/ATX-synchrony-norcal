@@ -73,7 +73,7 @@ view_DO_2022(sfkeel_mir_2022_cleaning_DO) # looks decent. (05.17.24)
 view_DO_2022(russian_2022_cleaning_DO) # looks decent. (05.17.24)
 view_DO_2022(salmon_2022_cleaning_DO)  # lost a lot of days but looks decent now (05.16.24)
 
-view_DO_2023(sfkeel_mir_2023_cleaning_DO) # looks good! (05.17.24)
+view_DO_2023(sfkeel_mir_2023_cleaning_DO) # looks good! (07.15.24)
 view_DO_2023(sfkeel_sth_2023_cleaning_DO) # looks decent (05.17.24)
 view_DO_2023(salmon_2023_cleaning_DO) # looks decent (05.17.24)
 # curious that DO does not hit as high of a max here-- fire effects?
@@ -85,5 +85,5 @@ view_temp_2022(russian_2022_cleaning) # looks good! (05.17.24)
 view_temp_2022(salmon_2022_cleaning) # looks good! (05.16.24)
 
 view_temp_2023(sfkeel_mir_2023_cleaning) # looks good! (05.17.24)
-view_temp_2023(sfkeel_sth_2023_cleaning) # looks good! (05.17.24)
+view_temp_2023(sfkeel_sth_2023_cleaning) # looks good! (07.15.24)
 view_temp_2023(salmon_2023_cleaning) # looks good! (05.16.24)

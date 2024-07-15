@@ -19,6 +19,7 @@ lapply(c("dataRetrieval", "lubridate", "plyr", "tidyverse", "StreamLight", "Stre
 filter <- dplyr::filter
 select <- dplyr::select
 summarize <- dplyr::summarize
+rename <- dplyr::rename
 
 ## if "StreamLight" & "StreamLightUtils" have not yet been downloaded...
 #devtools::install_github("psavoy/StreamLightUtils")
@@ -295,10 +296,9 @@ for(i in 1:nrow(streamLight_info)) {
 streamLight_info$bottom_width = NA
 
 # read in data
-setwd("../depth_measurements")
-kayak_sfkeel <- read.csv("sfkeel_kayak_measurements.csv")
+kayak_sfkeel <- read.csv("../depth_measurements/sfkeel_kayak_measurements.csv")
 ### kayak salmon river insert here ###
-sontek <- read.csv("russian_sontek_discharge.csv")
+sontek <- read.csv("../depth_measurements/russian_sontek_discharge.csv")
 
 # converting date as string to date object
 kayak_sfkeel$Date <- mdy(kayak_sfkeel$Date)
