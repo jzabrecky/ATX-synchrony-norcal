@@ -330,27 +330,6 @@ plot_DO_preds(mm)
 mcmc <- get_mcmc(mm)
 rstan::traceplot(mcmc, pars='K600_daily', nrow=3)
 
-### AN ASIDE- barometer test
-extech <- read.csv("data/local_pressure/extech_2022.csv")
-extech <- extech %>% 
-  mutate(river = substr(site, start = 1, stop = 3)) %>% 
-  dplyr::filter(river == "EEL") %>% 
-  mutate(pressure_mbar_extech = pressure_mmHg * 1.33)
-
-extech$date_time <- mdy_hm(paste(extech$date_time, extech$time))
-view(inputs_list$sfkeel_mir_2022)
-test <- inputs_list$sfkeel_mir_2022 %>% 
-  mutate(pressure_mbar_GLDAS = pressure_mbar) %>% 
-  dplyr::select(date_time, pressure_mbar_GLDAS)
-
-both_pressures <- merge(extech, test, by = "date_time")
-plot(both_pressures$pressure_mbar_extech, both_pressures$pressure_mbar_GLDAS)
-
-cor.test(both_pressures$pressure_mbar_extech, both_pressures$pressure_mbar_GLDAS)
-
-relationship <- lm(pressure_mbar_extech ~ pressure_mbar_GLDAS, data = both_pressures)
-inputs_list$sfkeel_mir_2022_barochange <- inputs_list$sfkeel_mir_2022
-inputs_list$sfkeel_mir_2022_barochange$pressure_mbar <- relationship$coefficients[1] + (relationship$coefficients[2] * inputs_list$sfkeel_mir_2022_barochange$pressure_mbar)
 
 ### trial with sfk eel mir 2023 data 
 
@@ -443,4 +422,81 @@ bayes_specs_sfkeel_mir_2022_MLE<- specs(bayes_name_russian_2022, burnin_steps = 
 
 sfkeel_mir_2022_fit[["warnings"]]
 
-# full standish hickey trial
+# MLE for sfkeel mir 2023
+# subset after running above code
+subset2023 <- inputs_prepped$sfkeel_mir_2023 %>% 
+  dplyr::filter(solar.time >= "2023-07-15 00:00:00" & solar.time <= "2023-07-23 00:00:00")
+
+# visualize inputs
+visualize_inputs(subset2023)
+
+# specs
+name_MLE_sfkeel_2023 <- mm_name(type='mle', ode_method = "trapezoid", deficit_src='DO_mod', engine='nlm')
+specs_MLE_sfkeel_2023 <- specs(name_MLE_sfkeel_2023) 
+?streamMetabolizer::specs
+
+sfkeel_2023_mle <- metab(specs_MLE_sfkeel_2023, data = subset2023)
+sfkeel_2023_mle_fit <- get_fit(sfkeel_2023_mle)
+
+view(sfkeel_2023_mle_fit$K600.daily)
+
+
+plot_DO_preds(predict_DO(sfkeel_2023_mle))
+
+## night for sfkeel mir 2023
+name_night_sfkeel_2023 <- mm_name(type = "night", ode_method = "euler")
+specs_night_sfkeel_2023 <- specs(name_night_sfkeel_2023) 
+
+sfkeel_2023_night <- metab(specs_night_sfkeel_2023, data = subset2023)
+sfkeel_2023_night_fit <- get_fit(sfkeel_2023_night)
+
+
+plot_DO_preds(predict_DO(sfkeel_2023_night))
+
+### standish hickey full run
+visualize_inputs(inputs_prepped$sfkeel_sth_2023)
+
+# setting bayesian model specifications
+bayes_name_sfkeel_sth_2023 <- mm_name(type='bayes', pool_K600="binned",
+                                      err_obs_iid=TRUE, err_proc_iid = TRUE,
+                                      ode_method = "trapezoid", deficit_src='DO_mod', engine='stan')
+bayes_specs_sfkeel_sth_2023 <- specs(bayes_name_sfkeel_sth_2023, burnin_steps = 1000, saved_steps = 5000,
+                                     thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10) # trying to go for more iterations?
+
+# changing to fit range of log(Q) for site
+bayes_specs_sfkeel_sth_2023$K600_lnQ_nodes_centers <- c(-1.5, -1, -.5, 0, .5, 1, 1.5)
+bayes_specs_sfkeel_sth_2023$K600_lnQ_nodediffs_sdlog <- 0.5 / 2  # need to change for centers .5 
+
+# trial
+sfkeel_sth_2023 <- metab(bayes_specs_sfkeel_sth_2023, data = inputs_prepped$sfkeel_sth_2023)
+sfkeel_sth_2023_fit <- get_fit(sfkeel_sth_2023)
+
+# check warnings
+sfkeel_sth_2023_fit[["warnings"]]
+
+# inspect MCMC chain
+rstan::traceplot(get_mcmc(sfkeel_sth_2023), pars='GPP_daily', nrow=3)
+rstan::traceplot(get_mcmc(sfkeel_sth_2023), pars='ER_daily', nrow=3)
+rstan::traceplot(get_mcmc(sfkeel_sth_2023), pars='K600_daily', nrow=3)
+
+# check rhat for convergence
+sfkeel_sth_2023_fit$overall %>%
+  dplyr::select(ends_with('Rhat'))
+
+# save files
+write_files(sfkeel_sth_2023_fit, sfkeel_sth_2023, "/sfkeel_sth_2023/20240716/", 
+            "sfkeel_sth_2023")
+
+# visualizing outputs
+plot_binning(sfkeel_sth_2023_fit, sfkeel_sth_2023, 
+             title = "South Fork Eel @ Miranda, 2022")
+plot_metab_preds(predict_metab(sfkeel_sth_2023))
+plot_DO_preds(predict_DO(sfkeel_sth_2023, date_start = "2023-08-01", date_end = "2023-08-04"))
+plot_ER_K600(sfkeel_sth_2023_fit, title = "South Fork Eel @ Standish Hickey, 2023")
+plot_K600(sfkeel_sth_2023_fit, title = "South Fork Eel @ Standish Hickey, 2023")
+
+# K600 and ER correlation test
+cor.test(sfkeel_sth_2023_fit$daily$K600_daily_mean, sfkeel_sth_2023_fit$daily$ER_daily_mean)
+
+# remove large .rmd before starting next model (to avoid R crashing)
+rm(sfkeel_mir_2022)
