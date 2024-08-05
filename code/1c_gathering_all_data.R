@@ -215,6 +215,16 @@ site_table <- as.data.frame(rbind(c("russian", 38.806883, -123.007017),
                                   c("sfkeel_sth", 39.876268, -123.727924)))
 colnames(site_table) <- c("Site_ID", "Lat", "Lon")
 
+### CURRENT TESTING: light at current Miranda GPS point seems weird- tree shade cover?? reselecting
+# something that is more representative of the entire dissolved oxygen footprint
+site_table <- as.data.frame(rbind(c("russian", 38.806883, -123.007017),
+                                  c("salmon", 41.3771369, -123.4770326),
+                                  # note the slight change below
+                                  c("sfkeel_mir", 40.198216, -123.775777),
+                                  c("sfkeel_sth", 39.876268, -123.727924)))
+colnames(site_table) <- c("Site_ID", "Lat", "Lon")
+### only getting MODIS data not changing NLDAS for now :)
+
 # make sure latitude and longitude are numeric to avoid future error
 site_table$Lat <- as.numeric(site_table$Lat)
 site_table$Lon <- as.numeric(site_table$Lon)
@@ -237,7 +247,7 @@ setwd("../../data/MODIS")
 directory <- getwd() # save site table to MODIS folder
 
 # writing table to submit data request to NASA
-write.table(site_table, paste0(directory, "/sites.csv"), sep = ",", row.names = FALSE,
+write.table(site_table, paste0(directory, "/sitestake2.csv"), sep = ",", row.names = FALSE,
   quote = FALSE, col.names = FALSE
 )
 
@@ -248,6 +258,7 @@ write.table(site_table, paste0(directory, "/sites.csv"), sep = ",", row.names = 
 # unpacking MODIS data obtained from NASA in zip file
 MODIS_unpack <- AppEEARS_unpack_QC(zip_file = "ATX-synchrony-norcal-MODIS.zip",
                                  zip_dir = directory, site_table[,"Site_ID"])
+### CONTINUE HERE: will temporarily try alternate GPS point
 
 # processing the MODIS data
 MODIS_processed <- AppEEARS_proc(unpacked_LAI = MODIS_unpack,
