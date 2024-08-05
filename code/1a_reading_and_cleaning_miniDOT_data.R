@@ -437,4 +437,4 @@ miniDOT_list <- lapply(miniDOT_list, function(x) fix_time_issue(x))
 # saving csv's
 path <- paste(getwd(), "/data/miniDOT/", sep = "")
 lapply(names(miniDOT_list), function(x) write.csv(miniDOT_list[[x]], file = paste(path, x, ".csv", sep = ""), 
-                                                   row.names = FALSE))
+                                                  row.names = FALSE))

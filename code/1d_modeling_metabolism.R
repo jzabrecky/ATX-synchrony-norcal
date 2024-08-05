@@ -21,6 +21,16 @@ model_inputs <- ldply(list.files(path = "./data/metab_model_inputs/", pattern = 
   return(d)
 })
 
+model_inputs_2 <-ldply(list.files(path = "./data/metab_model_inputs/new/", pattern = "modelinputs"), function(filename) {
+  d <- read.csv(paste("data/metab_model_inputs/new/", filename, sep = ""))
+  return(d)
+})
+
+model_inputs_NLDAS <-ldply(list.files(path = "./data/metab_model_inputs/NLDAS_only/", pattern = "modelinputs"), function(filename) {
+  d <- read.csv(paste("data/metab_model_inputs/NLDAS_only/", filename, sep = ""))
+  return(d)
+}) 
+
 # convert date_time to POSIXct class
 model_inputs$date_time <- as.POSIXct(model_inputs$date_time, format = "%Y-%m-%d %H:%M:%S", 
                                      tz= "America/Los_Angeles")
@@ -364,7 +374,8 @@ rstan::traceplot(get_mcmc(sfkeel_mir_2023), pars='K600_daily', nrow=3)
 plot_binning(sfkeel_mir_2023_fit, sfkeel_mir_2023, 
              title = "South Fork Eel @ Miranda, 2023")
 plot_metab_preds(predict_metab(sfkeel_mir_2023))
-plot_DO_preds(predict_DO(sfkeel_mir_2023))
+bob <- plot_DO_preds(predict_DO(sfkeel_mir_2023))
+bob  + ggtitle("South Fork Eel Miranda, 2023 (Bayesian ver.)")
 plot_ER_K600(sfkeel_mir_2023_fit, title = "South Fork Eel @ Miranda, 2023")
 plot_K600(sfkeel_mir_2023_fit, title = "South Fork Eel @ Miranda, 2023")
 
@@ -424,11 +435,61 @@ sfkeel_mir_2022_fit[["warnings"]]
 
 # MLE for sfkeel mir 2023
 # subset after running above code
-subset2023 <- inputs_prepped$sfkeel_mir_2023 %>% 
+subset2023_mir <- inputs_prepped$sfkeel_mir_2023 %>% 
+  dplyr::filter(solar.time >= "2023-08-15 00:00:00" & solar.time <= "2023-08-23 00:00:00")
+subset2023_mir_2 <- inputs_prepped_2$sfkeel_mir_2023 %>% 
+  dplyr::filter(solar.time >= "2023-08-15 00:00:00" & solar.time <= "2023-08-23 00:00:00")
+subset2023_mir_NLDAS <- inputs_prepped_NLDAS$sfkeel_mir_2023 %>% 
   dplyr::filter(solar.time >= "2023-07-15 00:00:00" & solar.time <= "2023-07-23 00:00:00")
+
+subset2023_sth <-inputs_prepped$sfkeel_sth_2023 %>% 
+  dplyr::filter(solar.time >= "2023-08-15 00:00:00" & solar.time <= "2023-08-23 00:00:00")
+subset2023_sth_NLDAS <-inputs_prepped_NLDAS$sfkeel_sth_2023 %>% 
+  dplyr::filter(solar.time >= "2023-08-15 00:00:00" & solar.time <= "2023-08-23 00:00:00")
+
+# plotting the two above each other
+NLDAS_plot_mir <- ggplot(data = subset2023_mir, aes(x = solar.time, y = light)) +
+  geom_line(color = "green") +
+  geom_line(data = subset2023_mir_NLDAS, aes(x = solar.time, y = light), color = "blue") +
+  #geom_line(data = subset2023_mir_2, aes(x = solar.time, y = light), color = "red") +
+  ggtitle(label = "PAR at Miranda; green = StreamLight, blue = NLDAS only") +
+  theme_bw()
+
+NLDAS_plot_sth <- ggplot(data = subset2023_sth, aes(x = solar.time, y = light)) +
+  geom_line(color = "green") +
+  geom_line(data = subset2023_sth_NLDAS, aes(x = solar.time, y = light), color = "blue") +
+  #geom_line(data = subset2023_mir_2, aes(x = solar.time, y = light), color = "red") +
+  ggtitle(label = "PAR at STH; green = StreamLight, blue = NLDAS only") +
+  theme_bw()
+
+#### running NLDAS version ####
+sfkeel_mir_NLDAS_test_name <- mm_name(type='bayes', pool_K600="binned",
+                                 err_obs_iid=TRUE, err_proc_iid = TRUE,
+                                 ode_method = "trapezoid", deficit_src='DO_mod', engine='stan') 
+sfkeel_mir_NLDAS_test_specs <- specs(sfkeel_mir_NLDAS_test_name, burnin_steps = 1000, saved_steps = 5000,
+                                     thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10) # trying to go for more iterations?
+
+# changing to fit range of log(Q) for site
+sfkeel_mir_NLDAS_test_specs$K600_lnQ_nodes_centers <- c(-1.5, -1, -.5, 0, .5, 1, 1.5)
+sfkeel_mir_NLDAS_test_specs$K600_lnQ_nodediffs_sdlog <- 0.5 / 2  # need to change for centers .5 
+
+# trial
+sfkeel_mir_2023_NLDAS_test <- metab(sfkeel_mir_NLDAS_test_specs, data = subset2023_mir_NLDAS)
+sfkeel_mir_2023_NLDAS_test_fit <- get_fit(sfkeel_mir_2023_NLDAS_test)
+
+
+plot_DO_preds(predict_DO(sfkeel_mir_2023_NLDAS_test)) +
+  ggtitle("South Fork Eel Miranda, 2023 (NLDAS ver.)")
+
+write_files(sfkeel_mir_2023_NLDAS_test_fit, sfkeel_mir_2023_NLDAS_test, "/sfkeel_mir_2023_NLDAS/20240805/",
+            "sfkeel_mir_2023_NLDAS")
+
+### END NLDAS TESTING
 
 # visualize inputs
 visualize_inputs(subset2023)
+visualize_inputs(subset2023_mir_2)
+visualize_inputs(subset2023_mir_NLDAS)
 
 # specs
 name_MLE_sfkeel_2023 <- mm_name(type='mle', ode_method = "trapezoid", deficit_src='DO_mod', engine='nlm')
@@ -441,7 +502,8 @@ sfkeel_2023_mle_fit <- get_fit(sfkeel_2023_mle)
 view(sfkeel_2023_mle_fit$K600.daily)
 
 
-plot_DO_preds(predict_DO(sfkeel_2023_mle))
+plot_DO_preds(predict_DO(sfkeel_2023_mle)) +
+  ggtitle("South Fork Eel Miranda, 2023 (MLE ver.)")
 
 ## night for sfkeel mir 2023
 name_night_sfkeel_2023 <- mm_name(type = "night", ode_method = "euler")
@@ -451,7 +513,8 @@ sfkeel_2023_night <- metab(specs_night_sfkeel_2023, data = subset2023)
 sfkeel_2023_night_fit <- get_fit(sfkeel_2023_night)
 
 
-plot_DO_preds(predict_DO(sfkeel_2023_night))
+plot_DO_preds(predict_DO(sfkeel_2023_night)) +
+  ggtitle("South Fork Eel Miranda, 2023 (nighttime ver.)")
 
 ### standish hickey full run
 visualize_inputs(inputs_prepped$sfkeel_sth_2023)
@@ -500,3 +563,5 @@ cor.test(sfkeel_sth_2023_fit$daily$K600_daily_mean, sfkeel_sth_2023_fit$daily$ER
 
 # remove large .rmd before starting next model (to avoid R crashing)
 rm(sfkeel_mir_2022)
+
+visualize_inputs(inputs_prepped$sfkeel_mir_2023)

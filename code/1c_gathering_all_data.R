@@ -240,6 +240,29 @@ site_list <- stringr::str_sub(list.files("data/NLDAS"), 1, -11)
 directory <- paste(base_wd, "/data/NLDAS", sep = "") # where NLDAS .asc files are located
 NLDAS_processed <- NLDAS_proc(read_dir = directory, site_list)
 
+#### 8/5/2024 TRYING VERSION WITH JUST NLDAS DATA
+NLDAS_formatting <- function(df){
+  
+  df$origin <- as.Date(paste0(df$Year, "-01-01"),tz = "UTC") - days(1)
+  df$Date <- as.Date(df$DOY, origin = df$origin, tz = "UTC") 
+  df$DateTime_UTC <- lubridate::ymd_hms(paste(df$Date, " ", df$Hour, ":00:00"))
+  df <- df[,c("DateTime_UTC","SW")] #time zone clearly wrong
+  # adjust time zone
+  df$date_time <- with_tz(df$DateTime_UTC, tzone = "America/Los_Angeles")
+  df$PAR_surface <- df$SW
+  
+  light <- df[,c("date_time","PAR_surface")]
+  
+  # Split, interpolate, and convert
+  light_5M <- create_filled_TS(light, "5M", "PAR_surface")
+  light_5M <- light_5M[,c("date_time","Filled_Var")]
+  colnames(light_5M) <- c("date_time","PAR_surface")
+  
+  return(light_5M)
+  
+}
+NLDAS_formatted <- lapply(NLDAS_processed, function(x) NLDAS_formatting(x))
+
 ## (b) downloading and processing MODIS data
 
 # changing working directory
@@ -256,7 +279,7 @@ write.table(site_table, paste0(directory, "/sitestake2.csv"), sep = ",", row.nam
 # https://psavoy.github.io/StreamLight/articles/2%20Download%20and%20process%20MODIS%20LAI.html
 
 # unpacking MODIS data obtained from NASA in zip file
-MODIS_unpack <- AppEEARS_unpack_QC(zip_file = "ATX-synchrony-norcal-MODIS.zip",
+MODIS_unpack <- AppEEARS_unpack_QC(zip_file = "ATX-synchrony-norcal-MODIS-taketwo.zip",
                                  zip_dir = directory, site_table[,"Site_ID"])
 ### CONTINUE HERE: will temporarily try alternate GPS point
 
