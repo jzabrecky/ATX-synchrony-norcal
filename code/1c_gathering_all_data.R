@@ -113,8 +113,8 @@ names(GLDAS_processed) <- site_names # adding names to list
 # and we are in a mountainous area, so we will adjust the GLDAS data with these measurements
 
 # reading in extech local barometric pressure data
-extech_data <- ldply(list.files(path = "./data/local_pressure", pattern = ".csv"), function(filename) {
-  df <- read.csv(paste("data/local_pressure/", filename, sep = ""))
+extech_data <- ldply(list.files(path = "./data/field_and_lab/raw_data/", pattern = "extech"), function(filename) {
+  df <- read.csv(paste("data/field_and_lab/raw_data/", filename, sep = ""))
   new_df <- df %>% 
     mutate(river = substr(site, start = 1, stop = 3),
            date_time = mdy_hm(paste(date, time), tz = "America/Los_Angeles"),
