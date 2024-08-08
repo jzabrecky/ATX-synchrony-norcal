@@ -13,8 +13,8 @@
 lapply(c("tidyverse", "lubridate"), require, character.only = T)
 
 # loading raw % cover data
-percover22_raw <- read.csv("./data/field_and_lab/raw_data/percover_2022_raw.csv")
-percover23_raw <- read.csv("./data/field_and_lab/raw_data/percover_2023_raw.csv")
+percover22_raw <- read.csv("./data/field_and_lab/raw_data/percover_2022.csv")
+percover23_raw <- read.csv("./data/field_and_lab/raw_data/percover_2023.csv")
 
 #### (2) Checking field data ####
 # externally checked for issues, but double-checking!
