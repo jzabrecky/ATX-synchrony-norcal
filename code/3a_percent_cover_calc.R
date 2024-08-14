@@ -34,16 +34,17 @@ which(percover23_test$total != 100)
 # remove the temporary dataframes
 rm(percover22_test, percover23_test)
 
+# merging them
+percover_raw <- rbind(percover22_raw, percover23_raw)
+
 #### (3) Calculating percent cover for each reach on each sampling day ####
 
 # creating new dataframe for manipulations
-percover22 <- percover22_raw %>% 
-  mutate(field_date = mdy(field_date))
-percover23 <- percover23_raw %>% 
+percover <- percover_raw %>% 
   mutate(field_date = mdy(field_date))
 
 ## function to calculate % cover averages for each reach on each sampling day
-average_per_reach <- function(data) { # data is the full % cover from sampling year
+average_per_reach <- function(data) {
   data %>% 
     group_by(site, field_date, reach) %>% 
     mutate(
@@ -66,13 +67,11 @@ average_per_reach <- function(data) { # data is the full % cover from sampling y
     na.omit()
 }
 
-# applying function to each year of data
-percover22_reach <- average_per_reach(percover22)
-percover23_reach <- average_per_reach(percover23)
+# applying function to data
+percover_reach <- average_per_reach(percover)
 
-# saving new csv's
-write.csv(percover22_reach, "data/field_and_lab/percover_2022_byreach.csv", row.names = FALSE)
-write.csv(percover23_reach, "data/field_and_lab/percover_2023_byreach.csv", row.names = FALSE)
+# saving new csv
+write.csv(percover_reach, "data/field_and_lab/percover_byreach.csv", row.names = FALSE)
 
 #### (4) Calculating % cover averages for each site* on each sampling day ####
 ## * site = sensor grouping / nearest USGS discharge station
@@ -104,14 +103,30 @@ average_per_site <- function(data) {
 # Want to manually merge 7.6.2022 RUS-4S & RUS-3UP and 7.7.2022 RUS-2UP to be on the same day 
 # as they are only a day apart and were ideally done on the same day
 # things do not always go according to plan!
-percover22$field_date[144:154] <- mdy("07/06/2022")
+percover$field_date[144:154] <- mdy("07/06/2022")
 
-# applying function to each year of data
-percover22_site <- average_per_site(percover22)
-percover23_site <- average_per_site(percover23)
+# applying function to data
+percover_site <- average_per_site(percover)
 
-## NOTE: when analyzing data that SFE-M for 2023 includes site 2 and SFE-M for 2022 does not!
+# sampling at SFE-M in 2023 included site 2 whereas SFE-M in 2022 did not
+# so want to make a disclaimer
+percover_site$site[12:18] <- "SFE-M_excl_site2"
+percover_site$site[32:46] <- "SFE-M_all_sites"
 
-# saving new csvs
-write.csv(percover22_site, "data/field_and_lab/percover_2022_bysite.csv", row.names = FALSE)
-write.csv(percover23_site, "data/field_and_lab/percover_2023_bysite.csv", row.names = FALSE)
+# to be able to compare 2022 and 2023, let's recalculate for just those original sites in 2023
+SFE_M_exc_site2 <- percover %>% 
+  filter(site == "SFE-M",
+         reach != "2") %>% 
+  filter(field_date >= "2023-01-01 00:00:00")
+
+# applying function to just this data
+SFE_M_exc_site2_calc <- average_per_site(SFE_M_exc_site2)
+
+# adding note/modified site
+SFE_M_exc_site2_calc$site <- "SFE-M_excl_site2"
+
+# binding above dataframe to full dataframe
+percover_site_final <- rbind(percover_site, SFE_M_exc_site2_calc)
+
+# saving new csv
+write.csv(percover_site_final, "data/field_and_lab/percover_bysite.csv", row.names = FALSE)
