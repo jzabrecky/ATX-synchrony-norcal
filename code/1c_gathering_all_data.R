@@ -113,15 +113,14 @@ names(GLDAS_processed) <- site_names # adding names to list
 ## and we are in a mountainous area, so we will adjust the GLDAS data with these measurements
 
 # reading in extech local barometric pressure data
-extech_data <- ldply(list.files(path = "./data/local_pressure", pattern = ".csv"), function(filename) {
-  df <- read.csv(paste("data/local_pressure/", filename, sep = ""))
+extech_data <- ldply(list.files(path = "./data/field_and_lab/raw_data/", pattern = "field_params"), function(filename) {
+  df <- read.csv(paste("data/field_and_lab/raw_data/", filename, sep = ""))
   new_df <- df %>% 
-    mutate(river = substr(site, start = 1, stop = 3),
-           date_time = mdy_hm(paste(date, time), tz = "America/Los_Angeles"),
+    mutate(date_time = mdy_hm(paste(field_date, time), tz = "America/Los_Angeles"),
            year = year(date_time),
            pressure_mbar_extech = pressure_mmHg * 1.333) %>% 
     na.omit() %>% 
-    select(date_time, year, river, site, pressure_mbar_extech)
+    select(date_time, year, site, pressure_mbar_extech)
 })
 
 # to preserve processed data, will make a new list
@@ -167,7 +166,7 @@ GLDAS_adjusted$salmon$pressure_mbar <- mbar_lm_salmon$coefficients[1] +
 
 # get miranda data and merge with GLDAS processed data
 extech_sfkeel_mir <- extech_data %>% 
-  filter(site != "EEL-STH" & river == "EEL")
+  filter(site == "SFE-M")
 extech_sfkeel_mir <- merge(extech_sfkeel_mir, GLDAS_processed$sfkeel_mir)
 
 # visualize data and test correlation
@@ -190,7 +189,7 @@ GLDAS_adjusted$sfkeel_mir$pressure_mbar <- mbar_lm_sfkeel_mir$coefficients[1] +
 
 # get standish hickey data and merge with GLDAS processed data
 extech_sfkeel_sth <- extech_data %>% 
-  filter(site == "EEL-STH")
+  filter(site == "SFE-SH")
 extech_sfkeel_sth <- merge(extech_sfkeel_sth, GLDAS_processed$sfkeel_sth)
 
 # visualize data and test correlation
