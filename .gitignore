@@ -7,10 +7,10 @@
 # ignore select data folders (GLDAS, NLDAS, etc.)
 data/GLDAS/
 data/NLDAS/
-data/MODIS/
 data/misc_to_del/
-data/StreamLight/
 data/metab_model_inputs/old_to_delete
+# ignore removed code
+code/old_code
 # for now, while doing diagnostics
 data/metab_model_outputs/
 # ignore .rds and .png files
