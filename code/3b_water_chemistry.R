@@ -40,6 +40,20 @@ IC <- read.csv("./data/field_and_lab/raw_data/IC_2022.csv")
 
 #### (2) Processing AQ400 values ####
 
+# need to use pH and temperature data to calculate ammonium, so merge df's
+water_chemistry <- left_join(field_params, aq400, by = c("field_date", "site_reach", "site", "reach"))
+
+# we unfortunately did not have a pH probe first month in the field
+# so let's just assume the pH was roughly similar for the first time
+# we were able to measure pH for each site_reach
+# and call this column "assumed_pH"
+water_chemistry$assumed_pH <- water_chemistry$pH
+
+# going to manually match each site_reach...
+water_chemistry$assumed_pH[1] <- water_chemistry$pH[25] # RUS-1S
+
+# NOTE TO SELF TO FILL IN MISSING DATA WITH DEAD HOBO INFORMATION
+
 
 ## copy and paste old ammonium code below ##
 
