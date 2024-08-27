@@ -1,4 +1,4 @@
-﻿field_date,time,site_reach,site,reach,pressure_mmHg,pH,temp_C,DO_mgL,cond_uS_cm
+field_date,time,site_reach,site,reach,pressure_mmHg,pH,temp_C,DO_mgL,cond_uS_cm
 6/20/2023,9:40,SFE-M-1S,SFE-M,1S,760.9,8.11,19,9.09,215
 6/20/2023,12:05,SFE-M-2,SFE-M,2,760.2,8.09,19.7,9.71,214
 6/20/2023,13:50,SFE-M-3,SFE-M,3,795.7,8.19,21.1,9.82,214

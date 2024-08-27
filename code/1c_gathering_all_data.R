@@ -42,7 +42,7 @@ miniDOT_data <- ldply(list.files(path = "./data/miniDOT/", pattern = "_miniDOT.c
 
 # removing NAs 
 # (salmon 2022, 2023 & south fork eel @ sth 2023 have missing DO that we removed
-# due to biofouling, etc. , but we kept temperature since it seemed correct)
+# due to biofouling, etc., but we kept temperature since it seemed correct)
 miniDOT_data <- na.omit(miniDOT_data)
 
 # converting date_time from character to POSIXct class & indicate time zone
@@ -96,6 +96,7 @@ base_wd <- getwd() # saving our base working directory
 supporting <- paste(base_wd, "/code/supplemental_code/", sep = "")
 
 # downloading GLDAS .asc file and processing it into a saved .csv file
+# ONLY NEED TO RUN ONCE
 baro_dwld_processing("russian", 38.806883, -123.007017, "2022-06-15", 
                      "2022-10-01", path, "America/Los_Angeles")
 baro_dwld_processing("salmon", 41.3771369, -123.4770326, "2022-06-15",
@@ -130,7 +131,7 @@ GLDAS_adjusted <- GLDAS_processed
 
 # get russian data and merge with GLDAS processed data
 extech_russian <- extech_data %>% 
-  filter(river == "RUS")
+  filter(site == "RUS")
 extech_russian <- merge(extech_russian, GLDAS_processed$russian)
 
 # visualize data and test correlation
@@ -148,7 +149,7 @@ GLDAS_adjusted$russian$pressure_mbar <- mbar_lm_russian$coefficients[1] +
 
 # get salmon data and merge with GLDAS processed data
 extech_salmon <- extech_data %>% 
-  filter(river == "SAL")
+  filter(site == "SAL")
 extech_salmon <- merge(extech_salmon, GLDAS_processed$salmon)
 
 # visualize data and test correlation
@@ -176,6 +177,8 @@ plot(extech_sfkeel_mir$pressure_mbar, extech_sfkeel_mir$pressure_mbar_extech)
 # on same day-- likely a tired field work typo
 extech_sfkeel_mir <- extech_sfkeel_mir[-which(extech_sfkeel_mir$pressure_mbar_extech == max(extech_sfkeel_mir$pressure_mbar_extech)),]
 
+# reevaluate
+plot(extech_sfkeel_mir$pressure_mbar, extech_sfkeel_mir$pressure_mbar_extech)
 cor.test(extech_sfkeel_mir$pressure_mbar_extech, extech_sfkeel_mir$pressure_mbar) # highly correlated!
 
 # linear regression model
@@ -205,7 +208,7 @@ GLDAS_adjusted$sfkeel_sth$pressure_mbar <- mbar_lm_sfkeel_sth$coefficients[1] +
 
 #### (4) Gathering NLDAS light data ####
 
-# making site table to use for NLDAS and MODIS data downloads
+# making site table to use for NLDAS data download
 site_table <- as.data.frame(rbind(c("russian", 38.806883, -123.007017),
                                   c("salmon", 41.3771369, -123.4770326),
                                   c("sfkeel_mir", 40.198173, -123.775930),
@@ -217,6 +220,7 @@ site_table$Lat <- as.numeric(site_table$Lat)
 site_table$Lon <- as.numeric(site_table$Lon)
 
 # downloading site NLDAS data with function from "StreamLightUtils"
+# ONLY NEED TO RUN ONCE
 NLDAS_DL_bulk(save_dir = "data/NLDAS",
               site_locs = site_table, startDate = "2022-06-15")
 
