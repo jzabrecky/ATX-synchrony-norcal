@@ -19,6 +19,7 @@ field_params <- ldply(list.files(path = "./data/field_and_lab/raw_data/",
   d <- read.csv(paste("data/field_and_lab/raw_data/", filename, sep = ""))
   return(d)
 })
+field_params$field_date <- mdy(field_params$field_date)
 
 # aq400 values
 aq400 <- ldply(list.files(path = "./data/field_and_lab/raw_data/",
@@ -26,6 +27,7 @@ aq400 <- ldply(list.files(path = "./data/field_and_lab/raw_data/",
   d <- read.csv(paste("data/field_and_lab/raw_data/", filename, sep = ""))
   return(d)
 })
+aq400$field_date <- mdy(aq400$field_date)
 
 # shimadzu values
 shimadzu <- ldply(list.files(path = "./data/field_and_lab/raw_data/",
@@ -33,12 +35,44 @@ shimadzu <- ldply(list.files(path = "./data/field_and_lab/raw_data/",
   d <- read.csv(paste("data/field_and_lab/raw_data/", filename, sep = ""))
   return(d)
 })
+shimadzu$field_date <- mdy(shimadzu$field_date)
 
 # ion-chromatography cation/anion data (only one year of this data)
 IC <- read.csv("./data/field_and_lab/raw_data/IC_2022.csv")
+IC$field_date <- mdy(IC$field_date)
 # TBD what to do with this data
 
 #### (2) Processing AQ400 values ####
+
+# need to use pH and temperature data to calculate ammonium, so merge df's
+water_chemistry <- left_join(field_params, aq400, by = c("field_date", "site_reach", "site", "reach"))
+
+# we unfortunately did not have a pH probe first month in the field
+# so let's just assume the missing pH was roughly similar to the first time
+# we were able to measure pH for each site_reach
+# and call this column "assumed_pH"
+
+# create data frame (that will we convert to a vector) to fill in missing values
+assumed_pH <- water_chemistry %>% 
+  filter(field_date < mdy("7-28-2022")) %>% 
+  mutate(assumed_pH = case_when(site_reach == "RUS-1S" ~ water_chemistry$pH[25],
+                                site_reach == "SAL-1S" ~ water_chemistry$pH[49],
+                                site_reach == "SAL-2" ~ water_chemistry$pH[50],
+                                site_reach == "SAL-3" ~ water_chemistry$pH[51],
+                                site_reach == "SFE-M-1S" ~ water_chemistry$pH[22],
+                                site_reach == "SFE-M-3" ~ water_chemistry$pH[23],
+                                site_reach == "SFE-M-4" ~ water_chemistry$pH[24],
+                                site_reach == "RUS-2" ~ water_chemistry$pH[26],
+                                site_reach == "RUS-3" ~ water_chemistry$pH[27])) %>% 
+  select(assumed_pH)
+
+# create column in water chemistry data frame
+water_chemistry$assumed_pH <- water_chemistry$pH
+
+# fill in missing values with above vector
+
+
+# NOTE TO SELF TO FILL IN MISSING DATA WITH DEAD HOBO INFORMATION
 
 
 ## copy and paste old ammonium code below ##
