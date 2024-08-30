@@ -13,36 +13,35 @@ lapply(c("tidyverse", "lubridate", "plyr"), require, character.only = T)
 
 ## loading raw data
 
-# field parameters
-field_params <- ldply(list.files(path = "./data/field_and_lab/raw_data/", 
-                                pattern = "field_params"), function(filename) {
-  d <- read.csv(paste("data/field_and_lab/raw_data/", filename, sep = ""))
-  return(d)
-})
-field_params$field_date <- mdy(field_params$field_date)
+# function to read in data from our folder to a data frame based on name
+# (note that the folder path is hard-coded in)
+read_data <- function(name) {
+  ldply(list.files(path = "./data/field_and_lab/raw_data/", 
+                   pattern = name), function(filename) {
+                     d <- read.csv(paste("data/field_and_lab/raw_data/", filename, sep = ""))
+                     d$field_date <- mdy(d$field_date)
+                     return(d)
+                   })
+}
 
-# aq400 values
-aq400 <- ldply(list.files(path = "./data/field_and_lab/raw_data/",
-                          pattern = "aq400"), function(filename) {
-  d <- read.csv(paste("data/field_and_lab/raw_data/", filename, sep = ""))
-  return(d)
-})
-aq400$field_date <- mdy(aq400$field_date)
-
-# shimadzu values
-shimadzu <- ldply(list.files(path = "./data/field_and_lab/raw_data/",
-                             pattern = "shimadzu"), function(filename) {
-  d <- read.csv(paste("data/field_and_lab/raw_data/", filename, sep = ""))
-  return(d)
-})
-shimadzu$field_date <- mdy(shimadzu$field_date)
-
-# ion-chromatography cation/anion data (only one year of this data)
-IC <- read.csv("./data/field_and_lab/raw_data/IC_2022.csv")
-IC$field_date <- mdy(IC$field_date)
-# TBD what to do with this data
+# reading in all water chemistry parameters
+field_params <- read_data("field_params")
+aq400 <- read_data("aq400")
+shimadzu <- read_data("shimadzu")
+IC <- read_data("IC")
 
 #### (2) Processing AQ400 values ####
+
+## (a) Values below detection limit
+# replace values below detection limits with half the detection limit value
+aq400$raw_ammonia_mg_N_L <- replace(aq400$raw_ammonia_mg_N_L, 
+                                    which(aq400$raw_ammonia_mg_N_L == "<0.002"),
+                                    "0.001")
+
+# convert column to numeric for calculations
+aq400$raw_ammonia_mg_N_L <- as.numeric(aq400$raw_ammonia_mg_N_L)
+
+# (b) Calculating true ammonium values based on Emerson et al. 1975
 
 # need to use pH and temperature data to calculate ammonium, so merge df's
 water_chemistry <- left_join(field_params, aq400, by = c("field_date", "site_reach", "site", "reach"))
@@ -70,27 +69,15 @@ assumed_pH <- water_chemistry %>%
 water_chemistry$assumed_pH <- water_chemistry$pH
 
 # fill in missing values with above vector
+for(i in 1:21) {
+  water_chemistry$assumed_pH[i] <- assumed_pH[i,]
+}
 
-
-# NOTE TO SELF TO FILL IN MISSING DATA WITH DEAD HOBO INFORMATION
-
-
-## copy and paste old ammonium code below ##
-
-# loading libraries
-library(tidyverse)
-library(lubridate)
-
-# loading in raw ammonia data with field pH and temperature
-ammonia_2022 <- read.csv("data_prep/raw/ammonia_2022_raw.csv")
-ammonia_2023 <- read.csv("data_prep/raw/ammonia_2023_raw.csv")
-
-#### Function to calculate ammonium ####'
-
+# function to calculate ammonium using data with assumed pH column
 calculate_NH4 <- function(data) {
   # assign variables
-  temp = data$temperature
-  pH = data$pH
+  temp = data$temp_C
+  pH = data$assumed_pH
   NH3 = data$raw_ammonia_mg_N_L
   
   # calculate pKa
@@ -103,25 +90,20 @@ calculate_NH4 <- function(data) {
   NH4 = (1-f)*NH3
   
   # creating new column for calculated ammonium (NH4) concentration
-  data$ammonium_mg_N_L <- NH4
+  data$ammonium_mg_N_L <- round(NH4, 5) # limit decimal places to 5 like input values
   
   # return data with new column
   return(data)
 }
 
-#### Calculate ammonium and save new csvs ####
+# apply function
+water_chemistry <- calculate_NH4(water_chemistry)
 
-# running function on both df objects and creating a new df
-ammonium_2022 <- calculate_NH4(ammonia_2022)
-ammonium_2023 <- calculate_NH4(ammonia_2023)
+#### (3) Processing Shimadzu and Ion Chromotography values
 
-# function to trim df and save as new csv
-trim_and_save <- function(data, save_name) {
-  data <- data %>% 
-    select(site_reach, field_date, ammonium_mg_N_L)
-  write.csv(data, save_name, row.names = FALSE)
-}
 
-# using above function on new ammonium dfs
-trim_and_save(ammonium_2022, "data_prep/working/ammonium_2022.csv")
-trim_and_save(ammonium_2023, "data_prep/working/ammonium_2023.csv")
+# will save this csv when I decide on final labels
+# curious what to do about missing values in regards to modeling
+# may talk to joanna about this
+
+# NOTE TO SELF TO FILL IN MISSING DATA WITH DEAD HOBO INFORMATION AND FIND MINIDOT INFO ONCE MORE
