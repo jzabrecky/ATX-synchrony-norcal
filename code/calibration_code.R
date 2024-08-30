@@ -104,7 +104,24 @@ post_2022_DO <- ggplot(data = post_2022, aes(x = date_time, y = DO_mgL, color = 
   geom_vline(xintercept = as_datetime(c("2023-04-01 10:31:00"), tz = "America/Los_Angeles"), 
              color = "darkgray", linetype = 2) # yeast added & lid closed
 # all but 162475 (roving) went to zero with low-end calibration
-#### NEED TO LOOK AT CALIBRATION DONE IN JUNE 2024
+
+# ------ brief aside-- looking at later calibration to see if 162475 went to zero ------
+path <- "./data/miniDOT/intercalibrations/202406/" # setting path to june folder
+file_list <- list.files(path) # getting list of files in that folder
+june_list <- lapply(file_list, function(x) create_df(paste(path, x, sep = ""))) # reading in files
+for(i in 1:length(june_list)) {
+  june_list[[i]]$miniDOT_no <- file_list[i] # adding miniDOT number to column
+}
+june <- reduce(june_list, rbind) # reducing list
+june <- time_fix(june) # applying time fix
+june_DO <- ggplot(data = june, aes(x = date_time, y = DO_mgL, color = miniDOT_no)) +
+  geom_point() +
+  geom_vline(xintercept = as_datetime(c("2024-06-14 14:07:00"), tz = "America/Los_Angeles"), 
+             color = "darkgray", linetype = 2) # yeast added & lid closed
+# this low-end calibration went to zero for this sensor during this calibration so I 
+# am not worried about the sensor; possibly some bubbles were stuck on the sensor
+# during the previous calibration
+# ------ end aside ---------------------------------------------------------------------
 
 ## 01-2024 (post 2023 field season)
 
@@ -117,7 +134,7 @@ post_2023_temp <- ggplot(data = post_2023, aes(x = date_time, y = Temp_C, color 
   geom_vline(xintercept = as_datetime(c("2024-01-18 10:37:00"), tz = "America/Los_Angeles"), 
              color = "darkgray", linetype = 2) # yeast added & lid closed
 # temperature for 521120 diverges part way through but maybe this is because an ice pack was placed
-# closer to the other two than one because the temperature converges again after yeast was added
+# closer to this one than the other two because the temperature converges again after yeast was added
 
 post_2023_DO <- ggplot(data = post_2023, aes(x = date_time, y = DO_mgL, color = miniDOT_no)) +
   geom_point() +
@@ -143,6 +160,15 @@ post_2022_plateau_temp <- ggplot(data = post_2022_plateau, aes(x = date_time, y 
   geom_point(size = 4) +
   geom_line() # not sure if this is relevant
 
+# create a df to summarize this information
+post_2022_plateau_summary <- post_2022_plateau %>% 
+  group_by(miniDOT_no) %>% 
+    summarize(DO_mgL_mean = mean(DO_mgL),
+              DO_mgL_sd = sd(DO_mgL),
+              Temp_C_mean = mean(Temp_C),
+              Temp_C_sd = sd(Temp_C),
+              pressure_mmHg = 648.0) # pressure at 12pm 3/31
+
 # doing same for 2023
 post_2023_plateau <- post_2023 %>% 
   filter(date_time >= as_datetime("2024-01-17 12:00:00", tz = "America/Los_Angeles") 
@@ -156,9 +182,72 @@ post_2023_plateau_temp <- ggplot(data = post_2023_plateau, aes(x = date_time, y 
   geom_point(size = 4) +
   geom_line() # not sure if this is relevant
 
-#### (4) Calculate oxygen saturation based on Garcia-Benson equation #####
+# create a df to summarize this information
+post_2023_plateau_summary <- post_2023_plateau %>% 
+  group_by(miniDOT_no) %>% 
+  summarize(DO_mgL_mean = mean(DO_mgL),
+            DO_mgL_sd = sd(DO_mgL),
+            Temp_C_mean = mean(Temp_C),
+            Temp_C_sd = sd(Temp_C),
+            pressure_mmHg = 644.8) # pressure at 12:05pm 1/17
 
-## LEFT OFF HERE
+#### (4) Calculate DO for 100% saturation based on Garcia-Benson equation #####
 
-### NEED TO DECIDE TO USE T AS AN AVERAGE OR SEPARATELY
-                    
+
+# function to estimate DO for 100% oxygen saturation from Garcia and Gordon (1992)
+# takes temperature in C and barometric pressure in mmHg
+# calculation is a slight approximation because we do not account for water density
+# but difference is very small (0.01 mg/L at 20 deg)
+oxygen_sat <- function(temp_C , pressure_mmHg){
+  sat_DO <- (exp(2.00907 + 3.22014 * (log((298.15 - temp_C) / (273.15 + temp_C))) + 4.0501 * 
+               (log((298.15 - temp_C) / (273.15 + temp_C))) ^ 2 + 4.94457 * 
+               (log((298.15 - temp_C) / (273.15 + temp_C))) ^ 3 - 0.256847 * 
+               (log((298.15 - temp_C) / (273.15 + temp_C))) ^ 4 + 3.88767 * 
+               (log((298.15 - temp_C) / (273.15 + temp_C))) ^ 5)) * 1.4276 * pressure_mmHg / 760
+  
+  return(sat_DO)
+}
+
+# worried that temperature average for sensor 521120 is off wrong since it was below others
+# for this time period (likely because it was closer to ice pack??)
+# so filling in the average of the over two temperatures here
+post_2023_plateau_summary$Temp_C_mean[1] <- mean(post_2023_plateau_summary$Temp_C_mean[2:3])
+post_2023_plateau_summary$Temp_C_sd[1] <- mean(post_2023_plateau_summary$Temp_C_sd[2:3])
+
+# apply function to each summary data frame & then calculate offset from sensor's DO reading
+post_2022_plateau_summary <- post_2022_plateau_summary %>% 
+  mutate(est_oxygen_sat = oxygen_sat(Temp_C_mean, pressure_mmHg)) %>% 
+  mutate(offset = est_oxygen_sat - DO_mgL_mean)
+post_2023_plateau_summary <- post_2023_plateau_summary %>% 
+  mutate(est_oxygen_sat = oxygen_sat(Temp_C_mean, pressure_mmHg)) %>% 
+  mutate(offset = est_oxygen_sat - DO_mgL_mean)
+
+#### (5) Look at offsets applied to data and save information ####
+
+# apply offsets to data
+post_2022_plateau <- post_2022_plateau %>% 
+  mutate(offset_DO_mgL = case_when(miniDOT_no == "162475" ~ (DO_mgL + post_2022_plateau_summary$offset[1]),
+                                   miniDOT_no == "521120" ~ (DO_mgL + post_2022_plateau_summary$offset[2]),
+                                   miniDOT_no == "529728" ~ (DO_mgL + post_2022_plateau_summary$offset[3]),
+                                   miniDOT_no == "663402" ~ (DO_mgL + post_2022_plateau_summary$offset[4])))
+
+post_2023_plateau <- post_2023_plateau %>% 
+  mutate(offset_DO_mgL = case_when(miniDOT_no == "521120" ~ (DO_mgL + post_2023_plateau_summary$offset[1]),
+                                   miniDOT_no == "529728" ~ (DO_mgL + post_2023_plateau_summary$offset[2]),
+                                   miniDOT_no == "663402" ~ (DO_mgL + post_2023_plateau_summary$offset[3])))
+
+# plotting data with new offsets
+post_2022_offset <- ggplot(data = post_2022_plateau, aes(x = date_time, y = offset_DO_mgL, color = miniDOT_no)) +
+  geom_point(size = 4) +
+  geom_line()
+post_2023_offset <- ggplot(data = post_2023_plateau, aes(x = date_time, y = offset_DO_mgL, color = miniDOT_no)) +
+  geom_point(size = 4) +
+  geom_line()
+                                  
+### compare offsets for same sensor!! need to decide on before or after; group together
+# 529728: -.700 vs. -.765
+# 663402: -.478 vs. -.534
+# 521120: -.582 vs. -.507
+
+# DID EACH T SEPARATELY; DID NOT DO AVERAGE T OF BUCKET
+# OR AVERAGE BENSON-GARCIA CALC
