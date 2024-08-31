@@ -1,6 +1,6 @@
 #### putting together water chemistry data from field and lab measurements
 ### Jordan Zabrecky
-## last edited: 08.07.2024
+## last edited: 08.30.2024
 
 # This code combines in-situ water chemistry measurements, AQ400 nitrate, ammonium,
 # and orthophosphate values, Shimadzu total dissolved carbon, dissolved organic
@@ -101,6 +101,11 @@ water_chemistry <- calculate_NH4(water_chemistry)
 
 #### (3) Processing Shimadzu and Ion Chromotography values
 
+# all shimadzu values above detection limit (50 ug/L or 0.05 mg/L)
+
+# ion-chromatography cations & anions
+IC$Br_mg_L <- replace(IC$Br_mg_L, which(IC$Br_mg_L == "<0.01"), "0.005")
+# don't need to convert to numeric as we aren't doing any calculations
 
 # will save this csv when I decide on final labels
 # curious what to do about missing values in regards to modeling
