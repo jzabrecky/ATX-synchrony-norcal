@@ -46,8 +46,8 @@ percover <- percover_raw %>%
 ## function to calculate % cover averages for each reach on each sampling day
 average_per_reach <- function(data) {
   data %>% 
-    group_by(site, field_date, reach) %>% 
-    mutate(
+    dplyr::group_by(site, field_date, reach) %>% 
+    dplyr::mutate(
       green_algae = mean(green_algae),
       microcoleus = mean(Microcoleus),
       anabaena = mean(Anabaena),
@@ -79,8 +79,8 @@ write.csv(percover_reach, "data/field_and_lab/percover_byreach.csv", row.names =
 ## function to calculate % cover averages for each site on each sampling day
 average_per_site <- function(data) {
   data %>%
-    group_by(site, field_date) %>% 
-    mutate(
+    dplyr::group_by(site, field_date) %>% 
+    dplyr::mutate(
       green_algae = mean(green_algae),
       microcoleus = mean(Microcoleus),
       anabaena = mean(Anabaena),
