@@ -1,8 +1,11 @@
 #### intercalibration for miniDOTs for 2022 and 2023 field season
 ### Jordan Zabrecky
-## last edited: 08.28.2024
+## last edited: 09.11.2024
 
-# <insert description>
+# This code calibrates miniDOT dissolved oxygen sensors via the bucket method
+# and then relates the dissolved oxygen measurements to the estimated 100% DO saturation
+# as calculated by the Garcia and Gordon (1992) equation. Offsets are then calculated
+# and applied to the miniDOT data in the "1c_gathering_all_data.R" script
 
 ## For 2022 field season:
 # 491496 - Russian River (no end calibration as it was stolen)
@@ -162,8 +165,8 @@ post_2022_plateau_temp <- ggplot(data = post_2022_plateau, aes(x = date_time, y 
 
 # create a df to summarize this information
 post_2022_plateau_summary <- post_2022_plateau %>% 
-  group_by(miniDOT_no) %>% 
-    summarize(DO_mgL_mean = mean(DO_mgL),
+  dplyr::group_by(miniDOT_no) %>% 
+    dplyr::summarize(DO_mgL_mean = mean(DO_mgL),
               DO_mgL_sd = sd(DO_mgL),
               Temp_C_mean = mean(Temp_C),
               Temp_C_sd = sd(Temp_C),
@@ -184,15 +187,14 @@ post_2023_plateau_temp <- ggplot(data = post_2023_plateau, aes(x = date_time, y 
 
 # create a df to summarize this information
 post_2023_plateau_summary <- post_2023_plateau %>% 
-  group_by(miniDOT_no) %>% 
-  summarize(DO_mgL_mean = mean(DO_mgL),
+  dplyr::group_by(miniDOT_no) %>% 
+  dplyr::summarize(DO_mgL_mean = mean(DO_mgL),
             DO_mgL_sd = sd(DO_mgL),
             Temp_C_mean = mean(Temp_C),
             Temp_C_sd = sd(Temp_C),
             pressure_mmHg = 644.8) # pressure at 12:05pm 1/17
 
 #### (4) Calculate DO for 100% saturation based on Garcia-Benson equation #####
-
 
 # function to estimate DO for 100% oxygen saturation from Garcia and Gordon (1992)
 # takes temperature in C and barometric pressure in mmHg
@@ -251,3 +253,16 @@ post_2023_offset <- ggplot(data = post_2023_plateau, aes(x = date_time, y = offs
 
 # DID EACH T SEPARATELY; DID NOT DO AVERAGE T OF BUCKET
 # OR AVERAGE BENSON-GARCIA CALC
+
+# adding "site_year" information to each sensor to match with miniDOT data
+post_2022_plateau_summary$site_year <- "roving_sensor"
+post_2022_plateau_summary$site_year[which(post_2022_plateau_summary$miniDOT_no == 521120)] <- "salmon_2022"
+post_2022_plateau_summary$site_year[which(post_2022_plateau_summary$miniDOT_no == 663402)] <- "sfkeel_mir_2022"
+post_2022_plateau_summary$site_year[which(post_2022_plateau_summary$miniDOT_no == 529728)] <- NA # this sensor was not deployed in 2022
+post_2023_plateau_summary$site_year <- "salmon_2023"
+post_2023_plateau_summary$site_year[which(post_2023_plateau_summary$miniDOT_no == 521220)] <- "sfkeel_sth_2023"
+post_2023_plateau_summary$site_year[which(post_2023_plateau_summary$miniDOT_no == 663402)] <- "sfkeel_mir_2023"
+
+# save csv's
+write.csv(post_2022_plateau_summary, "./data/miniDOT/intercalibrations/offsets_2022.csv")
+write.csv(post_2023_plateau_summary, "./data/miniDOT/intercalibrations/offsets_2023.csv")
