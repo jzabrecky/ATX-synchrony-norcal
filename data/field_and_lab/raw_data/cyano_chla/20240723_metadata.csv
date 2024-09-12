@@ -1,0 +1,9 @@
+site_reach,field_date,type,triplicate,mass_mg,Rack_ID,dilution
+SFE-M-2,8/7/2023,TM,n,2.1,1,0.0625
+SFE-M-4,8/7/2023,TM,n,2,2,0.5
+SAL-2,8/10/2023,TM,n,2,3,0.25
+SAL-3,8/10/2023,TM,n,2.3,4,0.25
+SFE-M-1S,8/14/2023,TM,n,2.3,5,0.04
+SFE-M-2,8/14/2023,TM,n,1.7,6,0.04
+SFE-M-3,8/14/2023,TM,y,1.9,7,0.0625
+SFE-SH-1S,8/22/2023,TM,n,2,8,0.025

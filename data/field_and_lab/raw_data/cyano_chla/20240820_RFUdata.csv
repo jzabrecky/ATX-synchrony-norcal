@@ -1,0 +1,6 @@
+﻿Fluorometer_ID,RFU,Units,Unacidified_acidified,Rack_ID,Extraction_vol,Notes
+SAMPLE-001,160647.2,RFU,S,0,,
+SAMPLE-002,4704.57,RFU,BU,0,,
+SAMPLE-003,4517.19,RFU,BA,0,,
+SAMPLE-006,190491.7,RFU,U,1,10,trying 1/20
+SAMPLE-007,114916.7,RFU,A,1,10,

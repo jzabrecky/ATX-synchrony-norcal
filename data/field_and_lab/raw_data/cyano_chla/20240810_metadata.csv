@@ -1,0 +1,21 @@
+﻿site_reach,field_date,type,triplicate,mass_mg,Rack_ID,dilution,Notes
+SFE-M-1S,9/12/2023,TM,n,2.2,1,0.05,
+SFE-SH-1S,9/24/2023,TM,n,2.1,2,0.04,
+SFE-M-1S,9/24/2023,TM,n,2.2,3,0.05,
+SFE-M-2,9/24/2023,TM,y,2.1,4,0.05,
+SFE-M-2,9/24/2023,TM,y,2.3,5,0.05,
+SFE-M-2,9/24/2023,TM,y,2.4,6,0.05,
+SFE-M-3,9/24/2023,TM,n,2.5,7,0.05,
+SFE-M-4,9/24/2023,TM,n,1.9,8,0.05,
+Mat 1,9/24/2023,riffle_exp,n,2.5,9,0.05,
+Mat 2,9/24/2023,riffle_exp,n,2.9,21,0.025,using redo
+Mat 3,9/24/2023,riffle_exp,n,2.6,11,0.05,
+Mat 4,9/24/2023,riffle_exp,n,1.7,12,0.05,
+Mat 5,9/24/2023,riffle_exp,n,1.9,13,0.05,
+Mat 6,9/24/2023,riffle_exp,n,2.4,14,0.05,
+Mat 7,9/24/2023,riffle_exp,n,3,15,0.05,
+Mat 8,9/24/2023,riffle_exp,n,2.7,22,0.025,using redo
+Mat 9,9/24/2023,riffle_exp,n,2.7,17,0.05,
+SFE-M-1S,8/28/2023,TM,n,2.9,18,0.05,
+SFE-M-2,8/28/2023,TM,n,2.5,19,0.05,
+SFE-M-3,8/28/2023,TM,n,3,20,0.04,

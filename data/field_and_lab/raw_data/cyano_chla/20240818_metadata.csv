@@ -1,0 +1,13 @@
+site_reach,field_date,type,triplicate,mass_mg,Rack_ID,dilution,Notes
+SFE-M-3,7/3/2023,TM,n,2.2,21,0.0625,redo's include >3 retries
+SFE-M-1S,7/10/2023,TM,n,1.8,22,0.0625,overestimating dilutions to get as low as possible
+SFE-SH-1S,7/11/2023,TM,n,1.7,23,0.1,using 1/10 as 1/16 was below
+SFE-M-1S,7/17/2023,TM,n,1.5,24,0.0625,using 1/16 version
+SFE-M-3,7/17/2023,TM,y,1.7,25,0.0625,using 1/16 version
+SFE-M-1S,7/24/2023,TM,n,1.7,26,0.05,
+SFE-M-2,7/31/2023,TM,n,2.2,27,0.0625,using 1/16 version
+SAL-3,8/10/2023,TM,n,1.8,28,0.25,using 1/4 version
+SFE-SH-1S,9/12/2023,TM,n,2.4,29,0.04,was weirdly low last time
+SFE-M-2,9/12/2023,TM,y,2.3,30,0.04,
+SFE-M-2,9/18/2023,TM,n,1.8,31,0.05,using 1/20 version
+SFE-M-4,9/18/2023,TM,y,2.2,62,0.04,using 1/25 version

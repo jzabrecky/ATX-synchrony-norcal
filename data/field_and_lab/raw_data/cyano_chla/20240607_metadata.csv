@@ -1,0 +1,21 @@
+site_reach,field_date,type,triplicate,mass_mg,Rack_ID,dilution,Notes
+SAL-3,6/28/2023,TM,n,1.9,1,1,"2 mL in cuvette, this sample has super low RFU"
+SFE-M-3,7/3/2023,TM,n,1.9,2,0.1,
+SFE-M-1S,7/10/2023,TM,n,2.3,3,0.1,
+SFE-M-2,7/10/2023,TM,n,2,4,0.5,
+SFE-M-3,7/10/2023,TM,y,1.9,5,0.1,
+SFE-M-3,7/10/2023,TM,y,2,6,0.1,
+SFE-SH-1S,7/11/2023,TM,n,2.3,7,0.1,
+SFE-SH-1S,7/17/2023,TM,n,2.2,8,0.05,0.01 mL in pipette; redo version
+SFE-M-1S,7/17/2023,TM,n,2.3,9,0.0625,same amount as last time but was really close to no negative pheo
+SFE-M-3,7/17/2023,TM,y,2,10,0.0625,
+SFE-M-1S,7/10/2023,TA,n,2,11,0.125,
+SFE-M-4,7/10/2023,TA,n,2,12,0.25,using redo
+SFE-M-1S,7/17/2023,TA,y,2.2,13,0.125,
+SFE-M-1S,7/17/2023,TA,y,2.2,14,0.125,
+SFE-M-1S,7/17/2023,TA,y,2,15,0.125,
+SFE-M-4,7/17/2023,TA,n,1.8,16,0.125,
+SFE-SH-1S,7/24/2023,TA,n,2,17,0.125,
+SFE-M-1S,7/24/2023,TA,n,2,18,0.125,
+SFE-M-2,7/24/2023,TA,n,1.9,19,0.125,
+SFE-M-3,7/24/2023,TA,n,2.2,20,0.125,

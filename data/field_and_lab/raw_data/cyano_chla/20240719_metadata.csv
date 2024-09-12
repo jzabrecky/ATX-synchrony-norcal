@@ -1,0 +1,41 @@
+﻿site_reach,field_date,type,triplicate,mass_mg,Rack_ID,dilution,Notes
+SFE-M-2,7/31/2023,TM,n,2.1,1,0.1,using redo 1/10
+SFE-M-1S,8/7/2023,TM,y,2,2,0.05,
+SFE-M-2,8/7/2023,TM,n,1.9,3,0.0625,
+SFE-M-4,8/7/2023,TM,n,2.1,4,0.5,"sample was actually only 17,000 RFU last time!"
+SAL-1S,8/10/2023,TM,y,2.1,5,0.25,
+SAL-2,8/10/2023,TM,n,2,6,0.2,400 microliters of sample in cuvette
+SAL-3,8/10/2023,TM,n,2.3,7,0.2,400 microliters of sample in cuvette
+SFE-SH-1S,8/14/2023,TM,n,2.1,8,0.04,80 microliters of sample in cuvette
+SFE-M-1S,8/14/2023,TM,n,2,9,0.04,80 microliters of sample in cuvette
+SFE-M-2,8/14/2023,TM,n,2.4,10,0.05,
+SFE-M-3,8/14/2023,TM,y,2.1,11,0.05,
+SFE-M-3,8/14/2023,TM,y,2.2,12,0.04,80 microliters of sample in cuvette
+SFE-SH-1S,8/22/2023,TM,n,2,13,0.025,50 microliters of sample; super high RFU-- this will be a test but calculations suggest this would have worked on prior sample
+SFE-M-2,8/22/2023,TM,n,2,14,0.04,80 microliters of sample in cuvette
+SFE-M-3,8/22/2023,TM,y,2,15,0.04,80 microliters of sample in cuvette
+SFE-M-3,8/22/2023,TM,y,2.2,16,0.04,80 microliters of sample in cuvette
+SFE-SH-1S,8/28/2023,TM,y,2,17,0.04,80 microliters of sample in cuvette
+SFE-SH-1S,8/28/2023,TM,y,2.2,18,0.04,80 microliters of sample in cuvette
+SFE-M-1S,8/28/2023,TM,n,2.1,19,0.04,using redo 1/25
+SFE-M-2,8/28/2023,TM,n,2.3,20,0.025,50 microliters of sample; super high RFU-- this will be a test but calculations suggest this would have worked on prior sample
+SFE-M-3,8/28/2023,TM,n,2.1,21,0.04,80 microliters of sample in cuvette
+SFE-SH-1S,9/4/2023,TM,n,2,22,0.04,80 microliters of sample in cuvette
+SFE-M-1S,9/4/2023,TM,y,2.3,23,0.04,80 microliters of sample in cuvette
+SFE-M-1S,9/4/2023,TM,y,2,24,0.04,using redo 1/25
+SFE-M-2,9/4/2023,TM,n,2,25,0.04,80 microliters of sample in cuvette
+SFE-M-3,9/4/2023,TM,n,1.9,26,0.04,80 microliters of sample in cuvette
+SFE-M-4,9/4/2023,TM,n,2.1,27,0.1,
+SFE-SH-1S,9/12/2023,TM,n,2.1,28,0.04,80 microliters of sample in cuvette
+SFE-M-2,9/12/2023,TM,y,2.1,29,0.05,
+SFE-M-2,9/12/2023,TM,y,2.3,30,0.05,
+SFE-M-2,9/12/2023,TM,y,2.2,31,0.05,
+SFE-M-3,9/12/2023,TM,n,2.3,32,0.05,
+SFE-M-4,9/12/2023,TM,n,1.9,33,0.0625,watch for below detect
+SFE-SH-1S,9/18/2023,TM,n,2.4,34,0.05,
+SFE-M-1S,9/18/2023,TM,n,2.2,35,0.05,
+SFE-M-2,9/18/2023,TM,n,2.1,36,0.05,
+SFE-M-3,9/18/2023,TM,n,2,37,0.05,
+SFE-M-4,9/18/2023,TM,y,1.9,38,0.0625,"try 1/16 for this but if it's below detection limit, and you use a lower dilution- use that lower dilution for the following three"
+SFE-M-4,9/18/2023,TM,y,2.1,39,0.0625,see note above
+SFE-M-4,9/18/2023,TM,y,2.3,40,0.0625,see note above
