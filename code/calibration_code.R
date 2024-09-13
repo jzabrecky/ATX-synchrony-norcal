@@ -264,5 +264,5 @@ post_2023_plateau_summary$site_year[which(post_2023_plateau_summary$miniDOT_no =
 post_2023_plateau_summary$site_year[which(post_2023_plateau_summary$miniDOT_no == 663402)] <- "sfkeel_mir_2023"
 
 # save csv's
-write.csv(post_2022_plateau_summary, "./data/miniDOT/intercalibrations/offsets_2022.csv")
-write.csv(post_2023_plateau_summary, "./data/miniDOT/intercalibrations/offsets_2023.csv")
+write.csv(post_2022_plateau_summary, "./data/miniDOT/intercalibrations/offsets_2022.csv", row.names = FALSE)
+write.csv(post_2023_plateau_summary, "./data/miniDOT/intercalibrations/offsets_2023.csv", row.names = FALSE)
