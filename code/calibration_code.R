@@ -247,12 +247,11 @@ post_2023_offset <- ggplot(data = post_2023_plateau, aes(x = date_time, y = offs
   geom_line()
                                   
 ### compare offsets for same sensor!! need to decide on before or after; group together
-# 529728: -.700 vs. -.765
-# 663402: -.478 vs. -.534
-# 521120: -.582 vs. -.507
-
-# DID EACH T SEPARATELY; DID NOT DO AVERAGE T OF BUCKET
-# OR AVERAGE BENSON-GARCIA CALC
+# 529728: +.700 vs. +.765
+# 663402: +.478 vs. +.534
+# 521120: +.582 vs. +.507
+# note: offsets are positive- meaning our measured DO is less than the 
+# estimated DO at 100% saturation!
 
 # adding "site_year" information to each sensor to match with miniDOT data
 post_2022_plateau_summary$site_year <- "roving_sensor"
@@ -260,7 +259,7 @@ post_2022_plateau_summary$site_year[which(post_2022_plateau_summary$miniDOT_no =
 post_2022_plateau_summary$site_year[which(post_2022_plateau_summary$miniDOT_no == 663402)] <- "sfkeel_mir_2022"
 post_2022_plateau_summary$site_year[which(post_2022_plateau_summary$miniDOT_no == 529728)] <- NA # this sensor was not deployed in 2022
 post_2023_plateau_summary$site_year <- "salmon_2023"
-post_2023_plateau_summary$site_year[which(post_2023_plateau_summary$miniDOT_no == 521220)] <- "sfkeel_sth_2023"
+post_2023_plateau_summary$site_year[which(post_2023_plateau_summary$miniDOT_no == 521120)] <- "sfkeel_sth_2023"
 post_2023_plateau_summary$site_year[which(post_2023_plateau_summary$miniDOT_no == 663402)] <- "sfkeel_mir_2023"
 
 # save csv's
