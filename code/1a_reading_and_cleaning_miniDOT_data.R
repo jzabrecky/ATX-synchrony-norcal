@@ -271,10 +271,10 @@ salmon_2022_cleaning_DO <- salmon_2022_cleaning %>%
   filter(date_time <= "2022-07-28 06:40:00" | date_time >= "2022-07-28 08:15:00") # <2 hours
 
 # south fork eel @ miranda 2023
-### MAYBE NEED TO GO BACK AND REMOVE BIOFOULING?
 sfkeel_mir_2023_cleaning_DO <- sfkeel_mir_2023_cleaning %>% 
   filter(date_time <= "2023-06-28 04:19:00" | date_time >= "2023-06-28 04:40:00") %>% # <1 hour
   filter(date_time <= "2023-07-03 00:45:00" | date_time >= "2023-07-03 03:07:00") %>% # <3 hours
+  filter(date_time <= "2023-07-11 12:35:00" | date_time >= "2023-07-11 13:40:00") %>%  # <1 hour
   filter(date_time <= "2023-09-09 14:45:00" | date_time >= "2023-09-09 16:02:00") # <2 hours
 
 # south fork eel @ standish hickey 2023
