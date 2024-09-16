@@ -283,6 +283,7 @@ sfkeel_sth_2023_cleaning_DO <- sfkeel_sth_2023_cleaning %>%
   filter(date_time <= "2023-06-25 02:30:00" | date_time >= "2023-06-25 04:00:00") %>% # <2 hours
   filter(date_time <= "2023-06-28 05:15:00" | date_time >= "2023-06-28 06:02:00") %>% # <1 hour
   filter(date_time <= "2023-07-01 16:45:00" | date_time >= "2023-07-01 17:30:00") %>% # <1 hour
+  filter(date_time <= "2023-07-03 06:07:00" | date_time >= "2023-07-03 08:31:00") %>% # <3 hours
   filter(date_time <= "2023-07-07 11:33:00" | date_time >= "2023-07-07 13:48:00") %>% # <2 hours 
   filter(date_time <= "2023-07-07 14:29:00" | date_time >= "2023-07-07 16:57:00") %>% # <3 hours
   filter(date_time <= "2023-07-08 09:20:00" | date_time >= "2023-07-08 14:30:00") %>% # <6 hours
@@ -334,29 +335,32 @@ interpolate_temp <- function(df) {
 
 # applying functions to dataframes 
 # (still separately because would have to split the list right after anyways)
+## SKIP THIS SECTION WHEN RUNNING FOR EDI DATA (want to preserve removed data to flag it)
 
 # 2022
-sfkeel_mir_2022_cleaning <- interpolate_temp(sfkeel_mir_2022_cleaning)
+sfkeel_mir_2022_cleaning_temp <- interpolate_temp(sfkeel_mir_2022_cleaning)
 sfkeel_mir_2022_cleaning_DO <- interpolate_DO(sfkeel_mir_2022_cleaning_DO)
-russian_2022_cleaning <- interpolate_temp(russian_2022_cleaning)
+russian_2022_cleaning_temp <- interpolate_temp(russian_2022_cleaning)
 russian_2022_cleaning_DO <- interpolate_DO(russian_2022_cleaning_DO)
-salmon_2022_cleaning <- interpolate_temp(salmon_2022_cleaning)
+salmon_2022_cleaning_temp <- interpolate_temp(salmon_2022_cleaning)
 salmon_2022_cleaning_DO <- interpolate_DO(salmon_2022_cleaning_DO)
 
 # 2023
-sfkeel_mir_2023_cleaning <- interpolate_temp(sfkeel_mir_2023_cleaning)
+sfkeel_mir_2023_cleaning_temp <- interpolate_temp(sfkeel_mir_2023_cleaning)
 sfkeel_mir_2023_cleaning_DO <- interpolate_DO(sfkeel_mir_2023_cleaning_DO)
-sfkeel_sth_2023_cleaning <- interpolate_temp(sfkeel_sth_2023_cleaning)
+sfkeel_sth_2023_cleaning_temp <- interpolate_temp(sfkeel_sth_2023_cleaning)
 sfkeel_sth_2023_cleaning_DO <- interpolate_DO(sfkeel_sth_2023_cleaning_DO)
-salmon_2023_cleaning <- interpolate_temp(salmon_2023_cleaning)
+salmon_2023_cleaning_temp <- interpolate_temp(salmon_2023_cleaning)
 salmon_2023_cleaning_DO <- interpolate_DO(salmon_2023_cleaning_DO)
 
 # for standish hickey, we have a week period where we were missing data, so we need
 # to remove interpolation from then
-sfkeel_sth_2023_cleaning <- sfkeel_sth_2023_cleaning %>% 
+sfkeel_sth_2023_cleaning_temp <- sfkeel_sth_2023_cleaning %>% 
   filter(date_time <= "2023-07-17 11:26:00" | date_time >= "2023-07-24 19:07:00")
 sfkeel_sth_2023_cleaning_DO <- sfkeel_sth_2023_cleaning_DO %>% 
   filter(date_time <= "2023-07-17 11:26:00" | date_time >= "2023-07-24 19:07:00")
+
+## RESUME FOR EDI DATA
   
 ## (c) removing longer periods of biofouling, bad data, etc. that cannot be interpolated
 
@@ -369,7 +373,7 @@ sfkeel_mir_2022_cleaning_DO <- sfkeel_mir_2022_cleaning_DO %>%
   filter(date_time <= "2022-07-25 10:20:00" | date_time >= "2022-07-28 10:10:00")
 # need to remove oscillating strangeness for temperature as well
 # temperature looks normal for extended time when egg sac laid on foil
-sfkeel_mir_2022_cleaning <- sfkeel_mir_2022_cleaning %>% 
+sfkeel_mir_2022_cleaning_temp <- sfkeel_mir_2022_cleaning_temp %>% 
   filter(date_time <= "2022-07-13 19:30:00" | date_time >= "2022-07-14 09:15:00") %>% 
   filter(date_time <= "2022-07-25 10:20:00" | date_time >= "2022-07-25 19:25:00")
 # looking at the temperature though, there is a weird in between the two oscillating strangeness
@@ -377,7 +381,7 @@ sfkeel_mir_2022_cleaning <- sfkeel_mir_2022_cleaning %>%
 # we also have increasing amplitude for the DO data so it may be best to just remove that week
 sfkeel_mir_2022_cleaning_DO <- sfkeel_mir_2022_cleaning_DO %>%
   filter(date_time <= "2022-07-13 19:30:00" | date_time >= "2022-07-28 10:20:00")
-sfkeel_mir_2022_cleaning <- sfkeel_mir_2022_cleaning %>% 
+sfkeel_mir_2022_cleaning_temp <- sfkeel_mir_2022_cleaning_temp %>% 
   filter(date_time <= "2022-07-13 19:30:00" | date_time >= "2022-07-28 10:20:00")
 
 # russian 2022
@@ -410,12 +414,12 @@ salmon_2023_cleaning_DO <- salmon_2023_cleaning_DO %>%
 #### (4) Merging data back together and saving ####
 
 # Left join of "cleaning_DO" dataframe to the original cleaning dataframe that has preserved Temp_C
-sfkeel_mir_2022_miniDOT <- left_join(sfkeel_mir_2022_cleaning, sfkeel_mir_2022_cleaning_DO, "date_time")
-russian_2022_miniDOT <- left_join(russian_2022_cleaning, russian_2022_cleaning_DO, "date_time")
-salmon_2022_miniDOT <- left_join(salmon_2022_cleaning, salmon_2022_cleaning_DO, "date_time")
-sfkeel_mir_2023_miniDOT <- left_join(sfkeel_mir_2023_cleaning, sfkeel_mir_2023_cleaning_DO, "date_time")
-sfkeel_sth_2023_miniDOT <- left_join(sfkeel_sth_2023_cleaning, sfkeel_sth_2023_cleaning_DO, "date_time")
-salmon_2023_miniDOT <- left_join(salmon_2023_cleaning, salmon_2023_cleaning_DO, "date_time")
+sfkeel_mir_2022_miniDOT <- left_join(sfkeel_mir_2022_cleaning_temp, sfkeel_mir_2022_cleaning_DO, "date_time")
+russian_2022_miniDOT <- left_join(russian_2022_cleaning_temp, russian_2022_cleaning_DO, "date_time")
+salmon_2022_miniDOT <- left_join(salmon_2022_cleaning_temp, salmon_2022_cleaning_DO, "date_time")
+sfkeel_mir_2023_miniDOT <- left_join(sfkeel_mir_2023_cleaning_temp, sfkeel_mir_2023_cleaning_DO, "date_time")
+sfkeel_sth_2023_miniDOT <- left_join(sfkeel_sth_2023_cleaning_temp, sfkeel_sth_2023_cleaning_DO, "date_time")
+salmon_2023_miniDOT <- left_join(salmon_2023_cleaning_temp, salmon_2023_cleaning_DO, "date_time")
 
 # making list of final dataframes
 miniDOT_list <- list(sfkeel_mir_2022_miniDOT, russian_2022_miniDOT, salmon_2022_miniDOT, 
