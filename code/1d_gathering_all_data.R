@@ -1,13 +1,14 @@
 #### gathering all data to model metabolism
 ### Jordan Zabrecky
-## last edited 08.14.2024
+## last edited 09.16.2024
 
 # This code gathers the necessary components for metabolism modeling
-# including the (1) cleaned miniDOT data from "1a_reading_and_cleaning_miniDOT_data.R",
+# including the (1) cleaned miniDOT data from "1a_reading_and_cleaning_miniDOT_data.R"
+# and applies calibration offsets calculated from "1c_sensor_intercalibrations.R"
 # (2) USGS gage discharge data, (3) GLDAS pressure data, 
 # (4) NLDAS light data, and depth-discharge relationship information. 
 # In step (6) a final csv is created with all this information to be used to 
-# model metabolism in "1d_modeling_metabolism"
+# model metabolism in "1e_metabolism_estimates.R"
 
 #### (1) Loading packages and reading in data #### 
 
@@ -32,7 +33,7 @@ rename <- dplyr::rename
 # However, there may be issues doing this with later version of R 
 # (I had issues with R 4.4.0, but it works with 4.2.3 and 4.3.2)
 
-## Reading in miniDOT data
+## (a) reading in miniDOT data
 miniDOT_data <- ldply(list.files(path = "./data/miniDOT/", pattern = "_miniDOT.csv"), function(filename) {
   d <- read.csv(paste("data/miniDOT/", filename, sep = ""))
   d$site_year = filename %>% stringr::str_remove("_miniDOT.csv")
@@ -47,6 +48,27 @@ miniDOT_data <- na.omit(miniDOT_data)
 
 # converting date_time from character to POSIXct class & indicate time zone
 miniDOT_data$date_time <- as_datetime(miniDOT_data$date_time, tz = "America/Los_Angeles")
+
+## (b) applying offsets from intercalibrations to measured DO
+
+# read in offset csvs
+offsets <- ldply(list.files(path = "./data/miniDOT/intercalibrations/", pattern = "offsets"), function(filename) {
+  d <- read.csv(paste("./data/miniDOT/intercalibrations/", filename, sep = ""))
+  return(d)
+})
+
+# apply offsets to miniDOT data
+miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "sfkeel_mir_2022")] <- 
+  miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "sfkeel_mir_2022")] + offsets$offset[which(offsets$site_year == "sfkeel_mir_2022")]
+# no calibration for russian 2022 as sensor was stolen :(
+miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "salmon_2022")] <- 
+  miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "salmon_2022")] + offsets$offset[which(offsets$site_year == "salmon_2022")]
+miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "sfkeel_mir_2023")] <- 
+  miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "sfkeel_mir_2023")] + offsets$offset[which(offsets$site_year == "sfkeel_mir_2023")]
+miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "sfkeel_sth_2023")] <- 
+  miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "sfkeel_sth_2023")] + offsets$offset[which(offsets$site_year == "sfkeel_sth_2023")]
+miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "salmon_2023")] <- 
+  miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "salmon_2023")] + offsets$offset[which(offsets$site_year == "salmon_2023")]
 
 # separating large dataframe into a list of dataframes
 miniDOT_list <- split(miniDOT_data, miniDOT_data$site)
