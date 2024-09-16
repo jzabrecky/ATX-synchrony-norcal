@@ -355,7 +355,7 @@ salmon_2023_cleaning_DO <- interpolate_DO(salmon_2023_cleaning_DO)
 
 # for standish hickey, we have a week period where we were missing data, so we need
 # to remove interpolation from then
-sfkeel_sth_2023_cleaning_temp <- sfkeel_sth_2023_cleaning %>% 
+sfkeel_sth_2023_cleaning_temp <- sfkeel_sth_2023_cleaning_temp %>% 
   filter(date_time <= "2023-07-17 11:26:00" | date_time >= "2023-07-24 19:07:00")
 sfkeel_sth_2023_cleaning_DO <- sfkeel_sth_2023_cleaning_DO %>% 
   filter(date_time <= "2023-07-17 11:26:00" | date_time >= "2023-07-24 19:07:00")
