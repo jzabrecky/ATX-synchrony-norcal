@@ -19,6 +19,11 @@ metadata <- read.csv("./data/field_and_lab/raw_data/SUNY_ESF_metadata.csv")
 per_OM <- read.csv("./data/field_and_lab/cyano_percent_OM.csv")
 chla <- read.csv("./data/field_and_lab/cyano_chla.csv")
 
+# use lubridate for consistency before merging datasets
+metadata$field_date <- mdy(metadata$field_date)
+per_OM$field_date <- ymd(per_OM$field_date)
+chla$field_date <- mdy(chla$field_date)
+
 #### (2) Processing anatoxins csv ####
 
 ## (a) cleaning ESF csv
@@ -79,7 +84,8 @@ anatoxins_processed <- anatoxins_processed %>%
   mutate(ATX_all_ug_g = ATXa_ug_g + HTXa_ug_g + dhATXa_ug_g + dhHTXa_ug_g)
 
 # match ESF_ID with metadata
-combined <- left_join(metadata, anatoxins_processed, by = "ESF_ID")
+combined <- left_join(metadata, anatoxins_processed, by = "ESF_ID") %>% 
+  filter(sample_type != "NT") # only calculating targeted mat samples ATX here
 
 # check blanks to make sure they had no anatoxin detections
 combined$ATX_all_ug_g[which(combined$sample_type == "BLANK")]
@@ -106,22 +112,64 @@ triplicates <- combined %>%
   dplyr::summarize(mean_atxa = mean(ATXa_ug_g),
                    mean_htxa = mean(HTXa_ug_g),
                    mean_dhatxa = mean(dhATXa_ug_g),
-                   mean_atx = mean(ATX_all_ug_g),
-                   sd_atx = sd(ATX_all_ug_g), # only will calculate for sum
-                   rsd_atx = sd_atx * 100 / mean_atx) %>% 
+                   mean_atx_all = mean(ATX_all_ug_g),
+                   sd_atx_all = sd(ATX_all_ug_g), # only will calculate for sum
+                   rsd_atx_all = sd_atx_all * 100 / mean_atx_all) %>% 
   ungroup() %>% 
   distinct()
 
 # look at triplicate results
 view(triplicates) # two highest triplicates were HIGH
 # 173% RSD- SAL-1S TM and SFE-M-2 TAC; very high but sort of expected?
-triplicates$rsd_atx <- replace(triplicates$rsd_atx, is.nan(triplicates$rsd_atx), NA)
-mean(triplicates$rsd_atx, na.rm = TRUE) # average is 36.33%
-median(triplicates$rsd_atx, na.rm = TRUE) # median is 20.46%
+triplicates$rsd_atx_all <- replace(triplicates$rsd_atx_all, is.nan(triplicates$rsd_atx_all), NA)
+mean(triplicates$rsd_atx_all, na.rm = TRUE) # average is 36.33%
+median(triplicates$rsd_atx_all, na.rm = TRUE) # median is 20.46%
 
-#### RESUME HERE~!!!!!
 # take dataset and select for columns we care about before merging
 triplicates_final <- triplicates %>% 
-  dplyr::rename(Chla_ug_mg = mean_chla,
-                Pheo_ug_mg = mean_pheo) %>% 
-  select(field_date, site_reach, type, Chla_ug_mg, Pheo_ug_mg)
+  dplyr::mutate(ATXa_ug_g = round(mean_atxa, 4),
+                HTXa_ug_g = round(mean_htxa, 4),
+                dhATXa_ug_g = round(mean_dhatxa, 4)) %>% 
+  mutate(ATX_all_ug_g = ATXa_ug_g + HTXa_ug_g + dhATXa_ug_g) %>%  # adding again to make sure it adds up w/ rounding
+  dplyr::select(field_date, site_reach, sample_type, ATXa_ug_g, HTXa_ug_g, dhATXa_ug_g, ATX_all_ug_g)
+
+# remove triplicates from original dataset before joining the two
+anatoxins_final <- combined %>% 
+  filter(triplicate == "n") %>% 
+  select(field_date, site_reach, sample_type, ATXa_ug_g, HTXa_ug_g, dhATXa_ug_g, ATX_all_ug_g)
+
+# add processed/averaged triplicates back in
+anatoxins_final <- rbind(anatoxins_final, triplicates_final)
+
+#### (3) Merge Chl-a and % Org Matter & make calculations ####
+
+# merge in chlorophyll and percent organic matter data
+anatoxins_final <- left_join(anatoxins_final, chla, by = c("site_reach", "field_date", "sample_type"))
+
+# note that SFE-M-3 7.14.22 TM has no chl-a value -- not enough material leftover to calculate chla
+# we will just fill in this value with the TM chl-a downstream that day, but it doesn't matter because ATX is 0
+anatoxins_final$Chla_g_g[1] <- anatoxins_final$Chla_g_g[2]
+
+# merge in percent organic matter data
+anatoxins_final <- left_join(anatoxins_final, per_OM, by = c("site_reach", "field_date", "sample_type"))
+
+# calculate anatoxins ug / (approximate) g chlorophyll-a AND anatoxins ug / (approximate) g organic matter
+anatoxins_final <- anatoxins_final %>% 
+  mutate(ATX_all_ug_chla_g = round((ATX_all_ug_g / Chla_g_g), 4),
+         ATX_all_ug_afdm_g = round((ATX_all_ug_g / per_org_matter), 4))
+
+# create final csv for time series data
+anatoxins_final_timeseries <- anatoxins_final %>% 
+  filter(sample_type != "riffle_exp") %>% # exclude riffle experiment
+  select(field_date, site_reach, site, reach, sample_type, ATXa_ug_g, dhATXa_ug_g, HTXa_ug_g, ATX_all_ug_g, 
+         Chla_g_g, per_org_matter, ATX_all_ug_chla_g, ATX_all_ug_afdm_g)
+
+# create final csv for riffle experiment
+anatoxins_final_riffle <- anatoxins_final %>% 
+  filter(sample_type == "riffle_exp") %>% # is only the riffle experiment
+  select(field_date, site_reach, sample_type, ATXa_ug_g, dhATXa_ug_g, HTXa_ug_g, ATX_all_ug_g, 
+         Chla_g_g, ATX_all_ug_chla_g)
+
+# save new csvs
+write.csv(anatoxins_final_timeseries, "./data/field_and_lab/cyano_atx.csv", row.names = FALSE)
+write.csv(anatoxins_final_riffle, "./data/field_and_lab/riffle_exp_atx.csv", row.names = FALSE)
