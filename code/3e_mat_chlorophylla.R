@@ -1,6 +1,6 @@
 #### processing chlorophyll-a and pheophytin concentrations for freeze-dried cyanobacteria mass
 ### Jordan Zabrecky (modified from Joanna Blaszczak)
-## last edited 9.11.24
+## last edited 9.13.24
 
 # This code calculates chlorophyll-a and pheophytin concentrations for freeze-dried
 # cyanobacteria mass from RFUs obtained from the Blaszczak Lab's Trilogy Fluorometer 
@@ -149,11 +149,46 @@ chla_pheo_final <- chla_pheo_calculations %>%
   filter(Pheo_ug_mg > 0) # negative pheophytin values
 
 ## (b) analyze triplicates
-triplicates <- chla_pheo_final %>% 
-  filter(triplicate == "y")
 
-## TO-DO
-# analyze triplicates
-# merge back with regular data
-# do a check to make sure all samples are accounted for; if there are doubles, etc.
-# also need to rename TA as TAC :)
+# filter out triplicates and calculate summary statistics
+triplicates <- chla_pheo_final %>% 
+  filter(triplicate == "y") %>% 
+  dplyr::group_by(field_date, site_reach, type) %>% 
+  dplyr::summarize(mean_chla = mean(Chla_ug_mg),
+                   sd_chla = sd(Chla_ug_mg),
+                   rsd_chla = sd_chla * 100 / mean_chla,
+                   mean_pheo = mean(Pheo_ug_mg)) %>% 
+  ungroup() %>% 
+  distinct()
+
+# look at triplicate results
+view(triplicates) # RSD max is 78% which is very high, the next is 33%
+mean(triplicates$rsd_chla) # average is 12.6%
+
+# some thoughts on high RSD:
+# the highest samples are all TM (those with 12.5% and up)
+# this is likely due to the sediment amounts in the mats
+# so when we take a small amount (~2 mg), which we need to do
+# to get plausible values on the fluorometer (i.e. no negative pheophytin)
+# it is highly possible that sometimes our sample is mostly sediment
+# and sometimes more mat material is included
+
+## (c) put together final dataset and save
+
+# take dataset and select for columns we care about before merging
+triplicates_final <- triplicates %>% 
+  dplyr::rename(Chla_ug_mg = mean_chla,
+                Pheo_ug_mg = mean_pheo) %>% 
+  select(field_date, site_reach, type, Chla_ug_mg, Pheo_ug_mg)
+
+# remove triplicates from original dataset before joining the two
+final <- chla_pheo_final %>% 
+  filter(triplicate == "n") %>% 
+  select(field_date, site_reach, type, Chla_ug_mg, Pheo_ug_mg)
+
+# add processed/averaged triplicates back in
+final <- rbind(final, triplicates_final) %>% 
+  rename(sample_type = type) # renaming to match conventions from % org matter
+
+# save csv
+write.csv(final, "../../cyano_chla.csv", row.names = FALSE)

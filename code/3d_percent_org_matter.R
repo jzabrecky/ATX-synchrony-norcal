@@ -34,11 +34,7 @@ data$afdm_g <- data$dry_sample_tin_g - data$combusted_sample_tin_g
 # calculate percent organic matter (percent of matter that is organic/combusted)
 data$per_org_matter <- data$afdm_g / data$dry_sample_g
 
-# dealing with triplicate
-# filter for triplicate; summarize by date
-# remove tripliate and put summary into final data-frame
-# order by date; (and then site reach if needed)
-# need to fix this; guy next to me is making me feel uncomfortable
+# calculating summary statistics for triplicates
 triplicates <- data %>% 
   filter(triplicate == "y") %>% 
   dplyr::group_by(field_date, site_reach, site, reach, sample_type) %>% 
@@ -57,7 +53,7 @@ triplicates_final <- triplicates %>%
   dplyr::rename(per_org_matter = mean) %>% 
   select(field_date, site_reach, site, reach, sample_type, per_org_matter)
 
-# trying to put triplicates into normal dataset
+# remove triplicates from original dataset before joining the two
 final <- data %>% 
   filter(triplicate == "n") %>% 
   select(field_date, site_reach, site, reach, sample_type, per_org_matter)
@@ -75,4 +71,4 @@ final$per_org_matter[2] <- final$per_org_matter[1]
 final$per_org_matter[3] <- final$per_org_matter[1]
 
 # save csv output
-write.csv(final, "./data/field_and_lab/cyano_percent_OM.csv")
+write.csv(final, "./data/field_and_lab/cyano_percent_OM.csv", row.names = FALSE)
