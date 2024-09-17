@@ -1,6 +1,6 @@
 #### calculating percent organic matter for TM and TAC samples
 ### Jordan Zabrecky
-## last updated 09.10.2024
+## last updated 09.17.2024
 
 # This code calculates percent organic matter for TM (targeted-Microcoleus) and
 # TAC (targeted-Anabaena and Cylindrospermum) using tin weight, dry weight,
