@@ -186,9 +186,12 @@ final <- chla_pheo_final %>%
   filter(triplicate == "n") %>% 
   select(field_date, site_reach, type, Chla_ug_mg, Pheo_ug_mg)
 
-# add processed/averaged triplicates back in
+# add processed/averaged triplicates back in & do some conversions
 final <- rbind(final, triplicates_final) %>% 
-  rename(sample_type = type) # renaming to match conventions from % org matter
+  dplyr::rename(sample_type = type) %>% # renaming to match conventions from % org matter
+  mutate(Chla_g_g = round((Chla_ug_mg / 1000), 3), # convert ug/mg to g/g
+         Pheo_g_g = round((Pheo_ug_mg / 1000), 3)) %>% # so this reads as g of Chla/Pheo per g dry weight!
+  select(field_date, site_reach, sample_type, Chla_g_g, Pheo_g_g)
 
 # save csv
 write.csv(final, "../../cyano_chla.csv", row.names = FALSE)

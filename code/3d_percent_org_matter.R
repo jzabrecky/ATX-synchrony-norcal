@@ -51,11 +51,14 @@ mean(triplicates$rsd) # average is 5.6%
 # take dataset and select for columns we care about before merging
 triplicates_final <- triplicates %>% 
   dplyr::rename(per_org_matter = mean) %>% 
+  mutate(per_org_matter = round(per_org_matter, 3)) %>% # round to nearest 2 decimals
+  # (briefly looking at the data that is roughly our sig figs...)
   select(field_date, site_reach, site, reach, sample_type, per_org_matter)
 
 # remove triplicates from original dataset before joining the two
 final <- data %>% 
   filter(triplicate == "n") %>% 
+  mutate(per_org_matter = round(per_org_matter, 2)) %>% # also round to the nearest 2 decimals
   select(field_date, site_reach, site, reach, sample_type, per_org_matter)
 
 # add processed/averaged triplicates back in
