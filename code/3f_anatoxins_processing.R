@@ -5,13 +5,13 @@
 # This code processes the CSV provided by SUNY-ESF and matches the sample IDs to
 # our sample metadata. Then, anatoxins (total and individual congener groups) are
 # recalculated as anatoxins per approximate organic matter per sample and 
-# anatoxins per approximate chlorophyll-a per samples 
+# anatoxins per approximate chlorophyll-a per sample 
 # (i.e. via two different biomass proxies)
 
 #### (1) Loading libraries & data ####
 
 # import packages
-lapply(c("plyr","dplyr", "tidyverse"), require, character.only=T)
+lapply(c("tidyverse", "lubridate"), require, character.only=T)
 
 # reading in csvs from various places
 anatoxins_full <- read.csv("./data/field_and_lab/raw_data/SUNY_ESF_LCMS_MS.csv")

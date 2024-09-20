@@ -1,6 +1,6 @@
 #### Figure X. Large synchrony figure of metabolism, accrual, and anatoxins
 ### Jordan Zabrecky
-## last edited 09.17.2024
+## last edited 09.19.2024
 
 # This figure shows the metabolism modelled for all sites
 # and the <AVERAGED OR MAX> percent cover and anatoxin concentrations blah blah
@@ -28,6 +28,29 @@ discharge <- ldply(list.files(path = "./data/metab_model_inputs/", pattern = "_m
 # loading in benthic cyanobacteria data
 accrual <- read.csv("./data/field_and_lab/percover_bysite.csv")
 anatoxins <- read.csv("./data/field_and_lab/cyano_atx.csv")
+
+# applying lubridate
+metabolism$date <- ymd(metabolism$date)
+discharge$date_time <- ymd_hms(discharge$date_time)
+accrual$field_date <- ymd(accrual$field_date)
+anatoxins$field_date <- ymd(anatoxins$field_date)
+
+
+#### LEFT OFF HERE :)
+# editing accrual- going to just include site 3 in year 2023 data
+# TALK TO JOANNA ABOUT THIS
+accrual <- accrual %>% 
+  filter(site != "SFE-M_excl_site2") %>% 
+  mutate(site = case_when(site == "SFE-M_all_sites" ~ "SFE-M",
+                          site == "RUS" ~ "RUS",
+                          site == "SFE-M" ~ "SFE-M"),
+                            )
+# all other where site equals site????
+
+# adding site_year info to accrual and anatoxins dataframes
+accrual <- accrual %>% 
+  mutate(year = year(site_year)) %>% 
+  mutate(site_year = case_when((site == "SFE-M" & year == 2022) ~ "sfkeel_mir_2022"))
 
 #### (2) Processing data to make figures
 
