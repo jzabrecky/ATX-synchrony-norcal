@@ -137,4 +137,5 @@ NEP_dis_plot <- ggplot(data = NEP_metabolism, aes(x = date)) +
 NEP_dis_plot
 
 ## Accrual & anatoxins plot
-test <- 
+
+# doing a single plot test using south fork eel miranda 2023
