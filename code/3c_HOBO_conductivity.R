@@ -14,7 +14,7 @@
 
 
 
-### OLD CODE
+### OLD CODE-- clearly added this in Excel manually lol
 
 # installing dygraphs to remove specific outliers
 install.packages("dygraphs")
