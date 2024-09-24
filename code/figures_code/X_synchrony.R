@@ -138,6 +138,7 @@ NEP_dis_plot
 
 ## Accrual & anatoxins plot
 
+<<<<<<< HEAD
 test_accrual <- accrual_list$sfkeel_mir_2023 %>% 
   select(field_date, microcoleus, anabaena)
 
@@ -173,3 +174,7 @@ test_sep <- ggplot(data = test_atx, aes(x = field_date, y = mean_ATX_all_ug_afdm
 test_sep
 
 barplot(height = mean_ATX_all_ug_afdm_g)
+=======
+# doing a single plot test using south fork eel miranda 2023
+>>>>>>> b30dbe95fe3ad8ff0ae2863e870d6489e17fab83
+test_sep
