@@ -1,6 +1,6 @@
 #### calculating percent cover from reach surveys for each reach & site
 ### Jordan Zabrecky
-## last edited: 08.06.2024
+## last edited: 09.24.2024
 
 # This code calculates averages using % cover data for each study reach
 # and additionally each river site (designated by nearby sensors & USGS gage)
@@ -21,10 +21,10 @@ percover23_raw <- read.csv("./data/field_and_lab/raw_data/percover_2023.csv")
 
 # making temporary data frames with a total column
 percover22_test <- percover22_raw %>% 
-  mutate(total = green_algae + Microcoleus + Anabaena + bare_biofilm + other_N_fixers)
+  mutate(total = green_algae + Microcoleus + Anabaena_Cylindrospermum + bare_biofilm + other_N_fixers)
 
 percover23_test <- percover23_raw %>% 
-  mutate(total = green_algae + Microcoleus + Anabaena + bare_biofilm + other_N_fixers)
+  mutate(total = green_algae + Microcoleus + Anabaena_Cylindrospermum + bare_biofilm + other_N_fixers)
 
 # looking to see if any != 100%
 which(percover22_test$total != 100)
@@ -50,19 +50,19 @@ average_per_reach <- function(data) {
     dplyr::mutate(
       green_algae = mean(green_algae),
       microcoleus = mean(Microcoleus),
-      anabaena = mean(Anabaena),
+      anabaena_cylindrospermum = mean(Anabaena_Cylindrospermum),
       bare_biofilm = mean(bare_biofilm),
       other_nfixers = mean(other_N_fixers),
       micro_transects = sum(Micro_pres),
-      ana_transects = sum(Ana_pres),
+      ana_cyl_transects = sum(Ana_Cyl_pres),
       total_transects = length(transect),
       percent_micro_transects = micro_transects / total_transects,
-      percent_ana_transects = ana_transects / total_transects
+      percent_ana_cyl_transects = ana_cyl_transects / total_transects
     ) %>% 
     ungroup() %>% 
     select(field_date, site_reach, site, reach, green_algae, microcoleus,
-           anabaena, bare_biofilm, other_nfixers, micro_transects, ana_transects, 
-           total_transects, percent_micro_transects, percent_ana_transects) %>% 
+           anabaena_cylindrospermum, bare_biofilm, other_nfixers, micro_transects, ana_cyl_transects, 
+           total_transects, percent_micro_transects, percent_ana_cyl_transects) %>% 
     distinct() %>% 
     na.omit()
 }
@@ -83,19 +83,19 @@ average_per_site <- function(data) {
     dplyr::mutate(
       green_algae = mean(green_algae),
       microcoleus = mean(Microcoleus),
-      anabaena = mean(Anabaena),
+      anabaena_cylindrospermum = mean(Anabaena_Cylindrospermum),
       bare_biofilm = mean(bare_biofilm),
       other_nfixers = mean(other_N_fixers),
       micro_transects = sum(Micro_pres),
-      ana_transects = sum(Ana_pres),
+      ana_cyl_transects = sum(Ana_Cyl_pres),
       total_transects = length(transect),
       percent_micro_transects = micro_transects / total_transects,
-      percent_ana_transects = ana_transects / total_transects
+      percent_ana_cyl_transects = ana_cyl_transects / total_transects
     ) %>% 
     ungroup() %>% 
     select(field_date, site, green_algae, microcoleus,
-           anabaena, bare_biofilm, other_nfixers, micro_transects, ana_transects, 
-           total_transects, percent_micro_transects, percent_ana_transects) %>% 
+           anabaena_cylindrospermum, bare_biofilm, other_nfixers, micro_transects, ana_cyl_transects, 
+           total_transects, percent_micro_transects, percent_ana_cyl_transects) %>% 
     distinct() %>% 
     na.omit()
 }
