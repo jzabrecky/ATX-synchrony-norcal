@@ -137,4 +137,39 @@ NEP_dis_plot <- ggplot(data = NEP_metabolism, aes(x = date)) +
 NEP_dis_plot
 
 ## Accrual & anatoxins plot
-test <- 
+
+test_accrual <- accrual_list$sfkeel_mir_2023 %>% 
+  select(field_date, microcoleus, anabaena)
+
+test_accrual_long <- pivot_longer(test_accrual, cols = c(2:3), values_to = "percent", names_to = "sample_type")
+
+test_atx <- atx_summarized %>% 
+  filter(site_year == "sfkeel_mir_2023") %>% 
+  dplyr::select(!c(max_ATX_all_ug_chla_g, max_ATX_all_ug_afdm_g)) %>% 
+  mutate(sample_type = case_when(sample_type == "TM" ~ "microcoleus",
+                                 sample_type == "TAC" ~ "anabaena")) # WILL NEED TO CHANGE NAME HERE!
+
+# doing a single plot test using south fork eel miranda 2023
+test <- ggplot(data = test_accrual_long, aes(x = field_date, y = percent, fill = sample_type, 
+                                             color = sample_type, linetype = sample_type, shape = sample_type)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 4) +
+  scale_fill_manual(values = c("#bdb000","#62a7f8")) +
+  geom_area(aes(fill = sample_type, group = sample_type),
+            alpha = 0.3, position = 'identity') +
+  scale_color_manual(values = c("#bdb000","#62a7f8")) +
+  scale_linetype_manual(values = c("dotted", "dashed")) +
+  labs(y = "Percent Cover", x = NULL) +
+  geom_bar(data = test_atx, aes(x = field_date, y = mean_ATX_all_ug_afdm_g, fill = sample_type), position = "dodge", 
+           stat = "identity") +
+  scale_y_reverse() +
+  theme_bw()
+test  
+
+# can get upside down bar plot working :)
+test_sep <- ggplot(data = test_atx, aes(x = field_date, y = mean_ATX_all_ug_afdm_g, fill = sample_type)) +
+  geom_bar(position="dodge", stat="identity") +
+  scale_y_reverse() +
+test_sep
+
+barplot(height = mean_ATX_all_ug_afdm_g)
