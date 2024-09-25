@@ -1,16 +1,17 @@
 #### Figure X. Large synchrony figure of metabolism, accrual, and anatoxins
 ### Jordan Zabrecky
-## last edited 09.19.2024
+## last edited 09.24.2024
 
-# This figure shows the metabolism modelled for all sites
-# and the <AVERAGED OR MAX> percent cover and anatoxin concentrations blah blah
+# This figure shows the gorss primary productivity, discharge, benthic cyanobacteria
+# accrual, and corresponding anatoxin concentrations for each sensor placement with
+# its affilitated upstream reaches incoporated
 
 #### (1) Loading libraries and data ####
 
 # loading libraries
-lapply(c("tidyverse", "lubridate", "plyr"), require, character.only = T)
+lapply(c("tidyverse", "lubridate", "plyr", "dataRetrieval"), require, character.only = T)
 
-# loading in metabolism data as one data-frame for now
+# loading in metabolism data
 metabolism <- ldply(list.files(path = "./data/prelim_metab_estimates/", pattern = "daily_est.csv"), function(filename) {
   d <- read.csv(paste("./data/prelim_metab_estimates/", filename, sep = ""))
   d$site_year = filename %>% stringr::str_remove("_daily_est.csv")
@@ -21,7 +22,9 @@ metabolism <- ldply(list.files(path = "./data/prelim_metab_estimates/", pattern 
 # using discharge already downloaded in our model input csv
 discharge <- ldply(list.files(path = "./data/metab_model_inputs/", pattern = "_modelinputs.csv"), function(filename) {
   d <- read.csv(paste("./data/metab_model_inputs/", filename, sep = ""))
-  d$site_year = filename %>% stringr::str_remove("_modelinputs.csv")
+  d$site_year = filename %>% stringr::str_remove("_modelinputs.csv") 
+  d <- d %>% 
+    select(site_year, date_time, discharge_m3_s) %>% # selecting columns we care about
   return(d)
 })
 
@@ -29,13 +32,59 @@ discharge <- ldply(list.files(path = "./data/metab_model_inputs/", pattern = "_m
 accrual <- read.csv("./data/field_and_lab/percover_bysite.csv")
 anatoxins <- read.csv("./data/field_and_lab/cyano_atx.csv")
 
+#### (2) Data processing before making figures ####
+
 # applying lubridate
 metabolism$date <- ymd(metabolism$date)
 discharge$date_time <- ymd_hms(discharge$date_time)
 accrual$field_date <- ymd(accrual$field_date)
 anatoxins$field_date <- ymd(anatoxins$field_date)
 
-#### (2) Processing data to make figures ####
+## adjusting metabolism dataset
+
+# cutting down metabolism data (may adjust depending on how csvs are saved from final modeling :) )
+metabolism <- metabolism %>% 
+  select(site_year, date, GPP_mean, GPP_sd, GPP_2.5pct, GPP_97.5pct, ER_mean, ER_sd, ER_2.5pct, ER_97.5pct) %>% 
+  mutate(NEP_mean = GPP_mean + ER_mean, # adding because ER is negative
+         NEP_2.5pct = GPP_2.5pct + ER_2.5pct,
+         NEP_97.5pct = GPP_97.5pct + ER_97.5pct,
+         # need to calculate a date_time so it can be plotted with continuous discharge
+         date_time = as.POSIXct(paste(date, "06:00:00", sep = " "))) # will just set as 6am on that day's estimate
+
+# split into a list by site
+metabolism_list <- split(metabolism, metabolism$site_year)
+
+## adjusting discharge dataset
+
+# need to supplement discharge for salmon 2022 and russian 2022 because sensors were taken out before last day of sampling
+rus_dis <- readNWISuv("11463000", "00060", "2022-09-01", "2022-09-17")
+sal_dis <- readNWISuv("11522500", "00060", "2022-09-22", "2022-09-24")
+
+# joining together temporarily
+xtra_dis <- rbind(rus_dis, sal_dis)
+
+# creating date_time column in PST
+xtra_dis$date_time <- ymd_hms(xtra_dis$dateTime, tz = "America/Los_Angeles") # converting to POSIXct
+
+# add site_year info and select columns we care about
+xtra_dis <- xtra_dis %>% 
+  mutate(site_year = case_when(site_no == "11463000" ~ "russian_2022",
+                               site_no == "11522500" ~ "salmon_2022"),
+         discharge_m3_s = X_00060_00000 / 35.31) %>% 
+  select(site_year, date_time, discharge_m3_s)
+
+# binding to discharge dataframe
+discharge <- rbind(discharge, xtra_dis)
+
+# cutting down discharge data as 5-minute intervals take forever to plot
+discharge <- discharge %>%
+  mutate(minute = minute(date_time)) %>% 
+  filter(minute == 0 | minute == 15 | minute == 30 | minute == 45)
+
+# split into a list by site
+discharge_list <- split(discharge, discharge$site_year)
+
+## adjusting accrual dataset
 
 # removing 2023 that exludes SFE-M-2 and making site names continuous
 accrual <- accrual %>% 
@@ -56,7 +105,12 @@ accrual <- accrual %>%
                                (site == "RUS") ~ "russian_2022",
                                (site == "SFE-SH") ~ "sfkeel_sth_2023"))
 
-# also adding this information to anatoxins dataframe
+# split into a list by site
+accrual_list <- split(accrual, accrual$site_year)
+
+## adjusting anatoxins dataset
+
+# also adding site_year information to anatoxins dataframe
 anatoxins <- anatoxins %>% 
   mutate(year = year(field_date)) %>% 
   mutate(site_year = case_when((site == "SFE-M" & year == 2022) ~ "sfkeel_mir_2022",
@@ -66,79 +120,124 @@ anatoxins <- anatoxins %>%
                                (site == "RUS") ~ "russian_2022",
                                (site == "SFE-SH") ~ "sfkeel_sth_2023"))
 
-# cutting down metabolism data (this code may get moved to modeling latent biomass code)
-metabolism <- metabolism %>% 
-  select(site_year, date, GPP_mean, GPP_sd, GPP_2.5pct, GPP_97.5pct, ER_mean, ER_sd, ER_2.5pct, ER_97.5pct) %>% 
-  mutate(NEP_mean = GPP_mean + ER_mean, # adding because ER is negative
-         NEP_2.5pct = GPP_2.5pct + ER_2.5pct,
-         NEP_97.5pct = GPP_97.5pct + ER_97.5pct,
-         date_time = as.POSIXct(date))
-# probably have to convert date to date time in some way
-# also have times with positive ER for the Salmon which need to get filtered out for NEP figure
-
-# cutting down discharge data, 5-minute intervals take forever to plot
-discharge <- discharge %>%
-  select(site_year, date_time, discharge_m3_s) %>% 
-  mutate(minute = minute(date_time)) %>% 
-  filter(minute == 0 | minute == 30)
-
-# process anatoxin data by calculating average per day
+# calculate average and max per day at each site
 atx_summarized <- anatoxins %>% 
   dplyr::group_by(site_year, field_date, site, sample_type) %>% 
   dplyr::summarize(mean_ATX_all_ug_chla_g = mean(ATX_all_ug_chla_g),
-            mean_ATX_all_ug_afdm_g = mean(ATX_all_ug_afdm_g),
-            max_ATX_all_ug_chla_g = max(ATX_all_ug_chla_g),
-            max_ATX_all_ug_afdm_g = max(ATX_all_ug_afdm_g))
+                   mean_ATX_all_ug_afdm_g = mean(ATX_all_ug_afdm_g),
+                   max_ATX_all_ug_chla_g = max(ATX_all_ug_chla_g), # will probably not use max
+                   max_ATX_all_ug_afdm_g = max(ATX_all_ug_afdm_g))
 
-# include list just incase
-accrual_list <- split(accrual, accrual$site_year)
+# split into a list by site
+anatoxins_list <- split(atx_summarized, atx_summarized$site_year)
 
-#### (3) Making Figures ####
+#### (3) Making Metabolism & Discharge Figures ####
 
-## HOW DOES IT MAKE SENSE TO STRUCTURE THIS? AS INDIVIDUAL OR FACET WRAP
+## making them all separately so I can easily modify the scales on each separately
 
-## metabolism figure w/ discharge
-metab_dis_plot <- ggplot(data = metabolism, aes(x = date_time)) +
-  geom_area(data = discharge, aes(y = discharge_m3_s, x = date_time), fill = "#a2cae8") +
+# NEEDS TO BE REDONE WITH USGS DATA
+rus22_GPP_dis <- ggplot(data = metabolism_list$russian_2022, aes(x = date_time)) +
+  geom_area(data = discharge_list$russian_2022, aes(y = discharge_m3_s, x = date_time), fill = "#a2cae8") +
+  geom_ribbon(aes(ymin = GPP_2.5pct, ymax = GPP_97.5pct), fill = "#BEFB96", alpha = 0.8) +
+  geom_point(aes(y = GPP_mean), color = "#456C2B", size = 3, alpha = 1) +
+  scale_x_datetime(limits = as_datetime(c("2022-06-24 00:00:00", "2022-09-16 00:00:00"))) +
+  coord_cartesian(ylim = c(0, 9.5)) +
+  labs(y = NULL, x = NULL) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(size=1.1), axis.ticks = element_line(size = 1),
+        text = element_text(size = 16))
+rus22_GPP_dis
+
+# NEEDS TO BE REDONE WITH KARUK DATA
+# removed values where ribbon is below zero for now
+metabolism_list$salmon_2022[c(34:35),c(3:13)] <- NA
+sal22_GPP_dis <- ggplot(data = metabolism_list$salmon_2022, aes(x = date_time)) +
+  geom_area(data = discharge_list$salmon_2022, aes(y = discharge_m3_s * 0.63, x = date_time), fill = "#a2cae8") +
+  geom_ribbon(aes(ymin = GPP_2.5pct, ymax = GPP_97.5pct), fill = "#BEFB96", alpha = 0.8) +
+  geom_point(aes(y = GPP_mean), color = "#456C2B", size = 3, alpha = 1) +
+  scale_x_datetime(limits = as_datetime(c("2022-06-26 00:00:00", "2022-09-23 00:00:00"))) +
+  scale_y_continuous(sec.axis = sec_axis(~ . / 0.63)) +
+  coord_cartesian(ylim = c(0, 19)) +
+  labs(y = NULL, x = NULL) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(size=1.1), axis.ticks = element_line(size = 1),
+        text = element_text(size = 16)) # MAYBE WANT TO ADJUST TEXT SIZE
+sal22_GPP_dis
+
+# NEEDS TO BE REDONE WITH KARUK DATA
+sal23_GPP_dis <- ggplot(data = metabolism_list$salmon_2023, aes(x = date_time)) +
+  geom_area(data = discharge_list$salmon_2023, aes(y = discharge_m3_s * 0.63, x = date_time), fill = "#a2cae8") +
+  geom_ribbon(aes(ymin = GPP_2.5pct, ymax = GPP_97.5pct), fill = "#BEFB96", alpha = 0.8) +
+  geom_point(aes(y = GPP_mean), color = "#456C2B", size = 3, alpha = 1) +
+  scale_x_datetime(limits = as_datetime(c("2023-06-25 00:00:00", "2023-09-25 00:00:00"))) +
+  scale_y_continuous(sec.axis = sec_axis(~ . / 0.63)) +
+  coord_cartesian(ylim = c(0, 19)) +
+  labs(y = NULL, x = NULL) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(size=1.1), axis.ticks = element_line(size = 1),
+        text = element_text(size = 16))
+sal23_GPP_dis
+
+sfkmir22_GPP_dis <- ggplot(data = metabolism_list$sfkeel_mir_2022, aes(x = date_time)) +
+  geom_area(data = discharge_list$sfkeel_mir_2022, aes(y = discharge_m3_s, x = date_time), fill = "#a2cae8") +
   geom_ribbon(aes(ymin = GPP_2.5pct, ymax = GPP_97.5pct), fill = "#BEFB96", alpha = 0.8) +
   geom_point(aes(y = GPP_mean), color = "#456C2B", size = 3, alpha = 1) +
   labs(y = NULL, x = NULL) +
-  theme_bw() +
-  facet_wrap(~site_year, scales ="free")
-metab_dis_plot
+  scale_x_datetime(limits = as_datetime(c("2022-06-29 00:00:00", "2022-09-17 00:00:00"))) +
+  coord_cartesian(ylim = c(0, 9.5)) +
+  theme_bw()
+sfkmir22_GPP_dis
 
-# need to have individual scale per discharge of each and need to create 2nd axis
-
-# test discharge separately....
-dis_plot <- ggplot(data = discharge, aes(x = date_time, y = discharge_m3_s)) +
-  geom_area(fill = "lightblue") +
-  facet_wrap(~site_year, scales = "free")
-dis_plot
-
-# other to-do:
-# -make not ugly
-# -fix date issue for russian 2022
-# -names
-# -order of panels
-# -also connecting with the second plot
-
-# briefly, removing periods in data where ER is positive
-NEP_metabolism <- metabolism %>% 
-  filter(ER_mean <= 0) # remove where ER is positive
-
-## NEP figure w/ discharge
-NEP_dis_plot <- ggplot(data = NEP_metabolism, aes(x = date)) +
-  geom_ribbon(aes(ymin = NEP_2.5pct, ymax = NEP_97.5pct), fill = "lightgray", alpha = 0.8) +
-  geom_point(aes(y = NEP_mean), color = "darkgray", size = 3, alpha = 1) +
-  geom_hline(yintercept = 0, lwd = 1.5, color = "black", linetype = 2) +
+# this one has proper second axis, but may adjust the range depending on model rerun TBD
+# waiting to do others until that is complete
+sfkmir23_GPP_dis <- ggplot(data = metabolism_list$sfkeel_mir_2023, aes(x = date_time)) +
+  geom_area(data = discharge_list$sfkeel_mir_2023, aes(y = discharge_m3_s * 1.98, x = date_time), fill = "#a2cae8") +
+  geom_ribbon(aes(ymin = GPP_2.5pct, ymax = GPP_97.5pct), fill = "#BEFB96", alpha = 0.8) +
+  geom_point(aes(y = GPP_mean), color = "#456C2B", size = 3, alpha = 1) +
+  scale_x_datetime(limits = as_datetime(c("2023-06-18 00:00:00", "2023-09-25 00:00:00"))) +
+  scale_y_continuous(sec.axis = sec_axis(~ . / 1.98)) +
+  coord_cartesian(ylim = c(0, 9.5)) +
   labs(y = NULL, x = NULL) +
-  theme_bw() +
-  facet_wrap(~site_year, scales ="free") +
-NEP_dis_plot
+  theme_bw()
+sfkmir23_GPP_dis
 
-## Accrual & anatoxins plot
+### NEED TO SEE MAX GPP OF NEW RUN
+sfksth23_GPP_dis <- ggplot(data = metabolism_list$sfkeel_sth_2023, aes(x = date_time)) +
+  geom_area(data = discharge_list$sfkeel_sth_2023, aes(y = discharge_m3_s, x = date_time), fill = "#a2cae8") +
+  geom_ribbon(aes(ymin = GPP_2.5pct, ymax = GPP_97.5pct), fill = "#BEFB96", alpha = 0.8) +
+  geom_point(aes(y = GPP_mean), color = "#456C2B", size = 3, alpha = 1) +
+  scale_x_datetime(limits = as_datetime(c("2023-06-20 00:00:00", "2023-09-25 00:00:00"))) +
+  coord_cartesian(ylim = c(0, 9.5)) +
+  labs(y = NULL, x = NULL) +
+  theme_bw()
+sfksth23_GPP_dis
 
-<<<<<<< HEAD
+#### (3) Making Accrual & Anatoxins Figures ####
+
+# thoughts: try plot of bar graph upside down and then subtract from some number for percent cover 
+# may have to half each so they don't overlap
+# eg the full y scale length is 200 or 150 but anatoxins only goes up to 150 and then the remaining 50 is occupied by line
+# will plot afdm version
+
+# looking at kelly code
+# Sample data
+df <- data.frame(
+  x = 1:10,
+  y = rnorm(10, 50, 10),
+  z = rnorm(10, 0.8, 0.1)
+)
+# Plot with secondary axis on the top (inverted second y-axis)
+ggplot(df, aes(x = x, y = y)) +
+  geom_line() +
+  scale_y_continuous(name = "Interruptions/day") +
+  scale_x_continuous(name = "Time",
+                     sec.axis = sec_axis(~.*5, name = "Productivity % of best",
+                                         labels = function(b) { paste0(round(b * 100, 0), "%") })) +
+  theme(axis.title.x.top = element_text(color = "blue"))
+
 test_accrual <- accrual_list$sfkeel_mir_2023 %>% 
   select(field_date, microcoleus, anabaena)
 
@@ -171,10 +270,6 @@ test
 test_sep <- ggplot(data = test_atx, aes(x = field_date, y = mean_ATX_all_ug_afdm_g, fill = sample_type)) +
   geom_bar(position="dodge", stat="identity") +
   scale_y_reverse() +
-test_sep
+  test_sep
 
 barplot(height = mean_ATX_all_ug_afdm_g)
-=======
-# doing a single plot test using south fork eel miranda 2023
->>>>>>> b30dbe95fe3ad8ff0ae2863e870d6489e17fab83
-test_sep
