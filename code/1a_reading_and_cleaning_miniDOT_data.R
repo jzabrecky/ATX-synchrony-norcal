@@ -1,6 +1,6 @@
 #### miniDOT data aggregation and cleaning
 ### Jordan Zabrecky
-## last edited: 07.10.2024
+## last edited: 09.24.2024
 
 # This code pulls data from miniDOT text files and converts them into csv's.
 # Additionally this code adjusts the sensor time offset from PST, removes time when
@@ -281,6 +281,7 @@ sfkeel_mir_2023_cleaning_DO <- sfkeel_mir_2023_cleaning %>%
 # removing early season biofouling and other outliers; all removed periods <8 hours
 sfkeel_sth_2023_cleaning_DO <- sfkeel_sth_2023_cleaning %>% 
   filter(date_time <= "2023-06-25 02:30:00" | date_time >= "2023-06-25 04:00:00") %>% # <2 hours
+  filter(date_time <= "2023-06-26 05:40:00" | date_time >= "2023-06-26 07:10:00") %>% # <2 hours
   filter(date_time <= "2023-06-28 05:15:00" | date_time >= "2023-06-28 06:02:00") %>% # <1 hour
   filter(date_time <= "2023-07-01 16:45:00" | date_time >= "2023-07-01 17:30:00") %>% # <1 hour
   filter(date_time <= "2023-07-03 06:07:00" | date_time >= "2023-07-03 08:31:00") %>% # <3 hours
@@ -400,8 +401,10 @@ salmon_2022_cleaning_DO <- salmon_2022_cleaning_DO %>%
 
 # south fork eel @ standish hickey
 sfkeel_sth_2023_cleaning_DO <- sfkeel_sth_2023_cleaning_DO %>% 
-  filter(date_time <= "2023-07-06 04:50:00" | date_time >= "2023-07-07 18:35:00") %>% 
-  filter(date_time <= "2023-07-14 09:10:00" | date_time >= "2023-07-17 11:27:00") %>% # removing all the way to missing data
+  filter(date_time <= "2023-06-29 05:00:00" | date_time >= "2023-07-03 09:30:00") %>% 
+  filter(date_time <= "2023-07-05 10:50:00" | date_time >= "2023-07-11 00:35:00") %>% 
+  filter(date_time <= "2023-07-12 09:40:00" | date_time >= "2023-07-17 11:27:00") %>% # removing all the way to missing data
+  filter(date_time <= "2023-07-26 12:10:00" | date_time >= "2023-07-28 08:20:00") %>% 
   filter(date_time <= "2023-07-30 06:00:00" | date_time >= "2023-07-31 00:00:00")
 
 # salmon 2023
@@ -409,7 +412,7 @@ sfkeel_sth_2023_cleaning_DO <- sfkeel_sth_2023_cleaning_DO %>%
 # note that when we came to sensor on 7/26 it had been moved to a weird position
 salmon_2023_cleaning_DO <- salmon_2023_cleaning_DO %>% 
   filter(date_time <= "2023-07-19 09:00:00" | date_time >= "2023-07-20 02:20:00") %>% 
-  filter(date_time <= "2023-07-22 20:45:00" | date_time >= "2023-07-25 8:25:00")
+  filter(date_time <= "2023-07-22 20:45:00" | date_time >= "2023-07-25 08:25:00")
 
 #### (4) Merging data back together and saving ####
 
