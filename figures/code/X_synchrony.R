@@ -106,8 +106,15 @@ accrual <- accrual %>%
                                (site == "RUS") ~ "russian_2022",
                                (site == "SFE-SH") ~ "sfkeel_sth_2023"))
 
+# pivot to make data frame longer (group & percent)
+accrual_long <- pivot_longer(accrual, cols = c(3:7), names_to = "group", values_to = "percent")
+
+# we only care about microcoleus and anabaena & cylindrospermum
+accrual_long <- accrual_long %>% 
+  filter(group == "microcoleus" | group == "anabaena_cylindrospermum")
+
 # split into a list by site
-accrual_list <- split(accrual, accrual$site_year)
+accrual_list <- split(accrual_long, accrual_long$site_year)
 
 ## adjusting anatoxins dataset
 
@@ -121,9 +128,14 @@ anatoxins <- anatoxins %>%
                                (site == "RUS") ~ "russian_2022",
                                (site == "SFE-SH") ~ "sfkeel_sth_2023"))
 
+# sample collected on 9/8/2022 was a retake for a sample on 9/6/2022
+# as a substitute tech took a very watery sample of just the ends of the mats at SFE-M-1S
+anatoxins$field_date
+
 # calculate average and max per day at each site
 atx_summarized <- anatoxins %>% 
-  dplyr::group_by(site_year, field_date, site, sample_type) %>% 
+  dplyr::rename(group = sample_type) %>% 
+  dplyr::group_by(site_year, field_date, site, group) %>% 
   dplyr::summarize(mean_ATX_all_ug_chla_g = mean(ATX_all_ug_chla_g),
                    mean_ATX_all_ug_afdm_g = mean(ATX_all_ug_afdm_g),
                    max_ATX_all_ug_chla_g = max(ATX_all_ug_chla_g), # will probably not use max
@@ -241,14 +253,82 @@ sal23_GPP_dis
 # max 20 for percent cover
 
 # start with upside down bar plot with max to 120
-test <- ggplot(data = anatoxins_list$sfkeel_mir_2023, aes(x = field_date, y = mean_ATX_all_ug_afdm_g,
-                                                          fill = sample_type)) +
-  geom_bar(position = "dodge", stat = "identity") +
+test <- ggplot(data = anatoxins_list$sfkeel_mir_2023, aes(x = field_date, y = mean_ATX_all_ug_afdm_g)) +
+  geom_bar(data = anatoxins_list$sfkeel_mir_2023, position = "dodge", stat = "identity", aes(fill = group)) +
+  geom_line(data = accrual_list$sfkeel_mir_2023, aes(x = field_date, y = 120 - percent, color = group, 
+                                                     linetype = group)) +
+  geom_point(data = accrual_list$sfkeel_mir_2023, aes(x = field_date, y = 120 - percent, color = group,
+                                                      shape = group)) +
   labs(y = NULL, x = NULL) +
-  theme_bw() +
+  ylim(0, 120) +
+  scale_y_continuous(sec.axis = sec_axis(~ . - 120)) +
   scale_y_reverse() +
-  ylim(125, 0)
+  theme_bw()
 test
+# NEED TO PROCESS WHAT HAPPENED HERE
+
+test2 <- ggplot(data = accrual_list$sfkeel_mir_2023, aes(x = field_date, y = percent)) +
+  geom_bar(data = anatoxins_list$sfkeel_mir_2023, position = "dodge", stat = "identity", 
+           aes(y = mean_ATX_all_ug_afdm_g, fill = group)) +
+  geom_line(data = accrual_list$sfkeel_mir_2023, aes(y = 120 - percent, color = group, linetype = group),
+            linewidth = 1) +
+  geom_point(data = accrual_list$sfkeel_mir_2023, aes(y = 120 - percent, color = group,shape = group),
+             size = 3) +
+  scale_color_manual("Group", values = c("#8f8504","#2871c7")) +
+  scale_linetype_manual("Group", values = c("dotted", "dashed")) +
+  scale_shape_manual("Group", values = c(16, 18)) +
+  scale_fill_manual("Group", values = c("#d1c960","#7eb3f2")) +
+  labs(y = NULL, x = NULL) +
+  ylim(0, 105) +
+  scale_y_reverse(sec.axis = sec_axis(~ . - 120)) +
+  theme_bw()
+test2
+
+test3 <- ggplot(data = accrual_list$sfkeel_mir_2023, aes(x = field_date, y = percent)) +
+  geom_bar(data = anatoxins_list$sfkeel_mir_2023, position = "dodge", stat = "identity", 
+           aes(y = mean_ATX_all_ug_afdm_g, fill = group), width = 5.8) +
+  geom_line(data = accrual_list$sfkeel_mir_2023, aes(y = 115 - (percent * 4), color = group, linetype = group),
+            linewidth = 1) +
+  geom_point(data = accrual_list$sfkeel_mir_2023, aes(y = 115 - (percent * 4), color = group,shape = group),
+             size = 3) +
+  scale_color_manual("Group", values = c("#8f8504","#2871c7"),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_linetype_manual("Group", values = c("dotted", "dashed"),
+                        labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_shape_manual("Group", values = c(16, 18),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_fill_manual("Group", values = c("#d1c960","#7eb3f2"),
+                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  labs(y = NULL, x = NULL) +
+  ylim(0, 115) +
+  scale_y_reverse(sec.axis = sec_axis(~ ((. - 115)/4) * -1), n.breaks = 5) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(linewidth = 1.1), axis.ticks = element_line(linewidth = 1),
+        text = element_text(size = 16))
+test3
+
+test4 <- ggplot(data = accrual_list$sfkeel_mir_2022, aes(x = field_date, y = percent)) +
+  geom_bar(data = anatoxins_list$sfkeel_mir_2022, position = "dodge", stat = "identity", 
+           aes(y = mean_ATX_all_ug_afdm_g, fill = group), width = 5.8) +
+  geom_line(data = accrual_list$sfkeel_mir_2022, aes(y = 115 - (percent * 4), color = group, linetype = group),
+            linewidth = 1) +
+  geom_point(data = accrual_list$sfkeel_mir_2022, aes(y = 115 - (percent * 4), color = group,shape = group),
+             size = 3) +
+  scale_color_manual("Group", values = c("#8f8504","#2871c7"),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_linetype_manual("Group", values = c("dotted", "dashed"),
+                        labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_shape_manual("Group", values = c(16, 18),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_fill_manual("Group", values = c("#d1c960","#7eb3f2"),
+                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  labs(y = NULL, x = NULL) +
+  ylim(0, 115) +
+  scale_y_reverse(sec.axis = sec_axis(~ abs((. - 115)/4))) +
+  theme_bw()
+test4
+
 # need to add accrual subtracted by whatever I decide
 # also need to decide on how much overlap between samples
 # may involve flipping things around

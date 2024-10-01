@@ -1,6 +1,6 @@
 #### cleaning and assembling HOBO U-24 sensor conductivity & temperature data
 ### Jordan Zabrecky
-## DATE
+## 10.01.2024
 
 # This code reads in csv's of conductivity data from HOBO-U24 sensors saved 
 # from the HOBOware software and removes any outliers or periods where 
@@ -8,11 +8,113 @@
 
 #### (1) Loading libraries and HOBO data ####
 
-## steal from old scripts on desktop
-## maybe use dyplots??
+# load libraries
+lapply(c("tidyverse", "lubridate", "plyr"), require, character.only = T)
+
+## load HOBO data
+
+# function to read in HOBO csv data
+read_HOBO_csvs <- function(path) {
+  # list out subfolders in folder
+  files <- list.files(path)
+  
+  # initialize empty dataframe
+  final <- data.frame()
+  
+  # iterate through each subfolder and add cvs's to dataframe
+  for(i in 1:length(files)) {
+    temp <- ldply(list.files(paste(path, files[i], sep = ""), pattern = ".csv"), function(filename) {
+              d <- read.csv(paste(path, files[i], "/", filename, sep = ""), header = FALSE) 
+              d <- d[-1,] # remove first row
+              d <- d[-(which(d[,1] == "#")),] # remove rows with column headers
+              d <- d[,-1] # remove first column (which is just row names)
+              d <- d[,1:4] # keep only columns with data
+              d <- d[-(which(d[,2] == "")),] # remove rows that are "" or empty
+              colnames(d) <- c("date_time", "low_range_cond_uS_cm", "full_range_cond_uS_cm", "temp_C")
+              d$site <- files[i] %>% stringr::str_sub(start = 10, end = nchar(files[i])) # add name of site
+              return(d)
+            })
+    final <- rbind(final, temp)
+  }
+  return(final)
+}
+
+# reading in HOBO data by year
+HOBO_2022 <- read_HOBO_csvs("./data/HOBO/2022_raw_data/")
+HOBO_2023 <- read_HOBO_csvs("./data/HOBO/2023_raw_data/")
+
+# our time in the original csv was GMT -7 which is PST so we don't have to change time but still need to change class
+HOBO_2022$date_time <- mdy_hms(HOBO_2022$date_time)
+HOBO_2023$date_time <- mdy_hms(HOBO_2023$date_time)
+
+# lastly, create a column with site_year information
+HOBO_2022 <- HOBO_2022 %>% 
+  mutate(site_year = case_when(site == "Miranda" ~ "sfkeel_mir_2022",
+                               site == "Russian" ~ "russian_2022",
+                               site == "Salmon" ~ "salmon_2022"))
+HOBO_2023 <- HOBO_2023 %>% 
+  mutate(site_year = case_when(site == "Miranda" ~ "sfkeel_mir_2023",
+                               site == "Standish" ~ "sfkeel_sth_2023",
+                               site == "Salmon" ~ "salmon_2023"))
+
+# splitting data into lists for cleaning
+HOBO_2022_list <- split(HOBO_2022, HOBO_2022$site_year)
+HOBO_2023_list <- split(HOBO_2023, HOBO_2023$site_year)
+
+#### (2) Remove maintenance periods and outliers ####
+
+# using dygraphs package in script "1d_visualizing_HOBO_data_cleaning.R"
+# while performing these steps to identify outliers and confirm maintenance times
+
+## (a) Removing maintenance periods
+HOBO_2022_list$russian_2022
+# REFERENCE MINIDOT FILE :)
+
+## (b) save as a cleaning
+
+#### (3) recombining and saving dataframe?
 
 
+# reading in list
+HOBO_2022_list <- lapply(file_list, function(x) read_HOBO_csv(paste(path, x, sep = "")))
 
+HOBO_2022 <- reduce(intersect, HOBO_2022_list)
+
+# 2023
+
+
+miniDOT_data <- ldply(list.files(path = "./data/miniDOT/", pattern = "_miniDOT.csv"), function(filename) {
+  d <- read.csv(paste("data/miniDOT/", filename, sep = ""))
+  d$site_year = filename %>% stringr::str_remove("_miniDOT.csv")
+  d$site = d$site_year %>% str_sub(end=-6)
+  return(d)
+})
+
+create_df <- function(source_path) {
+  list.files(path = here(source_path),
+             pattern = ".csv",
+             full.names = T) %>% 
+    map_df(~read_csv)
+}
+
+
+create_df("./data/HOBO/2022_raw_data/20775521_Miranda/")
+
+## 03-2023 (post 2022 field season & pre 2023 field season)
+path <- "./data/miniDOT/intercalibrations/202303/"
+file_list <- list.files(path)
+HOBO_data_22 <- ldply(list.files(path = "./data/HOBO/2022_raw_data/"), function(filename) {
+  d <- read.csv(paste("./data/HOBO/2022_raw_data", filename, sep = ""))
+  d$site = d$site_year %>% str_sub(end=-6)
+  return(d)
+})
+
+create_df <- function(source_path) {
+  list.files(path = here(source_path),
+             pattern = "*.txt",
+             full.names = T) %>% 
+    map_df(~read_csv(., skip = 3, col_names = header_list))
+}
 
 ### OLD CODE-- clearly added this in Excel manually lol
 
