@@ -64,7 +64,8 @@ sal_dis <- readNWISuv("11522500", "00060", "2022-09-22", "2022-09-24")
 xtra_dis <- rbind(rus_dis, sal_dis)
 
 # creating date_time column in PST
-xtra_dis$date_time <- ymd_hms(xtra_dis$dateTime, tz = "America/Los_Angeles") # converting to POSIXct
+xtra_dis$date_time <- ymd_hms(xtra_dis$dateTime) # converting to POSIXct
+xtra_dis$date_time <- with_tz(xtra_dis$date_time, tz = "America/Los_Angeles") # change from UTC to PST
 
 # add site_year info and select columns we care about
 xtra_dis <- xtra_dis %>% 
@@ -133,19 +134,65 @@ anatoxins_list <- split(atx_summarized, atx_summarized$site_year)
 
 #### (3) Making Metabolism & Discharge Figures ####
 
-## making them all separately so I can easily modify the scales on each separately
+# making them all separately so I can easily modify the scales on each separately
 
-# NEEDS TO BE REDONE WITH USGS DATA
-rus22_GPP_dis <- ggplot(data = metabolism_list$russian_2022, aes(x = date_time)) +
-  geom_area(data = discharge_list$russian_2022, aes(y = discharge_m3_s, x = date_time), fill = "#a2cae8") +
+sfkmir22_GPP_dis <- ggplot(data = metabolism_list$sfkeel_mir_2022, aes(x = date_time)) +
+  geom_area(data = discharge_list$sfkeel_mir_2022, aes(y = discharge_m3_s * 2.5, x = date_time), fill = "#a2cae8") +
   geom_ribbon(aes(ymin = GPP_2.5pct, ymax = GPP_97.5pct), fill = "#BEFB96", alpha = 0.8) +
   geom_point(aes(y = GPP_mean), color = "#456C2B", size = 3, alpha = 1) +
-  scale_x_datetime(limits = as_datetime(c("2022-06-24 00:00:00", "2022-09-16 00:00:00"))) +
-  coord_cartesian(ylim = c(0, 9.5)) +
+  labs(y = NULL, x = NULL) +
+  scale_x_datetime(limits = as_datetime(c("2022-06-29 00:00:00", "2022-09-17 00:00:00"))) +
+  scale_y_continuous(sec.axis = sec_axis(~ . / 2.5)) +
+  coord_cartesian(ylim = c(0, 12)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(linewidth = 1.1), axis.ticks = element_line(linewidth = 1),
+        text = element_text(size = 16))
+sfkmir22_GPP_dis
+
+# this one has proper second axis, but may adjust the range depending on model rerun TBD
+# waiting to do others until that is complete
+sfkmir23_GPP_dis <- ggplot(data = metabolism_list$sfkeel_mir_2023, aes(x = date_time)) +
+  geom_area(data = discharge_list$sfkeel_mir_2023, aes(y = discharge_m3_s * 2.5, x = date_time), fill = "#a2cae8") +
+  geom_ribbon(aes(ymin = GPP_2.5pct, ymax = GPP_97.5pct), fill = "#BEFB96", alpha = 0.8) +
+  geom_point(aes(y = GPP_mean), color = "#456C2B", size = 3, alpha = 1) +
+  scale_x_datetime(limits = as_datetime(c("2023-06-18 00:00:00", "2023-09-25 00:00:00"))) +
+  scale_y_continuous(sec.axis = sec_axis(~ . / 2.5)) +
+  coord_cartesian(ylim = c(0, 12)) +
   labs(y = NULL, x = NULL) +
   theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
-        panel.border = element_rect(size=1.1), axis.ticks = element_line(size = 1),
+        panel.border = element_rect(linewidth = 1.1), axis.ticks = element_line(linewidth = 1),
+        text = element_text(size = 16))
+sfkmir23_GPP_dis
+
+### NEED TO SEE MAX GPP OF NEW RUN
+sfksth23_GPP_dis <- ggplot(data = metabolism_list$sfkeel_sth_2023, aes(x = date_time)) +
+  geom_area(data = discharge_list$sfkeel_sth_2023, aes(y = discharge_m3_s * 2.5, x = date_time), fill = "#a2cae8") +
+  geom_ribbon(aes(ymin = GPP_2.5pct, ymax = GPP_97.5pct), fill = "#BEFB96", alpha = 0.8) +
+  geom_point(aes(y = GPP_mean), color = "#456C2B", size = 3, alpha = 1) +
+  scale_x_datetime(limits = as_datetime(c("2023-06-20 00:00:00", "2023-09-25 00:00:00"))) +
+  scale_y_continuous(sec.axis = sec_axis(~ . / 2.5)) +
+  coord_cartesian(ylim = c(0, 12)) +
+  labs(y = NULL, x = NULL) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(linewidth = 1.1), axis.ticks = element_line(linewidth = 1),
+        text = element_text(size = 16))
+sfksth23_GPP_dis
+
+# NEEDS TO BE REDONE W/ USGS DATA
+rus22_GPP_dis <- ggplot(data = metabolism_list$russian_2022, aes(x = date_time)) +
+  geom_area(data = discharge_list$russian_2022, aes(y = discharge_m3_s * 2.5, x = date_time), fill = "#a2cae8") +
+  geom_ribbon(aes(ymin = GPP_2.5pct, ymax = GPP_97.5pct), fill = "#BEFB96", alpha = 0.8) +
+  geom_point(aes(y = GPP_mean), color = "#456C2B", size = 3, alpha = 1) +
+  scale_x_datetime(limits = as_datetime(c("2022-06-24 00:00:00", "2022-09-16 00:00:00"))) +
+  scale_y_continuous(sec.axis = sec_axis(~ . / 2.5)) +
+  coord_cartesian(ylim = c(0, 12)) +
+  labs(y = NULL, x = NULL) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(linewidth = 1.1), axis.ticks = element_line(linewidth = 1),
         text = element_text(size = 16))
 rus22_GPP_dis
 
@@ -162,7 +209,7 @@ sal22_GPP_dis <- ggplot(data = metabolism_list$salmon_2022, aes(x = date_time)) 
   labs(y = NULL, x = NULL) +
   theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
-        panel.border = element_rect(size=1.1), axis.ticks = element_line(size = 1),
+        panel.border = element_rect(linewidth = 1.1), axis.ticks = element_line(linewidth = 1),
         text = element_text(size = 16)) # MAYBE WANT TO ADJUST TEXT SIZE
 sal22_GPP_dis
 
@@ -177,43 +224,11 @@ sal23_GPP_dis <- ggplot(data = metabolism_list$salmon_2023, aes(x = date_time)) 
   labs(y = NULL, x = NULL) +
   theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
-        panel.border = element_rect(size=1.1), axis.ticks = element_line(size = 1),
+        panel.border = element_rect(linewidth = 1.1), axis.ticks = element_line(linewidth = 1),
         text = element_text(size = 16))
 sal23_GPP_dis
 
-sfkmir22_GPP_dis <- ggplot(data = metabolism_list$sfkeel_mir_2022, aes(x = date_time)) +
-  geom_area(data = discharge_list$sfkeel_mir_2022, aes(y = discharge_m3_s, x = date_time), fill = "#a2cae8") +
-  geom_ribbon(aes(ymin = GPP_2.5pct, ymax = GPP_97.5pct), fill = "#BEFB96", alpha = 0.8) +
-  geom_point(aes(y = GPP_mean), color = "#456C2B", size = 3, alpha = 1) +
-  labs(y = NULL, x = NULL) +
-  scale_x_datetime(limits = as_datetime(c("2022-06-29 00:00:00", "2022-09-17 00:00:00"))) +
-  coord_cartesian(ylim = c(0, 9.5)) +
-  theme_bw()
-sfkmir22_GPP_dis
-
-# this one has proper second axis, but may adjust the range depending on model rerun TBD
-# waiting to do others until that is complete
-sfkmir23_GPP_dis <- ggplot(data = metabolism_list$sfkeel_mir_2023, aes(x = date_time)) +
-  geom_area(data = discharge_list$sfkeel_mir_2023, aes(y = discharge_m3_s * 1.98, x = date_time), fill = "#a2cae8") +
-  geom_ribbon(aes(ymin = GPP_2.5pct, ymax = GPP_97.5pct), fill = "#BEFB96", alpha = 0.8) +
-  geom_point(aes(y = GPP_mean), color = "#456C2B", size = 3, alpha = 1) +
-  scale_x_datetime(limits = as_datetime(c("2023-06-18 00:00:00", "2023-09-25 00:00:00"))) +
-  scale_y_continuous(sec.axis = sec_axis(~ . / 1.98)) +
-  coord_cartesian(ylim = c(0, 9.5)) +
-  labs(y = NULL, x = NULL) +
-  theme_bw()
-sfkmir23_GPP_dis
-
-### NEED TO SEE MAX GPP OF NEW RUN
-sfksth23_GPP_dis <- ggplot(data = metabolism_list$sfkeel_sth_2023, aes(x = date_time)) +
-  geom_area(data = discharge_list$sfkeel_sth_2023, aes(y = discharge_m3_s, x = date_time), fill = "#a2cae8") +
-  geom_ribbon(aes(ymin = GPP_2.5pct, ymax = GPP_97.5pct), fill = "#BEFB96", alpha = 0.8) +
-  geom_point(aes(y = GPP_mean), color = "#456C2B", size = 3, alpha = 1) +
-  scale_x_datetime(limits = as_datetime(c("2023-06-20 00:00:00", "2023-09-25 00:00:00"))) +
-  coord_cartesian(ylim = c(0, 9.5)) +
-  labs(y = NULL, x = NULL) +
-  theme_bw()
-sfksth23_GPP_dis
+# put all together into an object
 
 #### (3) Making Accrual & Anatoxins Figures ####
 
@@ -221,6 +236,23 @@ sfksth23_GPP_dis
 # may have to half each so they don't overlap
 # eg the full y scale length is 200 or 150 but anatoxins only goes up to 150 and then the remaining 50 is occupied by line
 # will plot afdm version
+
+# 101 max atx for afdm
+# max 20 for percent cover
+
+# start with upside down bar plot with max to 120
+test <- ggplot(data = anatoxins_list$sfkeel_mir_2023, aes(x = field_date, y = mean_ATX_all_ug_afdm_g,
+                                                          fill = sample_type)) +
+  geom_bar(position = "dodge", stat = "identity") +
+  labs(y = NULL, x = NULL) +
+  theme_bw() +
+  scale_y_reverse() +
+  ylim(125, 0)
+test
+# need to add accrual subtracted by whatever I decide
+# also need to decide on how much overlap between samples
+# may involve flipping things around
+# also fix color
 
 # looking at kelly code
 # Sample data
