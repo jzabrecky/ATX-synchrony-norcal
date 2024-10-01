@@ -1,4 +1,4 @@
-"field_date","site","green_algae","microcoleus","anabaena_cylindrospermum","bare_biofilm","other_nfixers","micro_transects","ana_cyl_transects","total_transects","percent_micro_transects","percent_ana_cyl_transects"
+"field_date","site","green_algae","microcoleus","anabaena_cylindrospermum","bare_biofilm","other_nfixers","micro_transects","ana_cyl_transects","total_transects","proportion_micro_transects","proportion_ana_cyl_transects"
 2022-06-24,"RUS",38.1818181818182,0,0,61.8181818181818,0,0,0,11,0,0
 2022-07-06,"RUS",35.6060606060606,0,0,64.3939393939394,0,0,0,33,0,0
 2022-07-20,"RUS",54.2727272727273,0,0.0606060606060606,45.6666666666667,0,0,13,33,0,0.393939393939394
