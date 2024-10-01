@@ -1,6 +1,6 @@
 #### modeling metabolism and functions to assess model outputs
 ### Jordan Zabrecky
-## last edited 07.04.2024
+## last edited 09.25.2024
 
 # This code models metabolism using the "streamMetabolizer" package and also
 # provides functions for visualizing inputs & outputs, and saving outputs
@@ -174,6 +174,24 @@ plot_K600 <- function(metab_fit, title) {
     theme_bw()
 }
 
+# goodness of fit metric calculations
+calc_gof_metrics <- function(metab, subfolder, SiteID) {
+  data <- get_data(metab)
+  data <- na.omit(data) # do not calculate when data missing
+  
+  #RMSE
+  rmse <- sqrt(sum((data$DO.obs-data$DO.mod)^2)/length(data$DO.mod))
+  
+  #NRMSE
+  nrmse <- rmse/(max(data$DO.obs)-min(data$DO.obs))
+  
+  # save metrics and print them to console
+  metrics <- as.data.frame(cbind(rmse, nrmse))
+  write.csv(metrics, paste(".", subfolder, SiteID, "_metrics.csv", sep=""),
+            row.names = FALSE)
+  return(metrics)
+}
+
 #### (4) Running streamMetabolizer for all sites and visualizing outputs ####
 
 # set working directory
@@ -184,122 +202,84 @@ bayesian_mm <- mm_name(type = "bayes", pool_K600 = "binned", err_obs_iid = TRUE,
                        err_proc_iid = TRUE, ode_method = "trapezoid", deficit_src = "DO_mod",
                        engine = "stan")
 
-## south fork eel @ miranda 2022 (09-11-2024)
-visualize_inputs(inputs_prepped$sfkeel_mir_2022)
+
+## south fork eel @ standish hickey 2023
+
+# visualize inputs
+visualize_inputs(inputs_prepped$sfkeel_sth_2023)
 
 ## this model has tightened binning and is being run for more iterations than the previous
-sfkeel_mir_2022_specs <- specs(bayesian_mm, burnin_steps = 20000, saved_steps = 5000,
-                            thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)
-
-# changing range of log(Q) to better match site
-sfkeel_mir_2022_specs$K600_lnQ_nodes_centers <- c(-1.2, -0.75, -0.3, 0.15, 0.6, 1.05, 1.5)
-sfkeel_mir_2022_specs$K600_lnQ_nodediffs_sdlog <- 0.5 / 2  # need to change for centers .5
-
-# running model
-sfkeel_mir_2022 <- metab(sfkeel_mir_2022_specs, data = inputs_prepped$sfkeel_mir_2022)
-
-# get fit and save files
-sfkeel_mir_2022_fit <- get_fit(sfkeel_mir_2022)
-write_files(sfkeel_mir_2022_fit, sfkeel_mir_2022, "/sfkeel_mir_2022/20240911/",
-            "sfkeel_mir_2022")
-
-# model evaluation- DO preds, ER, GPP, K600 estimates
-plot_metab_preds(sfkeel_mir_2022)
-ggplot(sfkeel_mir_2022_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
-  geom_point(color = "darkgreen", size = 3) +
-  geom_line(color = "darkgreen") +
-  geom_vline(xintercept = as_date(c("2022-07-14")), 
-             color = "darkgray", linetype = 2, size = 1.5) +
-  geom_vline(xintercept = as_date(c("2022-07-28")), 
-             color = "darkgray", linetype = 2, size = 1.5) +
-  geom_vline(xintercept = as_date(c("2022-08-10")), 
-             color = "darkgray", linetype = 2, size = 1.5) +
-  geom_vline(xintercept = as_date(c("2022-08-23")), 
-             color = "darkgray", linetype = 2, size = 1.5) +
-  geom_vline(xintercept = as_date(c("2022-09-06")), 
-             color = "darkgray", linetype = 2, size = 1.5) +
-  theme_bw()
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-06-29", date_end = "2022-07-08")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-07-08", date_end = "2022-07-18")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-07-18", date_end = "2022-07-28")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-07-28", date_end = "2022-08-06")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-08-06", date_end = "2022-08-16")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-08-16", date_end = "2022-08-26")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-08-26", date_end = "2022-09-03")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-09-03", date_end = "2022-09-10")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-09-10", date_end = "2022-09-17")
-plot_binning(sfkeel_mir_2022_fit, sfkeel_mir_2022, "SFE @ Miranda 2022 (20,000 warmup)")
-plot_ER_K600(sfkeel_mir_2022_fit, "SFE @ Miranda 2022 (20,000 warmup)")
-cor.test(sfkeel_mir_2022_fit$daily$ER_mean, sfkeel_mir_2022_fit$daily$K600_daily_mean) # correlated; 0.6131324
-plot_K600(sfkeel_mir_2022_fit, "SFE @ Miranda 2022 (20,000 warmup)")
-
-# convergence assessment
-sfkeel_mir_2022_fit$overall %>% # get r-hat
-  dplyr::select(ends_with('Rhat'))
-sfkeel_mir_2022_fit[["warnings"]]
-rstan::traceplot(get_mcmc(sfkeel_mir_2022), pars='GPP_daily', nrow=10)
-rstan::traceplot(get_mcmc(sfkeel_mir_2022), pars='ER_daily', nrow=10)
-rstan::traceplot(get_mcmc(sfkeel_mir_2022), pars='K600_daily', nrow=10)
-
-# remove RDS object before running next model!
-rm(sfkeel_mir_2022)
-
-### test 2 w/ sfkeel-mir_2022
-# changing binning back to the original (a bit wider), but keeping the iterations
-
-## this model has tightened binning and is being run for more iterations than the previous
-sfkeel_mir_2022_specs_2 <- specs(bayesian_mm, burnin_steps = 20000, saved_steps = 5000,
+sfkeel_sth_2023_specs <- specs(bayesian_mm, burnin_steps = 8000, saved_steps = 4000,
                                thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)
 
 # changing range of log(Q) to better match site
-sfkeel_mir_2022_specs_2$K600_lnQ_nodes_centers <- c(-1.3, -.8, -.3, .2, .7, 1.2, 1.8)
-sfkeel_mir_2022_specs_2$K600_lnQ_nodediffs_sdlog <- 0.5 / 2  # need to change for centers .5
+sfkeel_sth_2023_specs$K600_lnQ_nodes_centers <- c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
+sfkeel_sth_2023_specs$K600_lnQ_nodediffs_sdlog <- 0.5 / 2  # need to change for centers .5
 
 # running model
-sfkeel_mir_2022_2 <- metab(sfkeel_mir_2022_specs_2, data = inputs_prepped$sfkeel_mir_2022)
+sfkeel_sth_2023 <- metab(sfkeel_sth_2023_specs, data = inputs_prepped$sfkeel_sth_2023)
 
 # get fit and save files
-sfkeel_mir_2022_fit <- get_fit(sfkeel_mir_2022)
-write_files(sfkeel_mir_2022_fit, sfkeel_mir_2022, "/sfkeel_mir_2022/20240911/",
-            "sfkeel_mir_2022")
+sfkeel_sth_2023_fit <- get_fit(sfkeel_sth_2023)
+write_files(sfkeel_sth_2023_fit, sfkeel_sth_2023, "/sfkeel_sth_2023/",
+            "sfkeel_sth_2023")
 
 # model evaluation- DO preds, ER, GPP, K600 estimates
-plot_metab_preds(sfkeel_mir_2022)
-ggplot(sfkeel_mir_2022_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
+plot_metab_preds(sfkeel_sth_2023) # investigate GPP dips
+ggplot(sfkeel_sth_2023_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
   geom_point(color = "darkgreen", size = 3) +
   geom_line(color = "darkgreen") +
-  geom_vline(xintercept = as_date(c("2022-07-14")), 
+  geom_vline(xintercept = as_date(c("2023-07-03")), 
              color = "darkgray", linetype = 2, size = 1.5) +
-  geom_vline(xintercept = as_date(c("2022-07-28")), 
+  geom_vline(xintercept = as_date(c("2023-07-11")), 
              color = "darkgray", linetype = 2, size = 1.5) +
-  geom_vline(xintercept = as_date(c("2022-08-10")), 
+  geom_vline(xintercept = as_date(c("2023-07-17")), 
              color = "darkgray", linetype = 2, size = 1.5) +
-  geom_vline(xintercept = as_date(c("2022-08-23")), 
+  geom_vline(xintercept = as_date(c("2023-07-24")), 
              color = "darkgray", linetype = 2, size = 1.5) +
-  geom_vline(xintercept = as_date(c("2022-09-06")), 
+  geom_vline(xintercept = as_date(c("2023-07-31")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-08-07")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-08-14")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-08-22")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-08-28")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-09-04")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-09-12")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-09-18")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-09-24")), 
              color = "darkgray", linetype = 2, size = 1.5) +
   theme_bw()
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-06-29", date_end = "2022-07-08")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-07-08", date_end = "2022-07-18")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-07-18", date_end = "2022-07-28")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-07-28", date_end = "2022-08-06")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-08-06", date_end = "2022-08-16")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-08-16", date_end = "2022-08-26")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-08-26", date_end = "2022-09-03")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-09-03", date_end = "2022-09-10")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-09-10", date_end = "2022-09-17")
-plot_binning(sfkeel_mir_2022_fit, sfkeel_mir_2022, "SFE @ Miranda 2022 (20,000 warmup)")
-plot_ER_K600(sfkeel_mir_2022_fit, "SFE @ Miranda 2022 (20,000 warmup)")
-cor.test(sfkeel_mir_2022_fit$daily$ER_mean, sfkeel_mir_2022_fit$daily$K600_daily_mean) # correlated; 0.6131324
-plot_K600(sfkeel_mir_2022_fit, "SFE @ Miranda 2022 (20,000 warmup)")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-06-24", date_end = "2023-07-01")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-01", date_end = "2023-07-09")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-09", date_end = "2023-07-17")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-17", date_end = "2023-07-31")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-31", date_end = "2023-08-08")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-08-08", date_end = "2023-08-14")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-08-14", date_end = "2023-08-22")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-08-22", date_end = "2023-08-30")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-08-30", date_end = "2023-09-08")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-09-08", date_end = "2023-09-16")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-09-16", date_end = "2023-09-21")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-09-21", date_end = "2023-09-27")
+plot_binning(sfkeel_sth_2023_fit, sfkeel_sth_2023, "SFE @ Standish Hickey 2023")
+plot_ER_K600(sfkeel_sth_2023_fit, "SFE @ Standish Hickey 2023")
+cor.test(sfkeel_sth_2023_fit$daily$ER_mean, sfkeel_sth_2023_fit$daily$K600_daily_mean) # not correlated -.237, p = 0.057
+plot_K600(sfkeel_sth_2023_fit, "SFE @ Standish Hickey 2023")
 
 # convergence assessment
-sfkeel_mir_2022_fit$overall %>% # get r-hat
+sfkeel_sth_2023_fit$overall %>% # get r-hat
   dplyr::select(ends_with('Rhat'))
-sfkeel_mir_2022_fit[["warnings"]]
-rstan::traceplot(get_mcmc(sfkeel_mir_2022), pars='GPP_daily', nrow=10)
-rstan::traceplot(get_mcmc(sfkeel_mir_2022), pars='ER_daily', nrow=10)
-rstan::traceplot(get_mcmc(sfkeel_mir_2022), pars='K600_daily', nrow=10)
+sfkeel_sth_2023_fit[["warnings"]]
+rstan::traceplot(get_mcmc(sfkeel_sth_2023), pars='GPP_daily', nrow=10)
+rstan::traceplot(get_mcmc(sfkeel_sth_2023), pars='ER_daily', nrow=10)
+rstan::traceplot(get_mcmc(sfkeel_sth_2023), pars='K600_daily', nrow=10)
 
-# remove RDS object before running next model!
-rm(sfkeel_mir_2022)
+# goodness of fit metrics
+calc_gof_metrics(sfkeel_sth_2023, "/sfkeel_sth_2023/", "sfkeel_sth_2023")
