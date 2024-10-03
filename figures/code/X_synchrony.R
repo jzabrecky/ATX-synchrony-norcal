@@ -9,7 +9,8 @@
 #### (1) Loading libraries and data ####
 
 # loading libraries
-lapply(c("tidyverse", "lubridate", "plyr", "dataRetrieval"), require, character.only = T)
+lapply(c("tidyverse", "lubridate", "plyr", "dataRetrieval", "cowplot"), 
+       require, character.only = T)
 
 # loading in metabolism data
 metabolism <- ldply(list.files(path = "./data/prelim_metab_estimates/", pattern = "daily_est.csv"), function(filename) {
@@ -130,7 +131,7 @@ anatoxins <- anatoxins %>%
 
 # sample collected on 9/8/2022 was a retake for a sample on 9/6/2022
 # as a substitute tech took a very watery sample of just the ends of the mats at SFE-M-1S
-anatoxins$field_date
+anatoxins$field_date[16] <- anatoxins$field_date[15]
 
 # calculate average and max per day at each site
 atx_summarized <- anatoxins %>% 
@@ -148,12 +149,14 @@ anatoxins_list <- split(atx_summarized, atx_summarized$site_year)
 
 # making them all separately so I can easily modify the scales on each separately
 
+## south fork eel river @ miranda 2022
+
 sfkmir22_GPP_dis <- ggplot(data = metabolism_list$sfkeel_mir_2022, aes(x = date_time)) +
   geom_area(data = discharge_list$sfkeel_mir_2022, aes(y = discharge_m3_s * 2.5, x = date_time), fill = "#a2cae8") +
   geom_ribbon(aes(ymin = GPP_2.5pct, ymax = GPP_97.5pct), fill = "#BEFB96", alpha = 0.8) +
   geom_point(aes(y = GPP_mean), color = "#456C2B", size = 3, alpha = 1) +
   labs(y = NULL, x = NULL) +
-  scale_x_datetime(limits = as_datetime(c("2022-06-29 00:00:00", "2022-09-17 00:00:00"))) +
+  scale_x_datetime(limits = as_datetime(c("2022-06-29 00:00:00", "2022-09-20 00:00:00"))) +
   scale_y_continuous(sec.axis = sec_axis(~ . / 2.5)) +
   coord_cartesian(ylim = c(0, 12)) +
   theme_bw() +
@@ -162,13 +165,13 @@ sfkmir22_GPP_dis <- ggplot(data = metabolism_list$sfkeel_mir_2022, aes(x = date_
         text = element_text(size = 16))
 sfkmir22_GPP_dis
 
-# this one has proper second axis, but may adjust the range depending on model rerun TBD
-# waiting to do others until that is complete
+## south fork eel river @ miranda 2023
+
 sfkmir23_GPP_dis <- ggplot(data = metabolism_list$sfkeel_mir_2023, aes(x = date_time)) +
   geom_area(data = discharge_list$sfkeel_mir_2023, aes(y = discharge_m3_s * 2.5, x = date_time), fill = "#a2cae8") +
   geom_ribbon(aes(ymin = GPP_2.5pct, ymax = GPP_97.5pct), fill = "#BEFB96", alpha = 0.8) +
   geom_point(aes(y = GPP_mean), color = "#456C2B", size = 3, alpha = 1) +
-  scale_x_datetime(limits = as_datetime(c("2023-06-18 00:00:00", "2023-09-25 00:00:00"))) +
+  scale_x_datetime(limits = as_datetime(c("2023-06-18 00:00:00", "2023-09-27 00:00:00"))) +
   scale_y_continuous(sec.axis = sec_axis(~ . / 2.5)) +
   coord_cartesian(ylim = c(0, 12)) +
   labs(y = NULL, x = NULL) +
@@ -178,12 +181,14 @@ sfkmir23_GPP_dis <- ggplot(data = metabolism_list$sfkeel_mir_2023, aes(x = date_
         text = element_text(size = 16))
 sfkmir23_GPP_dis
 
-### NEED TO SEE MAX GPP OF NEW RUN
+## south fork eel river @ standish hickey 2023
+
+# RIBBON NOT SHOWING FOR SINGLE POINTS HERE?
 sfksth23_GPP_dis <- ggplot(data = metabolism_list$sfkeel_sth_2023, aes(x = date_time)) +
   geom_area(data = discharge_list$sfkeel_sth_2023, aes(y = discharge_m3_s * 2.5, x = date_time), fill = "#a2cae8") +
   geom_ribbon(aes(ymin = GPP_2.5pct, ymax = GPP_97.5pct), fill = "#BEFB96", alpha = 0.8) +
   geom_point(aes(y = GPP_mean), color = "#456C2B", size = 3, alpha = 1) +
-  scale_x_datetime(limits = as_datetime(c("2023-06-20 00:00:00", "2023-09-25 00:00:00"))) +
+  scale_x_datetime(limits = as_datetime(c("2023-06-20 00:00:00", "2023-09-27 00:00:00"))) +
   scale_y_continuous(sec.axis = sec_axis(~ . / 2.5)) +
   coord_cartesian(ylim = c(0, 12)) +
   labs(y = NULL, x = NULL) +
@@ -192,6 +197,8 @@ sfksth23_GPP_dis <- ggplot(data = metabolism_list$sfkeel_sth_2023, aes(x = date_
         panel.border = element_rect(linewidth = 1.1), axis.ticks = element_line(linewidth = 1),
         text = element_text(size = 16))
 sfksth23_GPP_dis
+
+## russian river 2022
 
 # NEEDS TO BE REDONE W/ USGS DATA
 rus22_GPP_dis <- ggplot(data = metabolism_list$russian_2022, aes(x = date_time)) +
@@ -207,6 +214,8 @@ rus22_GPP_dis <- ggplot(data = metabolism_list$russian_2022, aes(x = date_time))
         panel.border = element_rect(linewidth = 1.1), axis.ticks = element_line(linewidth = 1),
         text = element_text(size = 16))
 rus22_GPP_dis
+
+## salmon river 2022
 
 # NEEDS TO BE REDONE WITH KARUK DATA
 # removed values where ribbon is below zero for now
@@ -225,6 +234,8 @@ sal22_GPP_dis <- ggplot(data = metabolism_list$salmon_2022, aes(x = date_time)) 
         text = element_text(size = 16)) # MAYBE WANT TO ADJUST TEXT SIZE
 sal22_GPP_dis
 
+## salmon river 2023
+
 # NEEDS TO BE REDONE WITH KARUK DATA
 sal23_GPP_dis <- ggplot(data = metabolism_list$salmon_2023, aes(x = date_time)) +
   geom_area(data = discharge_list$salmon_2023, aes(y = discharge_m3_s * 0.63, x = date_time), fill = "#a2cae8") +
@@ -240,56 +251,16 @@ sal23_GPP_dis <- ggplot(data = metabolism_list$salmon_2023, aes(x = date_time)) 
         text = element_text(size = 16))
 sal23_GPP_dis
 
-# put all together into an object
-
 #### (3) Making Accrual & Anatoxins Figures ####
 
-# thoughts: try plot of bar graph upside down and then subtract from some number for percent cover 
-# may have to half each so they don't overlap
-# eg the full y scale length is 200 or 150 but anatoxins only goes up to 150 and then the remaining 50 is occupied by line
-# will plot afdm version
+## south fork eel river @ miranda 2022
 
-# 101 max atx for afdm
-# max 20 for percent cover
-
-# start with upside down bar plot with max to 120
-test <- ggplot(data = anatoxins_list$sfkeel_mir_2023, aes(x = field_date, y = mean_ATX_all_ug_afdm_g)) +
-  geom_bar(data = anatoxins_list$sfkeel_mir_2023, position = "dodge", stat = "identity", aes(fill = group)) +
-  geom_line(data = accrual_list$sfkeel_mir_2023, aes(x = field_date, y = 120 - percent, color = group, 
-                                                     linetype = group)) +
-  geom_point(data = accrual_list$sfkeel_mir_2023, aes(x = field_date, y = 120 - percent, color = group,
-                                                      shape = group)) +
-  labs(y = NULL, x = NULL) +
-  ylim(0, 120) +
-  scale_y_continuous(sec.axis = sec_axis(~ . - 120)) +
-  scale_y_reverse() +
-  theme_bw()
-test
-# NEED TO PROCESS WHAT HAPPENED HERE
-
-test2 <- ggplot(data = accrual_list$sfkeel_mir_2023, aes(x = field_date, y = percent)) +
-  geom_bar(data = anatoxins_list$sfkeel_mir_2023, position = "dodge", stat = "identity", 
-           aes(y = mean_ATX_all_ug_afdm_g, fill = group)) +
-  geom_line(data = accrual_list$sfkeel_mir_2023, aes(y = 120 - percent, color = group, linetype = group),
-            linewidth = 1) +
-  geom_point(data = accrual_list$sfkeel_mir_2023, aes(y = 120 - percent, color = group,shape = group),
-             size = 3) +
-  scale_color_manual("Group", values = c("#8f8504","#2871c7")) +
-  scale_linetype_manual("Group", values = c("dotted", "dashed")) +
-  scale_shape_manual("Group", values = c(16, 18)) +
-  scale_fill_manual("Group", values = c("#d1c960","#7eb3f2")) +
-  labs(y = NULL, x = NULL) +
-  ylim(0, 105) +
-  scale_y_reverse(sec.axis = sec_axis(~ . - 120)) +
-  theme_bw()
-test2
-
-test3 <- ggplot(data = accrual_list$sfkeel_mir_2023, aes(x = field_date, y = percent)) +
-  geom_bar(data = anatoxins_list$sfkeel_mir_2023, position = "dodge", stat = "identity", 
+sfkmir22_acc_atx <- ggplot(data = accrual_list$sfkeel_mir_2022, aes(x = field_date, y = percent)) +
+  geom_bar(data = anatoxins_list$sfkeel_mir_2022, position = "dodge", stat = "identity", 
            aes(y = mean_ATX_all_ug_afdm_g, fill = group), width = 5.8) +
-  geom_line(data = accrual_list$sfkeel_mir_2023, aes(y = 115 - (percent * 4), color = group, linetype = group),
+  geom_line(data = accrual_list$sfkeel_mir_2022, aes(y = 110 - (percent * 4), color = group, linetype = group),
             linewidth = 1) +
-  geom_point(data = accrual_list$sfkeel_mir_2023, aes(y = 115 - (percent * 4), color = group,shape = group),
+  geom_point(data = accrual_list$sfkeel_mir_2022, aes(y = 110 - (percent * 4), color = group,shape = group),
              size = 3) +
   scale_color_manual("Group", values = c("#8f8504","#2871c7"),
                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
@@ -300,20 +271,24 @@ test3 <- ggplot(data = accrual_list$sfkeel_mir_2023, aes(x = field_date, y = per
   scale_fill_manual("Group", values = c("#d1c960","#7eb3f2"),
                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
   labs(y = NULL, x = NULL) +
-  ylim(0, 115) +
-  scale_y_reverse(sec.axis = sec_axis(~ ((. - 115)/4) * -1), n.breaks = 5) +
+  ylim(0, 110) +
+  scale_x_date(limits = as.Date(c("2022-06-29", "2022-09-20"))) +
+  scale_y_reverse(sec.axis = sec_axis(~ ((. - 110)/4) * -1)) +
   theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
         panel.border = element_rect(linewidth = 1.1), axis.ticks = element_line(linewidth = 1),
-        text = element_text(size = 16))
-test3
+        text = element_text(size = 16)) +
+  theme(legend.position = "none") # will move over legend via illustrator
+sfkmir22_acc_atx
 
-test4 <- ggplot(data = accrual_list$sfkeel_mir_2022, aes(x = field_date, y = percent)) +
-  geom_bar(data = anatoxins_list$sfkeel_mir_2022, position = "dodge", stat = "identity", 
+## south fork eel river @ miranda 2023
+
+sfkmir23_acc_atx <- ggplot(data = accrual_list$sfkeel_mir_2023, aes(x = field_date, y = percent)) +
+  geom_bar(data = anatoxins_list$sfkeel_mir_2023, position = "dodge", stat = "identity", 
            aes(y = mean_ATX_all_ug_afdm_g, fill = group), width = 5.8) +
-  geom_line(data = accrual_list$sfkeel_mir_2022, aes(y = 115 - (percent * 4), color = group, linetype = group),
+  geom_line(data = accrual_list$sfkeel_mir_2023, aes(y = 110 - (percent * 4), color = group, linetype = group),
             linewidth = 1) +
-  geom_point(data = accrual_list$sfkeel_mir_2022, aes(y = 115 - (percent * 4), color = group,shape = group),
+  geom_point(data = accrual_list$sfkeel_mir_2023, aes(y = 110 - (percent * 4), color = group,shape = group),
              size = 3) +
   scale_color_manual("Group", values = c("#8f8504","#2871c7"),
                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
@@ -324,64 +299,162 @@ test4 <- ggplot(data = accrual_list$sfkeel_mir_2022, aes(x = field_date, y = per
   scale_fill_manual("Group", values = c("#d1c960","#7eb3f2"),
                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
   labs(y = NULL, x = NULL) +
-  ylim(0, 115) +
-  scale_y_reverse(sec.axis = sec_axis(~ abs((. - 115)/4))) +
-  theme_bw()
-test4
+  ylim(0, 110) +
+  scale_x_date(limits = as.Date(c("2023-06-18", "2023-09-27"))) +
+  scale_y_reverse(sec.axis = sec_axis(~ ((. - 110)/4) * -1)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(linewidth = 1.1), axis.ticks = element_line(linewidth = 1),
+        text = element_text(size = 16)) +
+  theme(legend.position = "none") # will move over legend via illustrator
+sfkmir23_acc_atx
 
-# need to add accrual subtracted by whatever I decide
-# also need to decide on how much overlap between samples
-# may involve flipping things around
-# also fix color
+## south fork eel river @ standish hickey 2023
 
-# looking at kelly code
-# Sample data
-df <- data.frame(
-  x = 1:10,
-  y = rnorm(10, 50, 10),
-  z = rnorm(10, 0.8, 0.1)
-)
-# Plot with secondary axis on the top (inverted second y-axis)
-ggplot(df, aes(x = x, y = y)) +
-  geom_line() +
-  scale_y_continuous(name = "Interruptions/day") +
-  scale_x_continuous(name = "Time",
-                     sec.axis = sec_axis(~.*5, name = "Productivity % of best",
-                                         labels = function(b) { paste0(round(b * 100, 0), "%") })) +
-  theme(axis.title.x.top = element_text(color = "blue"))
+# need to add in 0's for TAC or TM data when there is none so bar stays 1/2 length
+# 8/22, 8/28, 9/4, 9/12 need TM and 8/7 needs TM
+atx_mod_sfksth23 <- rbind(anatoxins_list$sfkeel_sth_2023, # duplicate those dates on new df
+              anatoxins_list$sfkeel_sth_2023[c(7, 11, 12, 13, 14),])
+atx_mod_sfksth23[19:23,5:8] <- 0 # make ATX values for those all 0
+atx_mod_sfksth23[19,4] <- "TM" # flip labels for those rows
+atx_mod_sfksth23[20:23,4] <- "TAC"
 
-test_accrual <- accrual_list$sfkeel_mir_2023 %>% 
-  select(field_date, microcoleus, anabaena)
+sfksth23_acc_atx <- ggplot(data = accrual_list$sfkeel_sth_2023, aes(x = field_date, y = percent)) +
+  geom_bar(data = atx_mod_sfksth23, position = "dodge", stat = "identity", 
+           aes(y = mean_ATX_all_ug_afdm_g, fill = group), width = 5.8) +
+  geom_line(data = accrual_list$sfkeel_sth_2023, aes(y = 110 - (percent * 4), color = group, linetype = group),
+            linewidth = 1) +
+  geom_point(data = accrual_list$sfkeel_sth_2023, aes(y = 110 - (percent * 4), color = group,shape = group),
+             size = 3) +
+  scale_color_manual("Group", values = c("#8f8504","#2871c7"),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_linetype_manual("Group", values = c("dotted", "dashed"),
+                        labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_shape_manual("Group", values = c(16, 18),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_fill_manual("Group", values = c("#d1c960","#7eb3f2"),
+                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  labs(y = NULL, x = NULL) +
+  ylim(0, 110) +
+  scale_x_date(limits = as.Date(c("2023-06-20", "2023-09-27"))) +
+  scale_y_reverse(sec.axis = sec_axis(~ ((. - 110)/4) * -1)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(linewidth = 1.1), axis.ticks = element_line(linewidth = 1),
+        text = element_text(size = 16)) +
+  theme(legend.position = "none") # will move over legend via illustrator
+sfksth23_acc_atx
 
-test_accrual_long <- pivot_longer(test_accrual, cols = c(2:3), values_to = "percent", names_to = "sample_type")
+## russian river 2022
 
-test_atx <- atx_summarized %>% 
-  filter(site_year == "sfkeel_mir_2023") %>% 
-  dplyr::select(!c(max_ATX_all_ug_chla_g, max_ATX_all_ug_afdm_g)) %>% 
-  mutate(sample_type = case_when(sample_type == "TM" ~ "microcoleus",
-                                 sample_type == "TAC" ~ "anabaena")) # WILL NEED TO CHANGE NAME HERE!
+# remove microcoleus entirely from accrual so we don't get a line for y = 0
+acc_mod_rus22 <- accrual_list$russian_2022 %>% 
+  filter(group == "anabaena_cylindrospermum")
 
-# doing a single plot test using south fork eel miranda 2023
-test <- ggplot(data = test_accrual_long, aes(x = field_date, y = percent, fill = sample_type, 
-                                             color = sample_type, linetype = sample_type, shape = sample_type)) +
-  geom_line(linewidth = 1) +
-  geom_point(size = 4) +
-  scale_fill_manual(values = c("#bdb000","#62a7f8")) +
-  geom_area(aes(fill = sample_type, group = sample_type),
-            alpha = 0.3, position = 'identity') +
-  scale_color_manual(values = c("#bdb000","#62a7f8")) +
-  scale_linetype_manual(values = c("dotted", "dashed")) +
-  labs(y = "Percent Cover", x = NULL) +
-  geom_bar(data = test_atx, aes(x = field_date, y = mean_ATX_all_ug_afdm_g, fill = sample_type), position = "dodge", 
-           stat = "identity") +
-  scale_y_reverse() +
-  theme_bw()
-test  
+# still want to keep atx bars 1/2 length
+atx_mod_rus22 <- rbind(anatoxins_list$russian_2022, # duplicate those dates on new df
+                       anatoxins_list$russian_2022[c(2:5),])
+atx_mod_rus22[6:9,5:8] <- 0 # make ATX values for those all 0
+atx_mod_rus22[6:9,4] <- "TM" # flip labels for those rows
 
-# can get upside down bar plot working :)
-test_sep <- ggplot(data = test_atx, aes(x = field_date, y = mean_ATX_all_ug_afdm_g, fill = sample_type)) +
-  geom_bar(position="dodge", stat="identity") +
-  scale_y_reverse() +
-  test_sep
+rus22_acc_atx <- ggplot(data = acc_mod_rus22, aes(x = field_date, y = percent)) +
+  geom_bar(data = atx_mod_rus22, position = "dodge", stat = "identity", 
+           aes(y = mean_ATX_all_ug_afdm_g, fill = group), width = 5.8) +
+  geom_line(data = acc_mod_rus22, aes(y = 110 - (percent * 4), color = group, linetype = group),
+            linewidth = 1) +
+  geom_point(data = acc_mod_rus22, aes(y = 110 - (percent * 4), color = group,shape = group),
+             size = 3) +
+  scale_color_manual("Group", values = c("#8f8504","#2871c7"),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_linetype_manual("Group", values = c("dotted", "dashed"),
+                        labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_shape_manual("Group", values = c(16, 18),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_fill_manual("Group", values = c("#d1c960","#7eb3f2"),
+                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  labs(y = NULL, x = NULL) +
+  ylim(0, 110) +
+  scale_x_date(limits = as.Date(c("2022-06-24", "2022-09-16"))) +
+  scale_y_reverse(sec.axis = sec_axis(~ ((. - 110)/4) * -1)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(linewidth = 1.1), axis.ticks = element_line(linewidth = 1),
+        text = element_text(size = 16)) +
+  theme(legend.position = "none") # will move over legend via illustrator
+rus22_acc_atx
 
-barplot(height = mean_ATX_all_ug_afdm_g)
+## salmon river 2022
+
+# remove A&C entirely from accrual so we don't get a line for y = 0
+acc_mod_sal22 <- accrual_list$salmon_2022 %>% 
+  filter(group == "microcoleus")
+
+# add segment column to avoid line being drawn across plot when we weren't taking data
+acc_mod_sal22$segment <- 1
+acc_mod_sal22$segment[4] <- 2
+
+# STILL NEEDS WILDFIRE RECTANGLE
+sal22_acc_atx <- ggplot(data = acc_mod_sal22, aes(x = field_date, y = percent)) +
+  geom_bar(data = anatoxins_list$salmon_2022, position = "dodge", stat = "identity", 
+           aes(y = mean_ATX_all_ug_afdm_g, fill = group), width = 5.8) +
+  geom_line(data = acc_mod_sal22, aes(y = 110 - (percent * 4), group = segment, color = group, linetype = group),
+            linewidth = 1) +
+  geom_point(data = acc_mod_sal22, aes(y = 110 - (percent * 4), color = group,shape = group),
+             size = 3) +
+  scale_color_manual("Group", values = c("#2871c7"),
+                     labels = c("Microcoleus")) +
+  scale_linetype_manual("Group", values = c("dashed"),
+                        labels = c("Microcoleus")) +
+  scale_shape_manual("Group", values = c(18),
+                     labels = c("Microcoleus")) +
+  scale_fill_manual("Group", values = c("#d1c960","#7eb3f2"),
+                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  labs(y = NULL, x = NULL) +
+  ylim(0, 110) +
+  scale_x_date(limits = as.Date(c("2022-06-26", "2022-09-23"))) +
+  scale_y_reverse(sec.axis = sec_axis(~ ((. - 110)/4) * -1)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(linewidth = 1.1), axis.ticks = element_line(linewidth = 1),
+        text = element_text(size = 16)) +
+  theme(legend.position = "none") # will move over legend via illustrator
+sal22_acc_atx
+
+## salmon river 2023
+
+# remove A&C entirely from accrual so we don't get a line for y = 0
+acc_mod_sal23 <- accrual_list$salmon_2023 %>% 
+  filter(group == "microcoleus")
+
+# needs rectangle for fire?
+sal23_acc_atx <- ggplot(data = acc_mod_sal23, aes(x = field_date, y = percent)) +
+  geom_bar(data = anatoxins_list$salmon_2023, position = "dodge", stat = "identity", 
+           aes(y = mean_ATX_all_ug_afdm_g, fill = group), width = 5.8) +
+  geom_line(data = acc_mod_sal23, aes(y = 110 - (percent * 4), color = group, linetype = group),
+            linewidth = 1) +
+  geom_point(data = acc_mod_sal23, aes(y = 110 - (percent * 4), color = group,shape = group),
+             size = 3) +
+  scale_color_manual("Group", values = c("#2871c7"),
+                     labels = c("Microcoleus")) +
+  scale_linetype_manual("Group", values = c("dashed"),
+                        labels = c("Microcoleus")) +
+  scale_shape_manual("Group", values = c(18),
+                     labels = c("Microcoleus")) +
+  scale_fill_manual("Group", values = c("#d1c960","#7eb3f2"),
+                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  labs(y = NULL, x = NULL) +
+  ylim(0, 110) +
+  scale_y_reverse(sec.axis = sec_axis(~ ((. - 110)/4) * -1)) +
+  scale_x_date(limits = as.Date(c("2023-06-25", "2023-09-25"))) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(linewidth = 1.1), axis.ticks = element_line(linewidth = 1),
+        text = element_text(size = 16)) +
+  theme(legend.position = "none") # will move over legend via illustrator
+sal23_acc_atx
+
+#### (4) Joining of figures ####
+
+# use cowplot!!
+sfkeel_mir_22 <- plot_grid(sfkmir22_GPP_dis, sfkmir22_acc_atx, ncol = 2)
+sfkeel_mir_23 <- plot_grid(sfkmir23_GPP_dis, sfkmir23_acc_atx, ncol = 2)

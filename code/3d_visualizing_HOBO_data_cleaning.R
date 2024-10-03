@@ -1,6 +1,6 @@
 #### data visualization for HOBO data cleaning
 ### Jordan Zabrecky
-## last edited: 10.01.2024
+## last edited: 10.02.2024
 ## (note that dygraphs does not seem to display graph with 4.4.0 version of R)
 
 # This supporting code helped visualize the data cleaning process with
@@ -94,15 +94,15 @@ view_temperature_2023 <- function(x) {
 #### (2) Visualizations (dygraphs) ####
 
 # 2022
-view_full_range_2022(HOBO_2022_list$russian_2022)
-view_low_range_2022(HOBO_2022_list$russian_2022)
-view_temperature_2022(HOBO_2022_list$russian_2022)
+view_full_range_2022(russian_2022_cleaning_cond) # good enough (10.02.2024)
+view_low_range_2022(russian_2022_cleaning_cond) # good enough (10.02.2024)
+view_temperature_2022(russian_2022_cleaning) # looks great! (10.02.2024)
 view_full_range_2022(HOBO_2022_list$salmon_2022)
 view_low_range_2022(HOBO_2022_list$salmon_2022)
 view_temperature_2022(HOBO_2022_list$salmon_2022)
-view_full_range_2022(HOBO_2022_list$sfkeel_mir_2022)
-view_low_range_2022(HOBO_2022_list$sfkeel_mir_2022)
-view_temperature_2022(HOBO_2022_list$sfkeel_mir_2022)
+view_full_range_2022(sfkeel_mir_2022_cleaning_cond)
+view_low_range_2022(sfkeel_mir_2022_cleaning_cond)
+view_temperature_2022(sfkeel_mir_2022_cleaning) # looks great! (10.02.2024)
 
 # 2023
 view_full_range_2023(HOBO_2023_list$salmon_2023)

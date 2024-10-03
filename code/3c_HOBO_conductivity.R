@@ -1,6 +1,6 @@
 #### cleaning and assembling HOBO U-24 sensor conductivity & temperature data
 ### Jordan Zabrecky
-## 10.01.2024
+## 10.02.2024
 
 # This code reads in csv's of conductivity data from HOBO-U24 sensors saved 
 # from the HOBOware software and removes any outliers or periods where 
@@ -43,9 +43,9 @@ read_HOBO_csvs <- function(path) {
 HOBO_2022 <- read_HOBO_csvs("./data/HOBO/2022_raw_data/")
 HOBO_2023 <- read_HOBO_csvs("./data/HOBO/2023_raw_data/")
 
-# our time in the original csv was GMT -7 which is PST so we don't have to change time but still need to change class
-HOBO_2022$date_time <- mdy_hms(HOBO_2022$date_time)
-HOBO_2023$date_time <- mdy_hms(HOBO_2023$date_time)
+# our time in the original csv was GMT -7, so our timezone is PST as we want
+HOBO_2022$date_time <- mdy_hms(HOBO_2022$date_time, tz = "America/Los_Angeles")
+HOBO_2023$date_time <- mdy_hms(HOBO_2023$date_time, tz = "America/Los_Angeles")
 
 # lastly, create a column with site_year information
 HOBO_2022 <- HOBO_2022 %>% 
@@ -57,6 +57,10 @@ HOBO_2023 <- HOBO_2023 %>%
                                site == "Standish" ~ "sfkeel_sth_2023",
                                site == "Salmon" ~ "salmon_2023"))
 
+# convert temperature and conductivity classes to numeric
+HOBO_2022[,2:4] <- sapply(HOBO_2022[,2:4], as.numeric)
+HOBO_2023[,2:4] <- sapply(HOBO_2023[,2:4], as.numeric)
+
 # splitting data into lists for cleaning
 HOBO_2022_list <- split(HOBO_2022, HOBO_2022$site_year)
 HOBO_2023_list <- split(HOBO_2023, HOBO_2023$site_year)
@@ -67,10 +71,83 @@ HOBO_2023_list <- split(HOBO_2023, HOBO_2023$site_year)
 # while performing these steps to identify outliers and confirm maintenance times
 
 ## (a) Removing maintenance periods
-HOBO_2022_list$russian_2022
-# REFERENCE MINIDOT FILE :)
 
-## (b) save as a cleaning
+# russian 2022
+russian_2022_cleaning <- HOBO_2022_list$russian_2022 %>% 
+  filter(date_time >= "2022-06-24 17:15:00")  # initial launch time
+# no retrieval time because sensor was stolen :(
+# all maintenance times removed below (and some weirdness right before pick-up)
+russian_2022_cleaning <- russian_2022_cleaning %>% 
+  filter(date_time <= "2022-07-06 09:30:00" | date_time >= "2022-07-06 10:30:00") %>% 
+  filter(date_time <= "2022-07-20 06:45:00" | date_time >= "2022-07-20 09:55:00") %>% 
+  filter(date_time <= "2022-08-02 08:15:00" | date_time >= "2022-08-02 10:10:00") %>% 
+  # readjusted brick so maintenance time longer than normal here
+  filter(date_time <= "2022-08-17 07:50:00" | date_time >= "2022-08-17 10:15:00") %>% 
+  # last maintenance time with no end date because sensor was stolen :(
+  filter(date_time <= "2022-09-01 7:40:00")
+
+# south fork eel @ miranda 2022
+sfkeel_mir_2022_cleaning <- HOBO_2022_list$sfkeel_mir_2022 %>% 
+  filter(date_time >= "2022-06-29 10:40:00") %>%  # initial launch time
+  filter(date_time <= "2022-09-17 09:03:00") # retrieval time
+# all maintenance times removed below
+sfkeel_mir_2022_cleaning <- sfkeel_mir_2022_cleaning %>%
+  filter(date_time <= "2022-07-14 09:10:00" | date_time >= "2022-07-14 09:20:00") %>% 
+  filter(date_time <= "2022-07-28 09:20:00" | date_time >= "2022-07-28 10:10:00") %>% 
+  filter(date_time <= "2022-08-10 08:55:00" | date_time >= "2022-08-10 09:25:00") %>% 
+  filter(date_time <= "2022-08-23 09:30:00" | date_time >= "2022-08-23 11:25:00") %>% 
+  filter(date_time <= "2022-09-06 09:15:00" | date_time >= "2022-09-06 10:25:00")
+
+## (b) removing outliers
+
+# using new object name to preserve temperature data (that doesn't have outliers)
+
+# russian 2022
+russian_2022_cleaning_cond <- russian_2022_cleaning %>% 
+  filter(date_time <= "2022-06-27 14:10:00" | date_time >= "2022-06-27 17:50:00") %>% # <4 hours
+  filter(date_time <= "2022-07-06 05:50:00" | date_time >= "2022-07-06 06:40:00") %>% # <1 hour
+  filter(date_time <= "2022-07-06 06:50:00" | date_time >= "2022-07-06 07:10:00") %>% # <1 hour
+  filter(date_time <= "2022-07-06 07:40:00" | date_time >= "2022-07-06 08:20:00") %>% # <1 hour
+  filter(date_time <= "2022-07-06 08:50:00" | date_time >= "2022-07-06 09:20:00") %>% # <1 hour
+  filter(date_time <= "2022-07-13 16:40:00" | date_time >= "2022-07-13 17:10:00") %>% # <1 hour
+  filter(date_time <= "2022-07-17 04:50:00" | date_time >= "2022-07-17 05:10:00") %>% # <1 hour
+  filter(date_time <= "2022-07-23 10:20:00" | date_time >= "2022-07-23 10:40:00") %>% # <1 hour
+  filter(date_time <= "2022-07-23 11:20:00" | date_time >= "2022-07-23 11:40:00") %>% # <1 hour
+  filter(date_time <= "2022-07-29 08:20:00" | date_time >= "2022-07-29 08:40:00") %>% # <1 hour
+  filter(date_time <= "2022-07-29 08:50:00" | date_time >= "2022-07-29 09:10:00") %>% # <1 hour
+  filter(date_time <= "2022-08-03 12:40:00" | date_time >= "2022-08-03 12:50:00") %>% # <1 hour
+  filter(date_time <= "2022-08-04 10:10:00" | date_time >= "2022-08-04 10:20:00") %>% # <1 hour
+  filter(date_time <= "2022-08-11 14:20:00" | date_time >= "2022-08-11 15:20:00") %>% # <1 hour
+  filter(date_time <= "2022-08-13 12:10:00" | date_time >= "2022-08-13 12:40:00") %>% # <1 hour
+  filter(date_time <= "2022-08-25 07:40:00" | date_time >= "2022-08-25 09:10:00") %>% # <2 hours
+  filter(date_time <= "2022-08-25 09:20:00" | date_time >= "2022-08-25 09:50:00") %>% # <1 hour
+  filter(date_time <= "2022-08-25 14:20:00" | date_time >= "2022-08-25 14:50:00") %>% # <1 hour
+  filter(date_time <= "2022-08-26 18:15:00" | date_time >= "2022-08-26 19:20:00") %>% # <2 hours
+  filter(date_time <= "2022-08-29 15:40:00" | date_time >= "2022-08-29 15:50:00") %>% # <1 hour
+  filter(date_time <= "2022-08-29 18:20:00" | date_time >= "2022-08-29 18:40:00") %>% # <1 hour
+  filter(date_time <= "2022-08-29 19:40:00" | date_time >= "2022-08-29 19:50:00") # <1 hour
+
+# south fork eel @ miranda 2022
+sfkeel_mir_2022_cleaning_cond <- sfkeel_mir_2022_cleaning %>%
+  filter(date_time <= "2022-07-02 05:20:00" | date_time >= "2022-07-02 05:40:00") %>% # <1 hour
+  filter(date_time <= "2022-07-03 15:40:00" | date_time >= "2022-07-03 16:10:00") %>% # <1 hour
+  filter(date_time <= "2022-07-04 09:40:00" | date_time >= "2022-07-04 09:50:00") %>% # <1 hour
+  filter(date_time <= "2022-07-04 17:10:00" | date_time >= "2022-07-04 18:50:00") %>% # <2 hours
+  filter(date_time <= "2022-07-04 18:50:00" | date_time >= "2022-07-04 19:50:00") %>% # <2 hours
+  filter(date_time <= "2022-07-04 20:10:00" | date_time >= "2022-07-04 21:10:00") %>% # <2 hours
+  filter(date_time <= "2022-07-05 03:20:00" | date_time >= "2022-07-05 03:40:00") %>% # <1 hour
+  filter(date_time <= "2022-07-05 08:10:00" | date_time >= "2022-07-05 08:20:00") %>% # <1 hour
+  filter(date_time <= "2022-07-09 08:50:00" | date_time >= "2022-07-09 09:10:00") %>% # <1 hour
+  filter(date_time <= "2022-07-10 20:40:00" | date_time >= "2022-07-10 21:20:00") %>% # <1 hour
+  filter(date_time <= "2022-07-16 22:50:00" | date_time >= "2022-07-17 12:50:00") %>% # <4 hours
+  filter(date_time <= "2022-07-17 18:20:00" | date_time >= "2022-07-17 19:10:00") %>% # <1 hour
+  filter(date_time <= "2022-07-19 07:10:00" | date_time >= "2022-07-19 08:10:00") %>% # <2 hours
+  filter(date_time <= "2022-07-19 17:10:00" | date_time >= "2022-07-19 18:50:00") %>% # <2 hours
+  filter(date_time <= "2022-07-21 15:50:00" | date_time >= "2022-07-21 16:10:00") %>% # <1 hour
+  filter(date_time <= "2022-07-22 05:20:00" | date_time >= "2022-07-22 09:40:00") %>% # <5 hours
+  filter(date_time <= "2022-08-26 02:10:00" | date_time >= "2022-08-26 02:20:00") %>% # <1 hour
+  filter(date_time <= "2022-09-15 15:40:00" | date_time >= "2022-09-15 15:50:00") # <1 hour
+# linear interpolation??? MAYBE?
 
 #### (3) recombining and saving dataframe?
 
