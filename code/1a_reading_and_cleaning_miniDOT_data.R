@@ -311,8 +311,8 @@ salmon_2023_cleaning_DO <- salmon_2023_cleaning %>%
 
 ## (b) interpolating missing data using other script: "1c_split_interpolate_data.R"
 
-# this script will fill create a time series for every five minutes and fill in 
-# missing variables via linear interpolation via the "create_filled_TS" function
+# create a time series for every five minutes and fill in missing
+# variables via linear interpolation first with the "create_filled_TS" function
 source("code/supplemental_code/S1a_split_interpolate_data.R")
 
 # need to round to nearest 5 minutes first
@@ -416,7 +416,7 @@ salmon_2023_cleaning_DO <- salmon_2023_cleaning_DO %>%
 
 #### (4) Merging data back together and saving ####
 
-# Left join of "cleaning_DO" dataframe to the original cleaning dataframe that has preserved Temp_C
+# Left join of "cleaning_DO" dataframe to the cleaning dataframe that has preserved & interpolated Temp_C
 sfkeel_mir_2022_miniDOT <- left_join(sfkeel_mir_2022_cleaning_temp, sfkeel_mir_2022_cleaning_DO, "date_time")
 russian_2022_miniDOT <- left_join(russian_2022_cleaning_temp, russian_2022_cleaning_DO, "date_time")
 salmon_2022_miniDOT <- left_join(salmon_2022_cleaning_temp, salmon_2022_cleaning_DO, "date_time")
