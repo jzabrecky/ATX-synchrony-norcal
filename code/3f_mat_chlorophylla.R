@@ -1,6 +1,6 @@
 #### processing chlorophyll-a and pheophytin concentrations for freeze-dried cyanobacteria mass
 ### Jordan Zabrecky (modified from Joanna Blaszczak)
-## last edited 9.17.24
+## last edited 10.08.24
 
 # This code calculates chlorophyll-a and pheophytin concentrations for freeze-dried
 # cyanobacteria mass from RFUs obtained from the Blaszczak Lab's Trilogy Fluorometer 
@@ -31,6 +31,12 @@ metadata <- ldply(list.files(pattern = "_metadata.csv"), function(filename) {
   d$analysis_date <- sapply(strsplit(d$file,"_"), `[`, 1)
   return(d)
 })
+
+# convert extraction volume from mL to L as Trilogy equation output is in chla ug/L
+rawRFU <- rawRFU %>% 
+  mutate(Extraction_vol_L = Extraction_vol / 1000) %>% # mL to L
+  select(!Extraction_vol) %>% 
+  rename(Extraction_vol = Extraction_vol_L) # giving this column the old name to keep code the same
 
 # check data frame formatting
 sapply(rawRFU, class)
@@ -96,7 +102,7 @@ chla_pheo_calc <- function(ex){
   
   # apply interpolation based on whether its a high or low curve
   ex$Chla_ug_mg_raw <- ifelse(ex$curve_type == "low",
-                              yes = (low_Fm/(low_Fm - 1))*(Int_B_low - Int_A_low)*(vol_solvent/mass_mg),
+                              yes = (low_Fm/(low_Fm - 1))*(Int_B_low - Int_A_low)*(vol_solvent/mass_mg), # (L/ug ratio, get answer in chl-a/ug sample)
                               no = (high_Fm/(high_Fm - 1))*(Int_B_high - Int_A_high)*(vol_solvent/mass_mg))
   
   ex$Pheo_ug_mg_raw <- ifelse(ex$curve_type == "low",
@@ -189,9 +195,7 @@ final <- chla_pheo_final %>%
 # add processed/averaged triplicates back in & do some conversions
 final <- rbind(final, triplicates_final) %>% 
   dplyr::rename(sample_type = type) %>% # renaming to match conventions from % org matter
-  mutate(Chla_g_g = round((Chla_ug_mg / 1000), 3), # convert ug/mg to g/g
-         Pheo_g_g = round((Pheo_ug_mg / 1000), 3)) %>% # so this reads as g of Chla/Pheo per g dry weight!
-  select(field_date, site_reach, sample_type, Chla_g_g, Pheo_g_g)
+  select(field_date, site_reach, sample_type, Chla_ug_mg, Pheo_ug_mg)
 
 # save csv
 write.csv(final, "../../cyano_chla.csv", row.names = FALSE)
