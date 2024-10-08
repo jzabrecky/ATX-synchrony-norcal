@@ -83,8 +83,11 @@ discharge <- rbind(discharge, xtra_dis)
 
 # cutting down discharge data as 5-minute intervals take forever to plot
 discharge <- discharge %>%
-  mutate(minute = minute(date_time)) %>% 
-  filter(minute == 0 | minute == 15 | minute == 30 | minute == 45)
+  mutate(minute = minute(date_time),
+         hour = hour(date_time)) %>% 
+  # will ideally use actual downloaded daily discharge in future, but for purposes of poster will use
+  # the discharge at 6 pm
+  filter(minute == 0 & hour == 6)
 
 # split into a list by site
 discharge_list <- split(discharge, discharge$site_year)
@@ -140,9 +143,9 @@ anatoxins$field_date[16] <- anatoxins$field_date[15]
 atx_summarized <- anatoxins %>% 
   dplyr::rename(group = sample_type) %>% 
   dplyr::group_by(site_year, field_date, site, group) %>% 
-  dplyr::summarize(mean_ATX_all_ug_chla_g = mean(ATX_all_ug_chla_g),
+  dplyr::summarize(mean_ATX_all_ug_chla_g = mean(ATX_all_ug_chla_ug),
                    mean_ATX_all_ug_afdm_g = mean(ATX_all_ug_afdm_g),
-                   max_ATX_all_ug_chla_g = max(ATX_all_ug_chla_g), # will probably not use max
+                   max_ATX_all_ug_chla_g = max(ATX_all_ug_chla_ug), # will probably not use max
                    max_ATX_all_ug_afdm_g = max(ATX_all_ug_afdm_g))
 
 # split into a list by site
@@ -165,7 +168,7 @@ sfkmir22_GPP_dis <- ggplot(data = metabolism_list$sfkeel_mir_2022, aes(x = date_
   theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
         panel.border = element_rect(linewidth = 1.1), axis.ticks = element_line(linewidth = 1),
-        text = element_text(size = 16))
+        text = element_text(size = 16), axis.text.x = element_blank())
 sfkmir22_GPP_dis
 
 ## south fork eel river @ miranda 2023
@@ -396,6 +399,9 @@ acc_mod_sal22 <- accrual_list$salmon_2022 %>%
 acc_mod_sal22$segment <- 1
 acc_mod_sal22$segment[4] <- 2
 
+# polygon dataframe to make gray box for plot
+wildfire <- data.frame(date = c(asDate("2022-06-29"), asDate("2022-0")))
+
 # STILL NEEDS WILDFIRE RECTANGLE
 sal22_acc_atx <- ggplot(data = acc_mod_sal22, aes(x = field_date, y = percent)) +
   geom_bar(data = anatoxins_list$salmon_2022, position = "dodge", stat = "identity", 
@@ -459,5 +465,8 @@ sal23_acc_atx
 #### (4) Joining of figures ####
 
 # use cowplot!!
-sfkeel_mir_22 <- plot_grid(sfkmir22_GPP_dis, sfkmir22_acc_atx, ncol = 2)
+sfkeel_mir_22 <- plot_grid(sfkmir22_GPP_dis, sfkmir22_acc_atx, nrow = 2, align = "hv")
 sfkeel_mir_23 <- plot_grid(sfkmir23_GPP_dis, sfkmir23_acc_atx, ncol = 2)
+
+# export notes for poster-- make font bigger and also make plot taller (overall a tad larger but mostly taller)
+# may also want to make each element a tad bigger
