@@ -6,6 +6,9 @@
 # accrual, and corresponding anatoxin concentrations for each sensor placement with
 # its affilitated upstream reaches incoporated
 
+# FOR DATA COMPILING, A SIMILAR THING MAY OCCUR FOR STEP 4; IN SUCH CASE,
+# THIS DATA WILL BE MOVED TO THERE AND THE FINAL CSV FOR THAT WILL BE IMPORTED HERE 
+
 #### (1) Loading libraries and data ####
 
 # loading libraries
@@ -52,7 +55,7 @@ metabolism <- metabolism %>%
          # need to calculate a date_time so it can be plotted with continuous discharge
          date_time = as.POSIXct(paste(date, "06:00:00", sep = " "))) # will just set as 6am on that day's estimate
 
-# split into a list by site
+# split into a list by site year
 metabolism_list <- split(metabolism, metabolism$site_year)
 
 ## adjusting discharge dataset
