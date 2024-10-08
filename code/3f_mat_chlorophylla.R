@@ -69,7 +69,7 @@ low_blank <- 3235.6; high_blank <- 6604.78
 # biggest differences in cuvette blanks so we will not be doing the work to make 
 # those very minor adjustments :) **
 
-#### (3) Calculating chlorophyll-a and pheophytin concentrations
+#### (3) Calculating chlorophyll-a and pheophytin concentrations ####
 
 # function to calculate chlorophyll-a and pheophytin
 chla_pheo_calc <- function(ex){
