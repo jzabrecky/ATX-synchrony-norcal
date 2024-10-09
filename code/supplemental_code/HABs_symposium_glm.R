@@ -20,6 +20,12 @@ metabolism <- ldply(list.files(path = "./data/prelim_metab_estimates/", pattern 
   return(d)
 })
 
+# get light data from metabolism model input
+light <- ldply(list.files(path = "./data/metab_model_inputs/", pattern = "modelinputs"), function(filename) {
+  d <- read.csv(paste("data/metab_model_inputs/", filename, sep = ""))
+  return(d)
+})
+
 ##  use dataRetrieval to get daily discharge (rather than continuous from our miniDOT inputs!)
 # USGS site numbers
 USGS_gages <- c("11463000", "11522500", "11476500", "11475800")
@@ -40,6 +46,7 @@ occurence <- read.csv("./data/field_and_lab/percover_bysite.csv")
 anatoxins <- read.csv("./data/field_and_lab/cyano_atx.csv")
 
 # convert dates from character to date object
+light$date_time <- ymd_hms(light$date_time)
 nutrients$field_date <- ymd(nutrients$field_date)
 occurence$field_date <- ymd(occurence$field_date)
 anatoxins$field_date <- ymd(anatoxins$field_date)
@@ -54,6 +61,12 @@ metabolism <- metabolism %>%
 # split into a list by site year
 metabolism_list <- split(metabolism, metabolism$site_year)
 
+# calculate daily light
+light <- light %>% 
+  mutate(date = date(date_time)) %>% 
+  dplyr::group_by(site_year, date) %>% 
+  dplyr::summarize(daily_SW_W_m_2 = mean(SW_W_m_2))
+  
 # function to clean discharge data
 clean_discharge <- function(df) {
   new_df <- df %>% 
