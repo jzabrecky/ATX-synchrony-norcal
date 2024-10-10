@@ -118,9 +118,9 @@ anatoxins <- anatoxins %>%
                                (site == "RUS") ~ "russian_2022",
                                (site == "SFE-SH") ~ "sfkeel_sth_2023"))
 
-# calculate average and max per day at each site
+# calculate average and max per day at each site (for both TA and TM combined)
 atx_summarized <- anatoxins %>% 
-  dplyr::rename(group = sample_type) %>% 
+  dplyr::renamee(group = sample_type) %>% 
   dplyr::group_by(site_year, field_date, site, group) %>% 
   dplyr::summarize(mean_ATX_all_ug_chla_g = mean(ATX_all_ug_chla_ug),
                    mean_ATX_all_ug_afdm_g = mean(ATX_all_ug_afdm_g),
@@ -204,16 +204,100 @@ combined <- combined[-which(is.na(combined$oPhos_ug_P_L_mean)),]
 combined_list <- split(combined, combined$site_year)
 combined_list_site_ver <- split(combined, combined$site)
 
-#### (3) Looking at correlation plots ####
+#### (3) Scaling datasets individually ####
 
-plot(sfkeel_mir_scaled$mean_ATX_all_ug_afdm_g, sfkeel_mir_scaled$nitrate)
+# function to scale dataframes
+scale_df <- function(df) {
+  new_df <- df %>% 
+    mutate(log_ATX = log(mean_ATX_all_ug_afdm_g),
+           temperature = scale(temp_C_mean),
+           conductivity = scale(cond_uS_cm_mean),
+           phosphate = scale(oPhos_ug_P_L_mean),
+           nitrate = scale(nitrate_mg_N_L_mean),
+           ammonium = scale(ammonium_mg_N_L_mean),
+           discharge = scale(discharge_cms),
+           light = scale(daily_SW_W_m_2))
+  return(new_df)
+}
 
-### NOT GOING TO INCLUDE LIGHT BECAUSE I DON'T THINK ITS REPRESENTATIVE
+# applying function
+sfkeel_mir_scaled <- scale_df(combined_list_site_ver$sfkeel_mir)
+sfkeel_mir_2022_scaled <- scale_df(combined_list$sfkeel_mir_2022)
+sfkeel_mir_2023_scaled <- scale_df(combined_list$sfkeel_mir_2023)
+russian_scaled <- scale_df(combined_list$russian_2022)
 
-#### (3) Making the GLMs for anatoxins ####
+#### (4) GLMs for anatoxins ####
 
-sfkeel_mir_scaled <- combined_list_site_ver$sfkeel_mir %>% 
-  mutate(temperature = scale(temp_C_mean),
+### both years of south fork eel
+model1 <- glm(log_ATX ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
+              data = sfkeel_mir_scaled)
+
+plot_model(model1, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#37578c")) + theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
+        text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), axis.title.x = element_blank()) + labs(title = NULL, xlab = NULL)
+
+### 2022 only south fork eel
+model2 <- glm(log_ATX ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
+              data = sfkeel_mir_2022_scaled)
+# NOT ESTIMABLE FOR TEMP, COND, DISCHARGE
+plot_model(model2, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#37578c")) + theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
+        text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), axis.title.x = element_blank()) + labs(title = NULL, xlab = NULL)
+
+### 2023 only south fork eel miranda
+model3 <- glm(log_ATX ~ nitrate + ammonium + phosphate + + temperature + conductivity + discharge,
+              data = sfkeel_mir_2023_scaled)
+
+plot_model(model3, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#37578c")) + theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
+        text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), axis.title.x = element_blank()) + labs(title = NULL, xlab = NULL)
+
+### russian 
+model4 <- glm(log_ATX ~ nitrate + ammonium + phosphate + + temperature + conductivity + discharge,
+              data = russian_scaled)
+# NOT ESTIMABLE FOR TEMPERATURE, CONDUCTIVITY, DISCHARGE
+plot_model(model4, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#37578c")) + theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
+        text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), axis.title.x = element_blank()) + labs(title = NULL, xlab = NULL)
+
+### south fork eel standish hickey
+
+
+## compare 2022 and 2023 sfkeel
+model2 <- glm(mean_ATX_all_ug_afdm_g ~ nitrate + ammonium + phosphate + + temperature + conductivity + discharge,
+             data = sfkeel_mir_2022_scaled, family = Gamma(link = "log"))
+model2_normal <- glm(mean_ATX_all_ug_afhttp://127.0.0.1:26687/graphics/plot_zoom_png?width=1075&height=591dm_g ~ nitrate + ammonium + phosphate + + temperature + conductivity + discharge,
+                     data = sfkeel_mir_2022_scaled)
+
+plot_model(model2, sort.est = TRUE) + theme_bw()
+plot_model(model2_normal, sort.est = TRUE) + theme_bw()
+
+model3 <- glm(mean_ATX_all_ug_afdm_g ~ nitrate + ammonium + phosphate + + temperature + conductivity + discharge,
+              data = sfkeel_mir_2023_scaled, family = Gamma(link = "log"))
+model3_normal <- glm(mean_ATX_all_ug_afdm_g ~ nitrate + ammonium + phosphate + + temperature + conductivity + discharge,
+              data = sfkeel_mir_2023_scaled)
+
+plot_model(model3, sort.est = TRUE) + theme_bw()
+
+## russian 2022
+model4 <- glm(mean_ATX_all_ug_afdm_g ~ nitrate + ammonium + phosphate + + temperature + conductivity + discharge,
+              data = russian_scaled, family = Gamma(link = "log"))
+model4_normal <- glm(mean_ATX_all_ug_afdm_g ~ nitrate + ammonium + phosphate + + temperature + conductivity + discharge,
+                     data = russian_scaled)
+
+plot_model(model4, sort.est = TRUE) + theme_bw()
+plot_model(model4_normal, sort.est = TRUE) + theme_bw()
+# not estimable issue
+
+## standish hickey
+
+standish_scaled <- combined_list_site_ver$sfkeel_sth %>% 
+  mutate(log_atx = log(mean_ATX_all_ug_afdm_g),
+         temperature = scale(temp_C_mean),
          conductivity = scale(cond_uS_cm_mean),
          phosphate = scale(oPhos_ug_P_L_mean),
          nitrate = scale(nitrate_mg_N_L_mean),
@@ -221,16 +305,13 @@ sfkeel_mir_scaled <- combined_list_site_ver$sfkeel_mir %>%
          discharge = scale(discharge_cms),
          light = scale(daily_SW_W_m_2))
 
-# atx @ sfk mir 2022; model 1
-model1 <- glm(mean_ATX_all_ug_afdm_g ~ nitrate + ammonium + phosphate + + temperature + conductivity + discharge,
-              data = sfkeel_mir_scaled, family = Gamma(link = "log"))
-coeff1 <- as.data.frame(model1$coefficients)
-confint1 <- as.data.frame(confint(model1))
+model5 <- glm(mean_ATX_all_ug_afdm_g ~ nitrate + ammonium + phosphate + + temperature + conductivity + discharge,
+              data = standish_scaled, family = Gamma(link = "log"))
+model5_normal <- glm(log(mean_ATX_all_ug_afdm_g) ~ nitrate + ammonium + phosphate + + temperature + conductivity + discharge,
+                     data = standish_scaled)
 
-model1_normal <- glm(mean_ATX_all_ug_afdm_g ~ nitrate + ammonium + phosphate + + temperature + conductivity + discharge,
-                     data = sfkeel_mir_scaled)
-
-plot_model(model1) + theme_bw()
+plot_model(model5, sort.est = TRUE) + theme_bw()
+plot_model(model5_normal, sort.est = TRUE) + theme_bw()
 
 #### (4) Making glms for percent cover ####
 
