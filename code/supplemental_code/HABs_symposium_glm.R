@@ -1,6 +1,6 @@
 #### script for glms for HABs symposium poster
 ### Jordan Zabrecky
-## last edited: 10.07.2024
+## last edited: 10.09.2024
 
 # This script makes a generalized linear model (glm) for each site
 # and plots the effect size for each variable for poster for 12th
@@ -9,7 +9,7 @@
 #### Loading libraries and data ####
 
 # loading libraries
-lapply(c("lubridate", "plyr", "tidyverse"), require, character.only = T)
+lapply(c("lubridate", "plyr", "tidyverse", "lme4", "dataRetrieval", "sjPlot"), require, character.only = T)
 
 # loading metabolism data
 metabolism <- ldply(list.files(path = "./data/prelim_metab_estimates/", pattern = "daily_est.csv"), function(filename) {
@@ -63,14 +63,17 @@ metabolism_list <- split(metabolism, metabolism$site_year)
 
 # calculate daily light
 light <- light %>% 
-  mutate(date = date(date_time)) %>% 
-  dplyr::group_by(site_year, date) %>% 
+  mutate(field_date = date(date_time)) %>% 
+  dplyr::group_by(site_year, field_date) %>% 
   dplyr::summarize(daily_SW_W_m_2 = mean(SW_W_m_2))
+
+# split into a list by site year
+light_list <- split(light, light$site_year)
   
 # function to clean discharge data
 clean_discharge <- function(df) {
   new_df <- df %>% 
-    rename(field_date = Date) %>% 
+    dplyr::rename(field_date = Date) %>% 
     mutate(discharge_cms = X_00060_00003 / 35.31) %>% 
     dplyr::select(field_date, discharge_cms)
   return(new_df)
@@ -119,14 +122,14 @@ anatoxins <- anatoxins %>%
 atx_summarized <- anatoxins %>% 
   dplyr::rename(group = sample_type) %>% 
   dplyr::group_by(site_year, field_date, site, group) %>% 
-  dplyr::summarize(mean_ATX_all_ug_chla_g = mean(ATX_all_ug_chla_g),
+  dplyr::summarize(mean_ATX_all_ug_chla_g = mean(ATX_all_ug_chla_ug),
                    mean_ATX_all_ug_afdm_g = mean(ATX_all_ug_afdm_g),
-                   max_ATX_all_ug_chla_g = max(ATX_all_ug_chla_g), # will probably not use max
+                   max_ATX_all_ug_chla_g = max(ATX_all_ug_chla_ug), # will probably not use max
                    max_ATX_all_ug_afdm_g = max(ATX_all_ug_afdm_g))
 
 # need to pivot so TM and TAC are there own columns!
 atx_summarized_pivot <- pivot_wider(atx_summarized, names_from = c(4), values_from = c(6)) %>% 
-  rename(TAC_mean_ATX_all_ug_afdm_g = TAC,
+  dplyr::rename(TAC_mean_ATX_all_ug_afdm_g = TAC,
          TM_mean_ATX_all_ug_afdm_g = TM) %>%
   dplyr::select(site, site_year, field_date, TAC_mean_ATX_all_ug_afdm_g, TM_mean_ATX_all_ug_afdm_g)
 
@@ -139,7 +142,7 @@ nutrients$field_date[9] <- nutrients$field_date[8]
 # need to average nutrients per day
 nutrients_averaged <- nutrients %>% 
   dplyr::group_by(site, field_date) %>% 
-  summarize(temp_C_mean = mean(temp_C),
+  dplyr::summarize(temp_C_mean = mean(temp_C),
             DO_mg_L_mean = mean(DO_mg_L),
             cond_uS_cm_mean = mean(cond_uS_cm),
             oPhos_ug_P_L_mean = mean(oPhos_ug_P_L),
@@ -177,14 +180,58 @@ combined <- data.frame()
 # can use indexing because all lists are in same site order
 for(i in 1:length(metabolism_list)) {
   single_site <- (list(metabolism_list[[i]], discharge[[i]], nutrients_list[[i]], occurence_list[[i]],
-                       anatoxins_list[[i]])) %>% 
+                       anatoxins_list[[i]], light_list[[i]])) %>% 
     join_all(by = c("field_date"), type = "left")
   combined <- rbind(combined, single_site)
 }
 
+# get rid of site year duplicates
+combined <- combined[,-c(27, 40, 41, 48)]
+
+# decided for now only going to model light, discharge, ammonium & nitrate, phosphate, temperature, conductivity
+combined <- combined %>% 
+  select(field_date, site_year, site, mean_ATX_all_ug_afdm_g, microcoleus, anabaena_cylindrospermum,
+         temp_C_mean, cond_uS_cm_mean, oPhos_ug_P_L_mean, ammonium_mg_N_L_mean, nitrate_mg_N_L_mean, 
+         daily_SW_W_m_2, discharge_cms)
+
+# add + 0.001 to all anatoxin so we can use log-link
+combined$mean_ATX_all_ug_afdm_g <- combined$mean_ATX_all_ug_afdm_g + 0.001
+
+# omit NA where we don't have nutrient data
+combined <- combined[-which(is.na(combined$oPhos_ug_P_L_mean)),]
+    
 # split into a list for modeling purposes
 combined_list <- split(combined, combined$site_year)
+combined_list_site_ver <- split(combined, combined$site)
 
-#### (3) Making the GLMs ####
+#### (3) Looking at correlation plots ####
+
+plot(sfkeel_mir_scaled$mean_ATX_all_ug_afdm_g, sfkeel_mir_scaled$nitrate)
+
+### NOT GOING TO INCLUDE LIGHT BECAUSE I DON'T THINK ITS REPRESENTATIVE
+
+#### (3) Making the GLMs for anatoxins ####
+
+sfkeel_mir_scaled <- combined_list_site_ver$sfkeel_mir %>% 
+  mutate(temperature = scale(temp_C_mean),
+         conductivity = scale(cond_uS_cm_mean),
+         phosphate = scale(oPhos_ug_P_L_mean),
+         nitrate = scale(nitrate_mg_N_L_mean),
+         ammonium = scale(ammonium_mg_N_L_mean),
+         discharge = scale(discharge_cms),
+         light = scale(daily_SW_W_m_2))
+
+# atx @ sfk mir 2022; model 1
+model1 <- glm(mean_ATX_all_ug_afdm_g ~ nitrate + ammonium + phosphate + + temperature + conductivity + discharge,
+              data = sfkeel_mir_scaled, family = Gamma(link = "log"))
+coeff1 <- as.data.frame(model1$coefficients)
+confint1 <- as.data.frame(confint(model1))
+
+model1_normal <- glm(mean_ATX_all_ug_afdm_g ~ nitrate + ammonium + phosphate + + temperature + conductivity + discharge,
+                     data = sfkeel_mir_scaled)
+
+plot_model(model1) + theme_bw()
+
+#### (4) Making glms for percent cover ####
 
 #### (4) Effect Size Plots ####
