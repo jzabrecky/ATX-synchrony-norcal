@@ -124,7 +124,8 @@ salmon_2022_scaled <- scale_df(final_site_year$salmon_2022)
 salmon_2023_scaled <- scale_df(final_site_year$salmon_2023)
 
 #### (3) GLMs with ATX as reponse ####
-# need to decide on colors! and range when all are finished
+
+## export size: 7x4.5 pdf
 
 ### South Fork Eel @ Miranda both years
 model1_ln <- glm(log_ATX ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
@@ -136,9 +137,9 @@ plot_model(model1_ln, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#3757
         text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), axis.title.x = element_blank()) + 
   labs(title = NULL, xlab = NULL) +
   geom_hline(yintercept = 0, linetype = "dashed", size = 2, alpha = 0.3) +
-  ylim(-5, 5)
+  ylim(-8, 6)
 
-### South Fork Eel @ Miranda 2022
+### South Fork Eel @ Miranda 2022 -- only doing two ATX panels; skip this
 model2_ln <- glm(log_ATX ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
                  data = sfkeel_mir_2022_scaled)
 
@@ -149,11 +150,11 @@ plot_model(model2_ln, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#3757
   labs(title = NULL, xlab = NULL) +
   geom_vline(xintercept = 0, linetype = "dashed")
 
-### South Fork Eel @ Miranda 2023
+### South Fork Eel @ Miranda 2023 -- only doing two ATX panels; skip this
 model3_ln <- glm(log_ATX ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
                  data = sfkeel_mir_2023_scaled)
 
-plot_model(model3_ln, dot.size = 5, line.size = 1.5, color = c("#456C2B", "#37578c")) + theme_bw() +
+plot_model(model3_ln, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#37578c")) + theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
         panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
         text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), axis.title.x = element_blank()) + 
@@ -163,21 +164,25 @@ plot_model(model3_ln, dot.size = 5, line.size = 1.5, color = c("#456C2B", "#3757
 model4_ln <- glm(log_ATX ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
                  data = sfkeel_sth_2023_scaled)
 
-plot_model(model4_ln, dot.size = 5, line.size = 1.5, color = c("#456C2B", "#37578c")) + theme_bw() +
+plot_model(model4_ln, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#37578c")) + theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
         panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
         text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), axis.title.x = element_blank()) + 
-  labs(title = NULL, xlab = NULL)
-
-### Russian 2022
+  labs(title = NULL, xlab = NULL) +
+  geom_hline(yintercept = 0, linetype = "dashed", size = 2, alpha = 0.3) +
+  ylim(-8, 6)
+  
+### Russian 2022 -- don't have a lot of data for this one- weird to me so not including
 model5_ln <- glm(log_ATX ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
                  data = russian_scaled)
 
-plot_model(model5_ln, dot.size = 5, line.size = 1.5, color = c("#456C2B", "#37578c")) + theme_bw() +
+plot_model(model5_ln, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#37578c")) + theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
         panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
         text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), axis.title.x = element_blank()) + 
-  labs(title = NULL, xlab = NULL)
+  labs(title = NULL, xlab = NULL) +
+  geom_hline(yintercept = 0, linetype = "dashed", size = 2, alpha = 0.3) +
+  ylim(-8, 6)
 
 ##### GLMs with cover as response ####
 
@@ -185,67 +190,75 @@ plot_model(model5_ln, dot.size = 5, line.size = 1.5, color = c("#456C2B", "#3757
 model6_ln <- glm(log_cover ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
                  data = sfkeel_mir_scaled)
 
-plot_model(model6_ln, dot.size = 5, line.size = 1.5, color = c("#456C2B", "#37578c")) + theme_bw() +
+plot_model(model6_ln, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#37578c")) + theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
         panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
         text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), axis.title.x = element_blank()) + 
-  labs(title = NULL, xlab = NULL)
+  labs(title = NULL, xlab = NULL) +
+  geom_hline(yintercept = 0, linetype = "dashed", size = 2, alpha = 0.3) +
+  ylim(-20, 15)
 
 ### South Fork Eel @ Miranda 2022
 model7_ln <- glm(log_cover ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
                  data = sfkeel_mir_2022_scaled)
 
-plot_model(model6_ln, dot.size = 5, line.size = 1.5, color = c("#456C2B", "#37578c")) + theme_bw() +
+plot_model(model7_ln, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#37578c")) + theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
         panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
         text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), axis.title.x = element_blank()) + 
   labs(title = NULL, xlab = NULL)
 
 ### South Fork Eel @ Miranda 2023
-model7_ln <- glm(log_cover ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
+model8_ln <- glm(log_cover ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
                  data = sfkeel_mir_2023_scaled)
 
-plot_model(model7_ln, dot.size = 5, line.size = 1.5, color = c("#456C2B", "#37578c")) + theme_bw() +
+plot_model(model8_ln, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#37578c")) + theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
         panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
         text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), axis.title.x = element_blank()) + 
   labs(title = NULL, xlab = NULL)
 
 #### South Fork Eel @ Standish 2023
-model8_ln <- glm(log_cover ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
+model9_ln <- glm(log_cover ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
                  data = sfkeel_sth_2023_scaled)
 
-plot_model(model8_ln, dot.size = 5, line.size = 1.5, color = c("#456C2B", "#37578c")) + theme_bw() +
+plot_model(model9_ln, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#37578c")) + theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
         panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
         text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), axis.title.x = element_blank()) + 
-  labs(title = NULL, xlab = NULL)
+  labs(title = NULL, xlab = NULL) +
+  geom_hline(yintercept = 0, linetype = "dashed", size = 2, alpha = 0.3) +
+  ylim(-20, 15)
 
 #### Russian River 2022
-model9_ln <- glm(log_cover ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
+model10_ln <- glm(log_cover ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
                  data = russian_scaled)
 
-plot_model(model9_ln, dot.size = 5, line.size = 1.5, color = c("#456C2B", "#37578c")) + theme_bw() +
+plot_model(model10_ln, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#37578c")) + theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
         panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
         text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), axis.title.x = element_blank()) + 
-  labs(title = NULL, xlab = NULL)
+  labs(title = NULL, xlab = NULL) +
+  geom_hline(yintercept = 0, linetype = "dashed", size = 2, alpha = 0.3) +
+  ylim(-20, 15)
 
 #### Salmon River both years
-model10_ln <- glm(log_cover ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
+model11_ln <- glm(log_cover ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
                  data = salmon_scaled)
 
-plot_model(model10_ln, dot.size = 5, line.size = 1.5, color = c("#456C2B", "#37578c")) + theme_bw() +
+plot_model(model11_ln, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#37578c")) + theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
         panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
         text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), axis.title.x = element_blank()) + 
-  labs(title = NULL, xlab = NULL)
+  labs(title = NULL, xlab = NULL) +
+  geom_hline(yintercept = 0, linetype = "dashed", size = 2, alpha = 0.3) +
+  ylim(-20, 15)
 
 #### Salmon River 2022
-model11_ln <- glm(log_cover ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
+model12_ln <- glm(log_cover ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
                  data = salmon_2022_scaled)
 
-plot_model(model11_ln, dot.size = 5, line.size = 1.5, color = c("#456C2B", "#37578c")) + theme_bw() +
+plot_model(model12_ln, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#37578c")) + theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
         panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
         text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), axis.title.x = element_blank()) + 
@@ -253,10 +266,10 @@ plot_model(model11_ln, dot.size = 5, line.size = 1.5, color = c("#456C2B", "#375
 # not enough data for confidence intervals
 
 #### Salmon River 2023
-model12_ln <- glm(log_cover ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
+model13_ln <- glm(log_cover ~ nitrate + ammonium + phosphate + temperature + conductivity + discharge,
                   data = salmon_2023_scaled)
 
-plot_model(model12_ln, dot.size = 5, line.size = 1.5, color = c("#456C2B", "#37578c")) + theme_bw() +
+plot_model(model13_ln, dot.size = 5, line.size = 1.5, color = c("#8f8504", "#37578c")) + theme_bw() +
   theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
         panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
         text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), axis.title.x = element_blank()) + 
