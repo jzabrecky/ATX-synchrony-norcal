@@ -285,7 +285,7 @@ sfkeel_sth_2023_cleaning_DO <- sfkeel_sth_2023_cleaning %>%
   filter(date_time <= "2023-06-28 05:15:00" | date_time >= "2023-06-28 06:02:00") %>% # <1 hour
   filter(date_time <= "2023-07-01 16:45:00" | date_time >= "2023-07-01 17:30:00") %>% # <1 hour
   filter(date_time <= "2023-07-03 06:07:00" | date_time >= "2023-07-03 08:31:00") %>% # <3 hours
-  filter(date_time <= "2023-07-07 11:33:00" | date_time >= "2023-07-07 13:48:00") %>% # <2 hours 
+  filter(date_time <= "2023-07-07 11:33:00" | date_time >= "2023-07-07 13:48:00") %>% # <2 hours
   filter(date_time <= "2023-07-07 14:29:00" | date_time >= "2023-07-07 16:57:00") %>% # <3 hours
   filter(date_time <= "2023-07-08 09:20:00" | date_time >= "2023-07-08 14:30:00") %>% # <6 hours
   filter(date_time <= "2023-07-08 04:45:00" | date_time >= "2023-07-08 06:25:00") %>% # <2 hours
@@ -294,7 +294,7 @@ sfkeel_sth_2023_cleaning_DO <- sfkeel_sth_2023_cleaning %>%
   filter(date_time <= "2023-07-09 17:35:00" | date_time >= "2023-07-09 19:40:00") %>% # <3 hours
   filter(date_time <= "2023-07-10 15:35:00" | date_time >= "2023-07-10 16:55:00") %>% # <2 hours
   filter(date_time <= "2023-07-10 17:35:00" | date_time >= "2023-07-10 19:10:00") %>% # <2 hours
-  filter(date_time <= "2023-07-13 16:00:00" | date_time >= "2023-07-13 18:40:00") %>% # <3 hours
+  filter(date_time <= "2023-07-13 16:00:00" | date_time >= "2023-07-13 19:15:00") %>% # <4 hours
   filter(date_time <= "2023-07-29 08:51:00" | date_time >= "2023-07-29 09:55:00") %>% # <2 hours
   filter(date_time <= "2023-07-29 16:05:00" | date_time >= "2023-07-29 18:00:00") %>% # <2 hours
   filter(date_time <= "2023-09-07 04:15:00" | date_time >= "2023-09-07 04:55:00") %>% # <1 hour
@@ -401,11 +401,13 @@ salmon_2022_cleaning_DO <- salmon_2022_cleaning_DO %>%
 
 # south fork eel @ standish hickey
 sfkeel_sth_2023_cleaning_DO <- sfkeel_sth_2023_cleaning_DO %>% 
-  filter(date_time <= "2023-06-29 05:00:00" | date_time >= "2023-07-03 09:30:00") %>% 
-  filter(date_time <= "2023-07-05 10:50:00" | date_time >= "2023-07-11 00:35:00") %>% 
-  filter(date_time <= "2023-07-12 09:40:00" | date_time >= "2023-07-17 11:27:00") %>% # removing all the way to missing data
-  filter(date_time <= "2023-07-26 12:10:00" | date_time >= "2023-07-28 08:20:00") %>% 
-  filter(date_time <= "2023-07-30 06:00:00" | date_time >= "2023-07-31 00:00:00")
+  filter(date_time <= "2023-06-29 05:00:00" | date_time >= "2023-07-03 09:30:00") %>%
+  # want to preserve at least 3 days after cleaning 7/3 till next on 7/11...
+  filter(date_time <= "2023-07-06 05:00:00" | date_time >= "2023-07-11 00:35:00") %>%
+  filter(date_time <= "2023-07-14 12:40:00" | date_time >= "2023-07-17 11:27:00") %>% # removing all the way to missing data
+  # keeping days below for now because one (the worse one) is within 3 days of cleaning...
+  #filter(date_time <= "2023-07-26 12:10:00" | date_time >= "2023-07-28 08:20:00") %>%
+  filter(date_time <= "2023-07-30 08:30:00" | date_time >= "2023-07-31 01:00:00") # this one day looks awful
 
 # salmon 2023
 # removing weirdness (super fuzzy with low troughs) 7/19 and 7/22 to 7/25
