@@ -1,6 +1,6 @@
 #### putting together water chemistry data from field and lab measurements
 ### Jordan Zabrecky
-## last edited: 08.30.2024
+## last edited: 10.03.2024
 
 # This code combines in-situ water chemistry measurements, AQ400 nitrate, ammonium,
 # and orthophosphate values, Shimadzu total dissolved carbon, dissolved organic
@@ -105,10 +105,21 @@ water_chemistry <- calculate_NH4(water_chemistry)
 
 # ion-chromatography cations & anions
 IC$Br_mg_L <- replace(IC$Br_mg_L, which(IC$Br_mg_L == "<0.01"), "0.005")
-# don't need to convert to numeric as we aren't doing any calculations
+# don't need to convert to numeric as we aren't doing any calculations in this script
 
-# will save this csv when I decide on final labels
-# curious what to do about missing values in regards to modeling
-# may talk to joanna about this
+#### (4) Joining data together and saving final csv ####
 
-# NOTE TO SELF TO FILL IN MISSING DATA WITH DEAD HOBO INFORMATION AND FIND MINIDOT INFO ONCE MORE
+# join in Shimadzu data
+water_chemistry <- left_join(water_chemistry, shimadzu, by = c("site_reach", "site",
+                                                               "reach", "field_date"))
+
+# join in IC data
+water_chemistry <- left_join(water_chemistry, IC, by = c("site_reach", "site",
+                                                         "reach", "field_date"))
+
+# remove pressure measurements
+water_chemistry_final <- water_chemistry %>%
+  select(!pressure_mmHg)
+
+# save csv
+write.csv(water_chemistry_final, "./data/field_and_lab/water_chemistry.csv", row.names = FALSE)

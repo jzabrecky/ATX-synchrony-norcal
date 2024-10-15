@@ -181,7 +181,7 @@ sophie_offset$sfkeel_mir <- sophie_offset$sfkeel_mir[14:nrow(sophie_offset$sfkee
 sophie_offset$sfkeel_sth <- sophie_offset$sfkeel_sth[11:nrow(sophie_offset$sfkeel_sth),]
 
 # calculate difference (the 14 and 11 are now the first rows)
-mir_dif <- log(depth_Q_sfkeel_mir$depth_m[3]) - sophie_offset$sfkeel_mir$depth_m[1]
+mir_dif <- depth_Q_sfkeel_mir$depth_m[3] - sophie_offset$sfkeel_mir$depth_m[1]
 sth_dif <- depth_Q_sfkeel_sth$depth_m[3] - sophie_offset$sfkeel_sth$depth_m[1]
 
 # add offset
@@ -191,9 +191,9 @@ sophie_offset$sfkeel_sth$depth_m_with_offset <- sophie_offset$sfkeel_sth$depth_m
 ### NEED TO HAVE OFFSET LOGGED SOMEHOW
 
 # make plot
-Q_depth <- ggplot(data = sophie_offset$sfkeel_mir, aes(x = discharge_cms, y = depth_m_with_offset)) +
+Q_depth <- ggplot(data = sophie_offset$sfkeel_mir, aes(x = log(discharge_cms), y = log(depth_m_with_offset))) +
   geom_point(size = 3, color = "darkblue") +
-  geom_point(data = depth_Q_sfkeel_mir, aes(x = discharge_m3_s, y = depth_m, color ="red", size = 3)) +
+  geom_point(data = depth_Q_sfkeel_mir, aes(x = log(discharge_m3_s), y = log(depth_m), color ="red", size = 3)) +
   xlab("Discharge (cms)")+
   ylab("Depth (m)") +
   ggtitle("Miranda (Sophie w/ offset in blue; kayak in Red") +

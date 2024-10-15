@@ -1,6 +1,6 @@
 #### calculating percent cover from reach surveys for each reach & site
 ### Jordan Zabrecky
-## last edited: 09.24.2024
+## last edited: 09.30.2024
 
 # This code calculates averages using % cover data for each study reach
 # and additionally each river site (designated by nearby sensors & USGS gage)
@@ -56,13 +56,13 @@ average_per_reach <- function(data) {
       micro_transects = sum(Micro_pres),
       ana_cyl_transects = sum(Ana_Cyl_pres),
       total_transects = length(transect),
-      percent_micro_transects = micro_transects / total_transects,
-      percent_ana_cyl_transects = ana_cyl_transects / total_transects
+      proportion_micro_transects = micro_transects / total_transects,
+      proportion_ana_cyl_transects = ana_cyl_transects / total_transects
     ) %>% 
     ungroup() %>% 
     select(field_date, site_reach, site, reach, green_algae, microcoleus,
            anabaena_cylindrospermum, bare_biofilm, other_nfixers, micro_transects, ana_cyl_transects, 
-           total_transects, percent_micro_transects, percent_ana_cyl_transects) %>% 
+           total_transects, proportion_micro_transects, proportion_ana_cyl_transects) %>% 
     distinct() %>% 
     na.omit()
 }
@@ -89,13 +89,13 @@ average_per_site <- function(data) {
       micro_transects = sum(Micro_pres),
       ana_cyl_transects = sum(Ana_Cyl_pres),
       total_transects = length(transect),
-      percent_micro_transects = micro_transects / total_transects,
-      percent_ana_cyl_transects = ana_cyl_transects / total_transects
+      proportion_micro_transects = micro_transects / total_transects,
+      proportion_ana_cyl_transects = ana_cyl_transects / total_transects
     ) %>% 
     ungroup() %>% 
     select(field_date, site, green_algae, microcoleus,
            anabaena_cylindrospermum, bare_biofilm, other_nfixers, micro_transects, ana_cyl_transects, 
-           total_transects, percent_micro_transects, percent_ana_cyl_transects) %>% 
+           total_transects, proportion_micro_transects, proportion_ana_cyl_transects) %>% 
     distinct() %>% 
     na.omit()
 }

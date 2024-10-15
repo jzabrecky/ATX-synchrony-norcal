@@ -1,6 +1,6 @@
 #### processing anatoxin concentrations from SUNY-ESF
 ### Jordan Zabrecky
-## last edited 9.13.24
+## last edited 10.08.24
 
 # This code processes the CSV provided by SUNY-ESF and matches the sample IDs to
 # our sample metadata. Then, anatoxins (total and individual congener groups) are
@@ -148,27 +148,29 @@ anatoxins_final <- left_join(anatoxins_final, chla, by = c("site_reach", "field_
 
 # note that SFE-M-3 7.14.22 TM has no chl-a value -- not enough material leftover to calculate chla
 # we will just fill in this value with the TM chl-a downstream that day, but it doesn't matter because ATX is 0
-anatoxins_final$Chla_g_g[1] <- anatoxins_final$Chla_g_g[2]
+anatoxins_final$Chla_ug_mg[1] <- anatoxins_final$Chla_ug_mg[2]
 
 # merge in percent organic matter data
 anatoxins_final <- left_join(anatoxins_final, per_OM, by = c("site_reach", "field_date", "sample_type"))
 
 # calculate anatoxins ug / (approximate) g chlorophyll-a AND anatoxins ug / (approximate) g organic matter
 anatoxins_final <- anatoxins_final %>% 
-  mutate(ATX_all_ug_chla_g = round((ATX_all_ug_g / Chla_g_g), 4),
-         ATX_all_ug_afdm_g = round((ATX_all_ug_g / per_org_matter), 4))
+  mutate(Chla_ug_g = Chla_ug_mg * 1000,
+         Pheo_ug_g = Pheo_ug_mg * 1000,
+         ATX_all_ug_chla_ug = round((ATX_all_ug_g / (Chla_ug_g)), 7),
+         ATX_all_ug_afdm_g = round((ATX_all_ug_g / per_org_matter), 7))
 
 # create final csv for time series data
 anatoxins_final_timeseries <- anatoxins_final %>% 
   filter(sample_type != "riffle_exp") %>% # exclude riffle experiment
   select(field_date, site_reach, site, reach, sample_type, ATXa_ug_g, dhATXa_ug_g, HTXa_ug_g, ATX_all_ug_g, 
-         Chla_g_g, per_org_matter, ATX_all_ug_chla_g, ATX_all_ug_afdm_g)
+         Chla_ug_g, Pheo_ug_g, per_org_matter, ATX_all_ug_chla_ug, ATX_all_ug_afdm_g)
 
 # create final csv for riffle experiment
 anatoxins_final_riffle <- anatoxins_final %>% 
   filter(sample_type == "riffle_exp") %>% # is only the riffle experiment
   select(field_date, site_reach, sample_type, ATXa_ug_g, dhATXa_ug_g, HTXa_ug_g, ATX_all_ug_g, 
-         Chla_g_g, ATX_all_ug_chla_g)
+         Chla_ug_g, Pheo_ug_g, ATX_all_ug_chla_ug)
 
 # save new csvs
 write.csv(anatoxins_final_timeseries, "./data/field_and_lab/cyano_atx.csv", row.names = FALSE)

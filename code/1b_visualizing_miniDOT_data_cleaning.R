@@ -4,7 +4,7 @@
 ## (note that dygraphs does not seem to display graph with 4.4.0 version of R)
 
 # This supporting code helped visualize the data cleaning process with
-# the code from "1_reading_and_cleaning_DO_data.R" using the 'dygraphs' package
+# the code from "1a_reading_and_cleaning_DO_data.R" using the 'dygraphs' package
 
 #### (1) Loading libraries and creating functions to quickly visualize ####
 

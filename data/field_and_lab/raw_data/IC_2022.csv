@@ -1,4 +1,4 @@
-﻿site,site,reach,field_date,Cl_mg_L,SO4_mg_L,Br_mg_L,Na_mg_L,K_mg_L,Mg_mg_L,Ca_mg_L
+﻿site_reach,site,reach,field_date,Cl_mg_L,SO4_mg_L,Br_mg_L,Na_mg_L,K_mg_L,Mg_mg_L,Ca_mg_L
 RUS-1S,RUS,1S,6/24/2022,7.5,14.45,0.11,11.17,1.23,16.45,11.21
 SAL-1S,SAL,1S,6/27/2022,0.52,1.65,0.02,1.02,0.32,1.88,10.58
 SAL-3,SAL,3,6/27/2022,0.9,3.44,0.06,2.24,0.65,3.05,16.22

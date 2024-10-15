@@ -16,3 +16,5 @@ data/metab_model_outputs/
 # ignore .rds and .png files
 *.rds
 *.png
+# ignore figure files for HABs symposium
+figures/HABS_symp_figures
