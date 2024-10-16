@@ -87,3 +87,7 @@ view_temp_2022(salmon_2022_cleaning) # looks good! (05.16.24)
 view_temp_2023(sfkeel_mir_2023_cleaning) # looks good! (05.17.24)
 view_temp_2023(sfkeel_sth_2023_cleaning) # looks good! (07.15.24)
 view_temp_2023(salmon_2023_cleaning) # looks good! (05.16.24)
+
+# external data from script 1d
+view_DO_2022(USGS_russian) # needed to remove one period but that's it!
+view_temp_2022(USGS_russian) # looks great!

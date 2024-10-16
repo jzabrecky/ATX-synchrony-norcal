@@ -1,12 +1,12 @@
 #### gathering all data to model metabolism
 ### Jordan Zabrecky
-## last edited 09.16.2024
+## last edited 10.15.2024
 
 # This code gathers the necessary components for metabolism modeling
 # including the (1) cleaned miniDOT data from "1a_reading_and_cleaning_miniDOT_data.R"
 # and applies calibration offsets calculated from "1c_sensor_intercalibrations.R"
 # (2) USGS gage discharge data, (3) GLDAS pressure data, 
-# (4) NLDAS light data, and depth-discharge relationship information. 
+# (4) NLDAS light data, and (5) temporary depth of m = 1. 
 # In step (6) a final csv is created with all this information to be used to 
 # model metabolism in "1e_metabolism_estimates.R"
 
@@ -72,6 +72,22 @@ miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "salmon_2023")] <-
 
 # separating large dataframe into a list of dataframes
 miniDOT_list <- split(miniDOT_data, miniDOT_data$site)
+
+## (c) reading in DO data from external sources
+
+# reading in all external dissolved oxgyen dataframes
+external_DO <- ldply(list.files(path = "./data/external_DO/", pattern = ".csv"), function(filename) {
+  d <- read.csv(paste("./data/external_DO/", filename, sep = ""))
+  d$site_year = filename %>% str_sub(end=-5)
+  d$site = d$site_year %>% str_sub(end=-11) # maybe need if else depending on source for future DO imports...
+  return(d)
+})
+
+# converting date_time from character to POSIXct class & indicate time zone
+external_DO$date_time <- as_datetime(external_DO$date_time, tz = "America/Los_Angeles")
+
+# separate large dataframe into a list of dataframes (ideally will have other external sources later so doing it group-ways)
+external_DO_list <- split(external_DO, external_DO$site_year)
 
 #### (2) Retreiving USGS discharge data ####
 
@@ -259,102 +275,29 @@ source("../../code/supplemental_code/S1c_NLDAS_formatting_function.R")
 # applying function to all data
 NLDAS_formatted <- lapply(NLDAS_processed, function(x) NLDAS_formatting(x, supporting))
 
-#### (5) Incorporating depth-discharge relationship ####
+#### (5) Adding temporary depth_m = 1 ####
 
-# reading in data (what we have now...)
-kayak_sfkeel <- read.csv("../depth_measurements/sfkeel_kayak_measurements.csv")
+# instead of rerunning the metabolism model over and over again with our updated depths
+# we will just run the model with m = 1 and apply the depth after metabolism models
+# thus, as we are not dividing GPP by anything, our GPP will be in units g O2 m^-3 d^-1
+# so to get it in g O2 m^-2 d^-1 we will multiply by depth (m/m^-3 = 1/m^-2)
 
-# converting date as string to date object
-kayak_sfkeel$Date <- mdy(kayak_sfkeel$Date)
-
-# function to plot and visualize depth-discharge relationship
-Q_depth_plot <- function(x, y , model) {
-  ggplot() +
-    geom_point(aes(x = x, y = y), size = 3, color = "darkblue") + 
-    geom_abline(slope = model$coefficients[[2]], intercept = model$coefficients[[1]], 
-                linewidth =1.5, color="skyblue", linetype = "dotted") +
-    xlab("Discharge (cms)")+
-    ylab("Depth (m)")+
-    theme_bw()
+# function to add depth column to each dataframe in the discharge list
+add_depth <- function(df) {
+  new_df <- df %>% 
+    mutate(depth_m = 1)
+  return(new_df)
 }
 
-# function to clean discharge downloads
-edit_Q_depth_df <- function(data) {
-  new <- data %>% 
-    mutate(discharge_m3_s = X_00060_00003 / 35.31) %>% 
-    select(Date, depth_m, discharge_m3_s)
-  return(new)
-}
-
-## russian 
-
-# using past relationship from transect of discharge measurement for now...
-discharge$russian$depth_m <- (0.08601 * discharge$russian$discharge_m3_s) + 0.31433
-
-## salmon
-
-# using past relationship modeled with USGS channel cross-section data
-discharge$salmon$depth_m <- exp((0.32207 * log(discharge$salmon$discharge_m3_s)) - 1.03866)
-
-## south fork eel @ miranda
-
-# calculating average depth per kayak run
-depth_Q_sfkeel_mir <- kayak_sfkeel %>% 
-  filter(Site == "SfkEel_Miranda", Meas_Type == "Depth") %>%
-  filter(Transect != 18) %>% # removed transects 18 as first date was half depth of later two dates
-  filter(Transect != 5 & Transect != 12) %>%  # removed transects 5 & 12 as first date was ~0.3 m lower than second date
-  # this may be either because our GPS was slightly off or differences when taking depths across transects between two different kayakers
-  group_by(Date) %>% 
-  summarize(depth_m = mean(Depth_cm_final) / 100)
-
-# getting daily discharge data and adding it to depth-discharge data frame
-depth_Q_sfkeel_mir <- left_join(depth_Q_sfkeel_mir, 
-                                readNWISdv("11476500", param, depth_Q_sfkeel_mir$Date[1], depth_Q_sfkeel_mir$Date[3]))
-depth_Q_sfkeel_mir <- edit_Q_depth_df(depth_Q_sfkeel_mir)
-
-# model relationship between depth and discharge 
-# log(depth) ~ log(discharge) shows most linear relationship
-# likely underestimates all but summer depths, but we are not modelling metabolism then
-# frequentist linear regression model
-sfkeel_mir_lm <- lm(log(depth_m) ~ log(discharge_m3_s), data = depth_Q_sfkeel_mir)
-# having issues with brm divergent transitions so will stick with above
-
-# plot relationship
-Q_depth_plot(log(depth_Q_sfkeel_mir$discharge_m3_s), log(depth_Q_sfkeel_mir$depth_m), sfkeel_mir_lm)
-
-# use model to fill in depth on discharge plot
-discharge$sfkeel_mir$depth_m <- exp(sfkeel_mir_lm$coefficients[[1]] + (log(discharge$sfkeel_mir[[2]]) * sfkeel_mir_lm$coefficients[[2]]))
-
-## south fork eel @ standish hickey
-
-# calculating average depth per kayak run
-depth_Q_sfkeel_sth <- kayak_sfkeel %>% 
-  filter(Site == "SfkEel_Standish", Meas_Type == "Depth") %>% 
-  group_by(Date) %>%  # not seeing any weird transect issues here!
-  summarize(depth_m = mean(Depth_cm_final) / 100)
-# also makes sense that this site is as deep despite lower discharge-- more pools
-
-# getting daily discharge data and adding it to depth-discharge data frame
-depth_Q_sfkeel_sth <- left_join(depth_Q_sfkeel_sth, 
-                                readNWISdv("11475800", param, depth_Q_sfkeel_sth$Date[1], depth_Q_sfkeel_sth$Date[3]))
-depth_Q_sfkeel_sth <- edit_Q_depth_df(depth_Q_sfkeel_sth)
-
-# model relationship between depth and discharge
-# log(depth) ~ discharge shows most linear relationship
-# though not as good of a fit overall as miranda
-# however, due to Leopold and Maddock (1953) hydraulic theory, we'll stick with log-log
-sfkeel_sth_lm <- lm(log(depth_m) ~ log(discharge_m3_s), data = depth_Q_sfkeel_sth)
-
-# plot relationship
-Q_depth_plot(log(depth_Q_sfkeel_sth$discharge_m3_s), log(depth_Q_sfkeel_sth$depth_m), sfkeel_sth_lm)
-
-# use model to fill in depth on discharge plot NEED TO FIX THIS
-discharge$sfkeel_sth$depth_m <- exp(sfkeel_sth_lm$coefficients[[1]] + (log(discharge$sfkeel_sth[[2]]) * sfkeel_sth_lm$coefficients[[2]]))
+# apply function across discharge list
+discharge <- lapply(discharge, function(x) add_depth(x))
 
 #### (6) Putting it all together ####
 
 # set working directory
 setwd("../metab_model_inputs")
+
+## saving miniDOT dataframes
 
 # create empty vector for all sites
 combined <- data.frame()
@@ -380,3 +323,19 @@ final <- split(combined, combined$site_year)
 # saving csvs for metabolism model input
 lapply(names(final), function(x) write.csv(final[[x]], file = paste(x, "_modelinputs", ".csv", sep = ""), 
                                            row.names = FALSE))
+
+## saving external dataframes
+
+# left join data together separately
+russian_2022_USGS <- (list(external_DO_list$russian_2022_USGS, discharge$russian, GLDAS_adjusted$russian, 
+                           NLDAS_formatted$russian)) %>% 
+  join_all(by = "date_time", type = "left")
+
+# check for issues
+anyNA(russian_2022_USGS)
+
+# changing date_time to character to avoid any saving issues like before
+russian_2022_USGS$date_time <- as.character(format(russian_2022_USGS$date_time))
+
+# save csvs separately
+write.csv(russian_2022_USGS, "./russian_2022_USGS_modelinputs.csv", row.names = FALSE)

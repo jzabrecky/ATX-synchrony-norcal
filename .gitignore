@@ -10,7 +10,7 @@ data/NLDAS/
 data/misc_to_del/
 data/metab_model_inputs/old_to_delete
 # ignore removed code
-code/old_code
+code/old_code_toDEL
 # for now, while doing diagnostics
 data/metab_model_outputs/
 # ignore .rds and .png files

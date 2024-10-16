@@ -202,6 +202,34 @@ bayesian_mm <- mm_name(type = "bayes", pool_K600 = "binned", err_obs_iid = TRUE,
                        err_proc_iid = TRUE, ode_method = "trapezoid", deficit_src = "DO_mod",
                        engine = "stan")
 
+## russian river 2022
+
+# visualize inputs
+visualize_inputs(inputs_prepped$russian_2022)
+visualize_inputs(inputs_prepped$russian_2022_USGS)
+
+# model specs
+russian_2022_specs <- specs(bayesian_mm, burnin_steps = 5000, saved_steps = 5000,
+                               thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)
+
+# changing range of log(Q) to better match site
+russian_2022_specs$K600_lnQ_nodes_centers <- c(-0.25, 0, 0.25, 0.5, 0.75, 1.0, 1.25)
+# guidelines from github: use 0.5 for centers 1 apart and 0.5 / 5 for centers 0.2 apart
+# so sd half of distance each center is apart
+russian_2022_specs$K600_lnQ_nodediffs_sdlog <- 0.25 / 2
+
+# running model
+russian_2022 <- metab(russian_2022_specs, data = inputs_prepped$russian_2022)
+
+# get fit and save files
+sfkeel_sth_2023_fit <- get_fit(sfkeel_sth_2023)
+write_files(sfkeel_sth_2023_fit, sfkeel_sth_2023, "/sfkeel_sth_2023/",
+            "sfkeel_sth_2023")
+
+# model diagnostics stuff
+
+
+#### OLD BELOW- will delete
 
 ## south fork eel @ standish hickey 2023
 
@@ -213,8 +241,10 @@ sfkeel_sth_2023_specs <- specs(bayesian_mm, burnin_steps = 8000, saved_steps = 4
                                thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)
 
 # changing range of log(Q) to better match site
-sfkeel_sth_2023_specs$K600_lnQ_nodes_centers <- c(-0.9, -0.6, -0.3, 0, 0.3, 0.6, 0.9)
-sfkeel_sth_2023_specs$K600_lnQ_nodediffs_sdlog <- 0.5 / 2  # need to change for centers .5
+sfkeel_sth_2023_specs$K600_lnQ_nodes_centers <- c(-0.25, 0, 0.25, 0.5, 0.75, 1.0, 1.25)
+# guidelines from github: use 0.5 for centers 1 apart and 0.5 / 5 for centers 0.2 apart
+# so sd half of distance each center is apart
+sfkeel_sth_2023_specs$K600_lnQ_nodediffs_sdlog <- 0.25 / 2
 
 # running model
 sfkeel_sth_2023 <- metab(sfkeel_sth_2023_specs, data = inputs_prepped$sfkeel_sth_2023)
