@@ -67,8 +67,8 @@ inputs_prepped <- lapply(inputs_list, function(x) metab_prep(x))
 
 #### (3) Functions to visualize outputs ####
 
-# function to visualize inputs 
-visualize_inputs <- function(df){
+# function to visualize all inputs on separate plots
+visualize_inputs_full <- function(df){
   
   # plot for dissolved oxygen data inputs
   oxygen_plots <- df %>% 
@@ -81,6 +81,7 @@ visualize_inputs <- function(df){
     ggplot(aes(x = solar.time, y = DO.value, color = type)) + geom_line() +
     # facet wrap based on units
     facet_grid(units ~ ., scale = "free_y") + theme_bw() + scale_color_discrete("variable")
+
   
   # creating labels for next plot
   labels <- c(depth = "depth\n(m)", temp.water = "water temp\n(deg C)", light = "Par\n(umol m^-2 s^-1)")
@@ -101,6 +102,28 @@ visualize_inputs <- function(df){
   # print plots
   print(oxygen_plots)
   print(othervar_plots)
+}
+
+# function to visualize temperature, solar, and DO on same plot to check for
+# timing that makes sense
+visualize_inputs_zoomed <- function(df, starttime, endtime) {
+  
+  # allow for string as parameter and convert string to datetime object
+  starttime <- as_datetime(starttime)
+  endtime <- as_datetime(endtime)
+  
+  # make plot
+  plot <- ggplot(df, aes(x = solar.time)) +
+    geom_line(aes(y = temp.water, color = "temperature C")) +
+    geom_line(aes(y = DO.obs * 3, color = "DO mg L^-1")) +
+    geom_line(aes(y = light / 70, color = "PAR umol m^-2 s^-1")) + 
+    scale_x_datetime(limits = c(starttime, endtime)) +
+    scale_color_manual("Metabolism Inputs", 
+                       values = c("green", "red", "blue")) + 
+    labs(y = "scaled values", x = "solar time") +
+    theme_bw()
+  
+  return(plot)
 }
 
 # function to easily save output data after model run
@@ -202,11 +225,11 @@ bayesian_mm <- mm_name(type = "bayes", pool_K600 = "binned", err_obs_iid = TRUE,
                        err_proc_iid = TRUE, ode_method = "trapezoid", deficit_src = "DO_mod",
                        engine = "stan")
 
-## russian river 2022
+## russian river 2022 -- sensor likely has biofouling issue but running it to compare with USGS DO data
 
 # visualize inputs
-visualize_inputs(inputs_prepped$russian_2022)
-visualize_inputs(inputs_prepped$russian_2022_USGS)
+visualize_inputs_full(inputs_prepped$russian_2022)
+visualize_inputs_zoomed(inputs_prepped$russian_2022, "2022-07-01 00:00:00", "2022-07-03 00:00:00")
 
 # model specs
 russian_2022_specs <- specs(bayesian_mm, burnin_steps = 5000, saved_steps = 5000,
@@ -222,11 +245,212 @@ russian_2022_specs$K600_lnQ_nodediffs_sdlog <- 0.25 / 2
 russian_2022 <- metab(russian_2022_specs, data = inputs_prepped$russian_2022)
 
 # get fit and save files
-sfkeel_sth_2023_fit <- get_fit(sfkeel_sth_2023)
-write_files(sfkeel_sth_2023_fit, sfkeel_sth_2023, "/sfkeel_sth_2023/",
-            "sfkeel_sth_2023")
+russian_2022_fit <- get_fit(russian_2022)
+write_files(russian_2022_fit, russian_2022, "/russian_2022/", "russian_2022")
 
-# model diagnostics stuff
+# plot metab estimates (note that these will alter when depth is applied)
+plot_metab_preds(russian_2022)
+
+# plot GPP estimates w/ sensor cleaning dates-- potential biofouling issues here
+ggplot(russian_2022_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
+  geom_point(color = "darkgreen", size = 3) +
+  geom_line(color = "darkgreen") +
+  geom_vline(xintercept = as_date(c("2022-07-06")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2022-07-20")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2022-08-02")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2022-08-17")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  theme_bw()
+
+# look at DO predictions vs. data on a 7-day interval to look closely
+# having a little bit of issues on the early morning (night to light) / trough
+# but otherwise not bad
+plot_DO_preds(russian_2022, date_start = "2022-06-24", date_end = "2022-07-01")
+plot_DO_preds(russian_2022, date_start = "2022-07-01", date_end = "2022-07-08")
+plot_DO_preds(russian_2022, date_start = "2022-07-08", date_end = "2022-07-15")
+plot_DO_preds(russian_2022, date_start = "2022-07-15", date_end = "2022-07-22")
+plot_DO_preds(russian_2022, date_start = "2022-07-22", date_end = "2022-07-29")
+plot_DO_preds(russian_2022, date_start = "2022-07-29", date_end = "2022-08-05")
+plot_DO_preds(russian_2022, date_start = "2022-08-05", date_end = "2022-08-12")
+plot_DO_preds(russian_2022, date_start = "2022-08-12", date_end = "2022-08-19") # not a good week; gets good again after cleaning on 8/17
+plot_DO_preds(russian_2022, date_start = "2022-08-19", date_end = "2022-08-26")
+plot_DO_preds(russian_2022, date_start = "2022-08-26", date_end = "2022-09-03") # again bad before cleaning- biofouling issue
+
+# plot binning, ER vs. K600, correlation test for ER and K600, and K600
+plot_binning(russian_2022_fit, russian_2022, "Russian 2022") # points all within bins
+plot_ER_K600(russian_2022_fit, "Russian 2022")
+cor.test(russian_2022_fit$daily$ER_mean, russian_2022_fit$daily$K600_daily_mean) # correlated -.609; p << 0.003
+plot_K600(russian_2022_fit, "Russian 2022")
+
+# convergence assessment
+russian_2022_fit[["warnings"]] # high r-hat of 1.66
+rstan::traceplot(get_mcmc(russian_2022), pars='GPP_daily', nrow=10) # looks good!
+rstan::traceplot(get_mcmc(russian_2022), pars='ER_daily', nrow=10)
+rstan::traceplot(get_mcmc(russian_2022), pars='K600_daily', nrow=10)
+
+# goodness of fit metrics
+calc_gof_metrics(russian_2022, "/russian_2022/", "russian_2022") # RMSE 0.31, nRMSE 0.072
+
+# remove large model object before starting next run
+rm(russian_2022, russian_2022_fit)
+
+## russian river 2022 (USGS DO data ver.)
+
+# visualize inputs
+visualize_inputs_full(inputs_prepped$russian_2022_USGS)
+visualize_inputs_zoomed(inputs_prepped$russian_2022_USGS, "2022-07-01 00:00:00", "2022-07-03 00:00:00")
+
+# using same specs and binning
+
+russian_2022_USGS <- readRDS("./russian_2022_USGS/russian_2022_USGSmetab_obj.rds")
+
+# get fit and save files
+russian_2022_USGS_fit <- get_fit(russian_2022_USGS)
+write_files(russian_2022_USGS_fit, russian_2022_USGS, "/russian_2022_USGS/", "russian_2022_USGS")
+
+# plot metab estimates
+plot_metab_preds(russian_2022_USGS)
+
+# plot GPP estimates w/ sensor cleaning dates-- of course no relationship with our cleaning here!
+ggplot(russian_2022_USGS_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
+  geom_point(color = "darkgreen", size = 3) +
+  geom_line(color = "darkgreen") +
+  geom_vline(xintercept = as_date(c("2022-07-06")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2022-07-20")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2022-08-02")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2022-08-17")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  theme_bw()
+
+# look at DO predictions vs. data on a 7-day interval to look closely
+# having a little bit of issues on the early morning (night to light) / trough
+# but otherwise not bad
+plot_DO_preds(russian_2022_USGS, date_start = "2022-06-24", date_end = "2022-07-01") # some weirdness here w/ measured DO
+plot_DO_preds(russian_2022_USGS, date_start = "2022-07-01", date_end = "2022-07-08") # also weirdness here w/ measured DO
+plot_DO_preds(russian_2022_USGS, date_start = "2022-07-08", date_end = "2022-07-15")
+plot_DO_preds(russian_2022_USGS, date_start = "2022-07-15", date_end = "2022-07-22") # looks great!
+plot_DO_preds(russian_2022_USGS, date_start = "2022-07-22", date_end = "2022-07-29")
+plot_DO_preds(russian_2022_USGS, date_start = "2022-07-29", date_end = "2022-08-05")
+plot_DO_preds(russian_2022_USGS, date_start = "2022-08-05", date_end = "2022-08-12")
+plot_DO_preds(russian_2022_USGS, date_start = "2022-08-12", date_end = "2022-08-19")
+plot_DO_preds(russian_2022_USGS, date_start = "2022-08-19", date_end = "2022-08-26")
+plot_DO_preds(russian_2022_USGS, date_start = "2022-08-26", date_end = "2022-09-03")
+
+# plot binning, ER vs. K600, correlation test for ER and K600, and K600
+plot_binning(russian_2022_USGS_fit, russian_2022_USGS, "Russian 2022 USGS") # points all within bins
+plot_ER_K600(russian_2022_USGS_fit, "Russian 2022 USGS")
+cor.test(russian_2022_USGS_fit$daily$ER_mean, russian_2022_USGS_fit$daily$K600_daily_mean) # correlated -.393; p << 0.008
+plot_K600(russian_2022_USGS_fit, "Russian 2022 USGS")
+
+# convergence assessment
+russian_2022_USGS_fit[["warnings"]] # high r-hat of 2.01
+rstan::traceplot(get_mcmc(russian_2022_USGS), pars='GPP_daily', nrow=10) # looks good!
+rstan::traceplot(get_mcmc(russian_2022_USGS), pars='ER_daily', nrow=10)
+rstan::traceplot(get_mcmc(russian_2022_USGS), pars='K600_daily', nrow=10) # look decent
+
+# goodness of fit metrics
+calc_gof_metrics(russian_2022_USGS, "/russian_2022_USGS/", "russian_2022_USGS") # RMSE 0.32, nRMSE 0.048
+
+# remove large model object before starting next run
+rm(russian_2022_USGS, russian_2022_USGS_fit)
+
+## salmon river 2022 (will hopefully redo with external data)
+
+# visualize inputs
+visualize_inputs_full(inputs_prepped$salmon_2022)
+visualize_inputs_zoomed(inputs_prepped$salmon_2022, "2022-08-10 00:00:00", "2022-08-12 00:00:00")
+
+# model specs
+salmon_2022_specs <- specs(bayesian_mm, burnin_steps = 5000, saved_steps = 5000,
+                           thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)
+
+# changing range of log(Q) to better match site max 2.97, min is 1.49
+salmon_2022_specs$K600_lnQ_nodes_centers <- c(1.50, 1.75, 2.0, 2.25, 2.50, 2.75, 3.0)
+# guidelines from github: use 0.5 for centers 1 apart and 0.5 / 5 for centers 0.2 apart
+# so sd half of distance each center is apart
+salmon_2022_specs$K600_lnQ_nodediffs_sdlog <- 0.5 / 2
+
+# running model
+salmon_2022 <- metab(salmon_2022_specs, data = inputs_prepped$salmon_2022)
+
+# get fit and save files
+salmon_2022_fit <- get_fit(salmon_2022)
+write_files(salmon_2022_fit, salmon_2022, "/salmon_2022/",
+            "salmon_2022")
+
+# plot metab estimates
+plot_metab_preds(salmon_2022) # ER estimation issues; some 95% into positive; likely due to high Q?
+
+# plot GPP estimates w/ sensor cleaning dates-- of course no relationship with our cleaning here!
+ggplot(salmon_2022_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
+  geom_point(color = "darkgreen", size = 3) +
+  geom_line(color = "darkgreen") +
+  geom_vline(xintercept = as_date(c("2022-07-12")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2022-07-26")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  theme_bw()
+plot_DO_preds(salmon_2022, date_start = "2022-06-27", date_end = "2022-07-03")
+plot_DO_preds(salmon_2022, date_start = "2022-07-03", date_end = "2022-07-10")
+plot_DO_preds(salmon_2022, date_start = "2022-07-10", date_end = "2022-07-17") # interesting flat bottoms
+plot_DO_preds(salmon_2022, date_start = "2022-07-17", date_end = "2022-07-24")
+plot_DO_preds(salmon_2022, date_start = "2022-07-24", date_end = "2022-07-31")
+plot_DO_preds(salmon_2022, date_start = "2022-07-31", date_end = "2022-08-06")
+plot_DO_preds(salmon_2022, date_start = "2022-08-06", date_end = "2022-08-13")
+plot_DO_preds(salmon_2022, date_start = "2022-08-13", date_end = "2022-08-20")
+plot_DO_preds(salmon_2022, date_start = "2022-08-20", date_end = "2022-08-27")
+plot_DO_preds(salmon_2022, date_start = "2022-08-27", date_end = "2022-09-04") # not great
+plot_DO_preds(salmon_2022, date_start = "2022-09-04", date_end = "2022-09-11") # weird breakage; flat bottoms again
+plot_DO_preds(salmon_2022, date_start = "2022-09-11", date_end = "2022-09-18")
+plot_DO_preds(salmon_2022, date_start = "2022-09-18", date_end = "2022-09-22") 
+plot_binning(salmon_2022_fit, salmon_2022, "Salmon 2022") # points all within bins
+plot_ER_K600(salmon_2022_fit, "Salmon 2022")
+cor.test(salmon_2022_fit$daily$ER_mean, salmon_2022_fit$daily$K600_daily_mean) # correlated .482; p << 0.001
+plot_K600(salmon_2022_fit, "Salmon 2022")
+
+
+# convergence assessment
+salmon_2022_fit[["warnings"]] # high again
+rstan::traceplot(get_mcmc(salmon_2022), pars='GPP_daily', nrow=10) # looks good
+rstan::traceplot(get_mcmc(salmon_2022), pars='ER_daily', nrow=10)
+rstan::traceplot(get_mcmc(salmon_2022), pars='K600_daily', nrow=10) # look decent
+
+# goodness of fit metrics
+calc_gof_metrics(salmon_2022, "/salmon_2022/", "salmon_2022") # rmse 0.52, nrsme 0.053
+
+# remove large model object before starting next run
+rm(salmon_2022, salmon_2022_fit)
+
+## salmon river 2023 (will hopefully redo with external data)
+
+# visualize inputs
+visualize_inputs_full(inputs_prepped$salmon_2023)
+visualize_inputs_zoomed(inputs_prepped$salmon_2023, "2023-08-10 00:00:00", "2023-08-12 00:00:00")
+
+# model specs
+salmon_2022_specs <- specs(bayesian_mm, burnin_steps = 5000, saved_steps = 5000,
+                           thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)
+
+# changing range of log(Q) to better match site max 2.97, min is 1.49
+salmon_2022_specs$K600_lnQ_nodes_centers <- c(1.6, 1.9, 2.2, 2.5, 2.8, 3.1, 3.4)
+# guidelines from github: use 0.5 for centers 1 apart and 0.5 / 5 for centers 0.2 apart
+# so sd half of distance each center is apart
+salmon_2022_specs$K600_lnQ_nodediffs_sdlog <- 0.3 / 2
+
+# running model
+salmon_2022 <- metab(salmon_2022_specs, data = inputs_prepped$salmon_2022)
+
+
+
+
+
+
 
 
 #### OLD BELOW- will delete

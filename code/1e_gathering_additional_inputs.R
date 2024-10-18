@@ -332,7 +332,7 @@ russian_2022_USGS <- (list(external_DO_list$russian_2022_USGS, discharge$russian
   join_all(by = "date_time", type = "left")
 
 # check for issues
-anyNA(russian_2022_USGS)
+anyNA(russian_2022_USGS) # none!
 
 # changing date_time to character to avoid any saving issues like before
 russian_2022_USGS$date_time <- as.character(format(russian_2022_USGS$date_time))
