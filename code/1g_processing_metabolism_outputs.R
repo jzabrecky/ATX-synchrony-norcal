@@ -1,5 +1,67 @@
-#### adding depth to metabolism outputs and saving an abbreviated csv 
-# that is not ignored by gitignore
+#### processing metabolism outputs
+### Jordan Zabrecky
+## last edited 10.18.2024
+
+# This code processes metabolism outputs from the "streamMetabolizer" package
+# from script "1g_processing_metabolism_outputs.csv" and saves a csv
+
+#### (1) Loading packages and reading in data #### 
+
+# loading packages
+lapply(c("tidyverse", "plyr", "lubridate"), require, character.only = T)
+
+# function to read in data across subfolders of certain name
+read_metab_data <- function(path, pattern) {
+  
+  # get list of subfolders in folder path
+  folders <- list.files(path)
+  
+  # initialize empty data frame
+  final <- data.frame()
+  
+  # iterate through each subfolder and add cvs's to dataframe
+  for(i in 1:length(folders)) {
+    temp <- ldply(list.files(paste(path, folders[i], sep = ""), pattern = pattern), function(filename) {
+      d <- read.csv(paste(path, folders[i], "/", filename, sep = ""), header = TRUE) 
+      d$site_year <- folders[i] # add name of site and year
+      return(d)
+    })
+    final <- rbind(final, temp)
+  }
+  
+  return(final)
+}
+
+# read in daily metab data
+daily_metab <- read_metab_data(path = "./data/metab_model_outputs/", pattern = "daily.csv")
+
+# read in metrics data
+metrics <- read_metab_data(path = "./data/metab_model_outputs/", pattern = "metrics.csv")
+# briefly look at these
+
+#### (2) Processing metabolism data ####
+
+# read in RMSE and nRMSE data
+
+metab_data <- ldply(list.files(path = "./data/metab_model_outputs/", pattern = "_miniDOT.csv"), function(filename) {
+  d <- read.csv(paste("data/miniDOT/", filename, sep = ""))
+  d$site_year = filename %>% stringr::str_remove("_miniDOT.csv")
+  d$site = d$site_year %>% str_sub(end=-6)
+  return(d)
+})
+
+# loading RMSE and nRMSE data
+
+
+
+
+
+
+
+
+
+
+
 
 #### OLD DEPTH CODE BELOW :)
 

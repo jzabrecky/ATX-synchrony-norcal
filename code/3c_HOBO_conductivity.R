@@ -1,6 +1,6 @@
 #### cleaning and assembling HOBO U-24 sensor conductivity & temperature data
 ### Jordan Zabrecky
-## last edited 10.03.2024
+## last edited 10.18.2024
 
 # This code reads in csv's of conductivity data from HOBO-U24 sensors saved 
 # from the HOBOware software and removes any outliers or periods where 
@@ -18,25 +18,24 @@ rename <- dplyr::rename
 
 ## load HOBO data
 
-# function to read in HOBO csv data
 read_HOBO_csvs <- function(path) {
   # list out subfolders in folder
-  files <- list.files(path)
+  folders <- list.files(path)
   
   # initialize empty dataframe
   final <- data.frame()
   
   # iterate through each subfolder and add cvs's to dataframe
-  for(i in 1:length(files)) {
-    temp <- ldply(list.files(paste(path, files[i], sep = ""), pattern = ".csv"), function(filename) {
-              d <- read.csv(paste(path, files[i], "/", filename, sep = ""), header = FALSE) 
+  for(i in 1:length(folders)) {
+    temp <- ldply(list.files(paste(path, folders[i], sep = ""), pattern = ".csv"), function(filename) {
+              d <- read.csv(paste(path, folders[i], "/", filename, sep = ""), header = FALSE) 
               d <- d[-1,] # remove first row
               d <- d[-(which(d[,1] == "#")),] # remove rows with column headers
               d <- d[,-1] # remove first column (which is just row names)
               d <- d[,1:4] # keep only columns with data
               d <- d[-(which(d[,2] == "")),] # remove rows that are "" or empty
               colnames(d) <- c("date_time", "low_range_cond_uS_cm", "full_range_cond_uS_cm", "temp_C")
-              d$site <- files[i] %>% stringr::str_sub(start = 10, end = nchar(files[i])) # add name of site
+              d$site <- folders[i] %>% stringr::str_sub(start = 10, end = nchar(folders[i])) # add name of site
               return(d)
             })
     final <- rbind(final, temp)
