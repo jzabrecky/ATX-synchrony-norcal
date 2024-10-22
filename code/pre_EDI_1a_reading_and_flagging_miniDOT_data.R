@@ -1,10 +1,10 @@
-#### miniDOT data aggregation and cleaning
+#### miniDOT data aggregation and flagging
 ### Jordan Zabrecky
-## last edited: 10.15.2024
+## last edited: 10.22.2024
 
 # This code pulls data from miniDOT text files and converts them into csv's.
 # Additionally this code adjusts the sensor time offset from PST, removes time when
-# sensor was out of water, and cleans outlying values
+# sensor was out of water, and flags outlying values
 
 #### (1) Loading packages and reading in data #### 
 
@@ -244,7 +244,7 @@ sfkeel_mir_2022_cleaning_DO <- sfkeel_mir_2022_cleaning %>%
 # removing misc. outliers and biofouling (that is removable)
 # biofouling is identifiable via DO amplitude increases that disappear after
 # and in this case, we are able to remove only that inflated period (unlike salmon 2022)
-# sensor cleaning/maintenance; all removed periods <7 hours
+# sensor cleaning/maintenance; all removed periods <6 hours
 russian_2022_cleaning_DO <- russian_2022_cleaning %>% 
   filter(date_time <= "2022-07-10 02:20:00" | date_time >= "2022-07-10 02:40:00") %>% # <1 hour
   filter(date_time <= "2022-08-09 10:05:00" | date_time >= "2022-08-09 13:30:00") %>% # <3 hours
@@ -308,60 +308,6 @@ salmon_2023_cleaning_DO <- salmon_2023_cleaning %>%
   filter(date_time <= "2023-07-25 23:20:00" | date_time >= "2023-07-25 23:40:00") %>% # <1 hour
   filter(date_time <= "2023-08-20 04:13:00" | date_time >= "2023-08-20 06:07:00") %>% # <2 hours
   filter(date_time <= "2023-08-20 12:33:00" | date_time >= "2023-08-20 13:30:00") # <1 hour
-
-## (b) interpolating missing data using other script: "1c_split_interpolate_data.R"
-
-# create a time series for every five minutes and fill in missing
-# variables via linear interpolation first with the "create_filled_TS" function
-source("code/supplemental_code/S1a_split_interpolate_data.R")
-
-# need to round to nearest 5 minutes first
-round_5M <- function(df) {
-  df$date_time <- round_date(df$date_time, "5 minutes")
-  return(df)
-}
-
-# creating functions to interpolate DO and temperature
-interpolate_DO <- function(df) {
-  create_filled_TS(round_5M(df), "5M", "DO_mgL") %>% 
-  select(date_time, Filled_Var) %>% 
-  rename(DO_mgL = Filled_Var)
-}
-
-interpolate_temp <- function(df) {
-  create_filled_TS(round_5M(df), "5M", "Temp_C") %>% 
-    select(date_time, Filled_Var) %>% 
-    rename(Temp_C = Filled_Var)
-}
-
-# applying functions to dataframes 
-# (still separately because would have to split the list right after anyways)
-## SKIP THIS SECTION WHEN RUNNING FOR EDI DATA (want to preserve removed data to flag it)
-
-# 2022
-sfkeel_mir_2022_cleaning_temp <- interpolate_temp(sfkeel_mir_2022_cleaning)
-sfkeel_mir_2022_cleaning_DO <- interpolate_DO(sfkeel_mir_2022_cleaning_DO)
-russian_2022_cleaning_temp <- interpolate_temp(russian_2022_cleaning)
-russian_2022_cleaning_DO <- interpolate_DO(russian_2022_cleaning_DO)
-salmon_2022_cleaning_temp <- interpolate_temp(salmon_2022_cleaning)
-salmon_2022_cleaning_DO <- interpolate_DO(salmon_2022_cleaning_DO)
-
-# 2023
-sfkeel_mir_2023_cleaning_temp <- interpolate_temp(sfkeel_mir_2023_cleaning)
-sfkeel_mir_2023_cleaning_DO <- interpolate_DO(sfkeel_mir_2023_cleaning_DO)
-sfkeel_sth_2023_cleaning_temp <- interpolate_temp(sfkeel_sth_2023_cleaning)
-sfkeel_sth_2023_cleaning_DO <- interpolate_DO(sfkeel_sth_2023_cleaning_DO)
-salmon_2023_cleaning_temp <- interpolate_temp(salmon_2023_cleaning)
-salmon_2023_cleaning_DO <- interpolate_DO(salmon_2023_cleaning_DO)
-
-# for standish hickey, we have a week period where we were missing data, so we need
-# to remove interpolation from then
-sfkeel_sth_2023_cleaning_temp <- sfkeel_sth_2023_cleaning_temp %>% 
-  filter(date_time <= "2023-07-17 11:26:00" | date_time >= "2023-07-24 19:07:00")
-sfkeel_sth_2023_cleaning_DO <- sfkeel_sth_2023_cleaning_DO %>% 
-  filter(date_time <= "2023-07-17 11:26:00" | date_time >= "2023-07-24 19:07:00")
-
-## RESUME FOR EDI DATA
   
 ## (c) removing longer periods of biofouling, bad data, etc. that cannot be interpolated
 
@@ -374,7 +320,7 @@ sfkeel_mir_2022_cleaning_DO <- sfkeel_mir_2022_cleaning_DO %>%
   filter(date_time <= "2022-07-25 10:20:00" | date_time >= "2022-07-28 10:10:00")
 # need to remove oscillating strangeness for temperature as well
 # temperature looks normal for extended time when egg sac laid on foil
-sfkeel_mir_2022_cleaning_temp <- sfkeel_mir_2022_cleaning_temp %>% 
+sfkeel_mir_2022_cleaning_temp <- sfkeel_mir_2022_cleaning %>% 
   filter(date_time <= "2022-07-13 19:30:00" | date_time >= "2022-07-14 09:15:00") %>% 
   filter(date_time <= "2022-07-25 10:20:00" | date_time >= "2022-07-25 19:25:00")
 # looking at the temperature though, there is a weird in between the two oscillating strangeness
@@ -382,7 +328,7 @@ sfkeel_mir_2022_cleaning_temp <- sfkeel_mir_2022_cleaning_temp %>%
 # we also have increasing amplitude for the DO data so it may be best to just remove that week
 sfkeel_mir_2022_cleaning_DO <- sfkeel_mir_2022_cleaning_DO %>%
   filter(date_time <= "2022-07-13 19:30:00" | date_time >= "2022-07-28 10:20:00")
-sfkeel_mir_2022_cleaning_temp <- sfkeel_mir_2022_cleaning_temp %>% 
+sfkeel_mir_2022_cleaning_temp <- sfkeel_mir_2022_cleaning %>% 
   filter(date_time <= "2022-07-13 19:30:00" | date_time >= "2022-07-28 10:20:00")
 
 # russian 2022
@@ -416,7 +362,11 @@ salmon_2023_cleaning_DO <- salmon_2023_cleaning_DO %>%
   filter(date_time <= "2023-07-19 09:00:00" | date_time >= "2023-07-20 02:20:00") %>% 
   filter(date_time <= "2023-07-22 20:45:00" | date_time >= "2023-07-25 08:25:00")
 
-#### (4) Merging data back together and saving ####
+#### (4) Merging data back together, adding flags for rows where data was removed, and saving ####
+
+# need to rbind everyone together, add site name information
+
+#### OLD CODE BELOW
 
 # Left join of "cleaning_DO" dataframe to the cleaning dataframe that has preserved & interpolated Temp_C
 sfkeel_mir_2022_miniDOT <- left_join(sfkeel_mir_2022_cleaning_temp, sfkeel_mir_2022_cleaning_DO, "date_time")

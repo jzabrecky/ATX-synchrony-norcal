@@ -1,6 +1,6 @@
 #### data visualization for miniDOT data cleaning
 ### Jordan Zabrecky
-## last edited: 10.15.2024
+## last edited: 10.22.2024
 ## (note that dygraphs does not seem to display graph with 4.4.0 version of R)
 
 # This supporting code helped visualize the data cleaning process with
@@ -79,7 +79,7 @@ view_DO_2023(salmon_2023_cleaning_DO) # looks decent (05.17.24)
 # curious that DO does not hit as high of a max here-- fire effects?
 
 # temp cleaning
-view_temp_2022(sfkeel_mir_2022_cleaning) # decided to remove period between weird oscillations 
+view_temp_2022(sfkeel_mir_2022_cleaning_temp) # decided to remove period between weird oscillations 
                                         # where T seems unrealistically low (05.17.24)
 view_temp_2022(russian_2022_cleaning) # looks good! (05.17.24)
 view_temp_2022(salmon_2022_cleaning) # looks good! (05.16.24)
