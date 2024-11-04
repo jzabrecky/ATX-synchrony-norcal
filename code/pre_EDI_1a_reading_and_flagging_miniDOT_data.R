@@ -1,6 +1,6 @@
 #### miniDOT data aggregation and flagging
 ### Jordan Zabrecky
-## last edited: 10.22.2024
+## last edited: 11.04.2024
 
 # This code pulls data from miniDOT text files and converts them into csv's.
 # Additionally this code adjusts the sensor time offset from PST, removes time when
@@ -320,7 +320,7 @@ sfkeel_mir_2022_cleaning_DO <- sfkeel_mir_2022_cleaning_DO %>%
   filter(date_time <= "2022-07-25 10:20:00" | date_time >= "2022-07-28 10:10:00")
 # need to remove oscillating strangeness for temperature as well
 # temperature looks normal for extended time when egg sac laid on foil
-sfkeel_mir_2022_cleaning_temp <- sfkeel_mir_2022_cleaning %>% 
+sfkeel_mir_2022_cleaning_temp <- sfkeel_mir_2022_cleaning_temp %>% 
   filter(date_time <= "2022-07-13 19:30:00" | date_time >= "2022-07-14 09:15:00") %>% 
   filter(date_time <= "2022-07-25 10:20:00" | date_time >= "2022-07-25 19:25:00")
 # looking at the temperature though, there is a weird in between the two oscillating strangeness
@@ -328,7 +328,7 @@ sfkeel_mir_2022_cleaning_temp <- sfkeel_mir_2022_cleaning %>%
 # we also have increasing amplitude for the DO data so it may be best to just remove that week
 sfkeel_mir_2022_cleaning_DO <- sfkeel_mir_2022_cleaning_DO %>%
   filter(date_time <= "2022-07-13 19:30:00" | date_time >= "2022-07-28 10:20:00")
-sfkeel_mir_2022_cleaning_temp <- sfkeel_mir_2022_cleaning %>% 
+sfkeel_mir_2022_cleaning_temp <- sfkeel_mir_2022_cleaning_temp %>% 
   filter(date_time <= "2022-07-13 19:30:00" | date_time >= "2022-07-28 10:20:00")
 
 # russian 2022
@@ -347,7 +347,7 @@ salmon_2022_cleaning_DO <- salmon_2022_cleaning_DO %>%
 
 # south fork eel @ standish hickey
 sfkeel_sth_2023_cleaning_DO <- sfkeel_sth_2023_cleaning_DO %>% 
-  filter(date_time <= "2023-06-29 05:00:00" | date_time >= "2023-07-03 09:30:00") %>%
+  filter(date_time <= "2023-06-29 05:00:00" | date_time >= "2023-07-02 23:50:00") %>%
   # want to preserve at least 3 days after cleaning 7/3 till next on 7/11...
   filter(date_time <= "2023-07-06 05:00:00" | date_time >= "2023-07-11 00:35:00") %>%
   filter(date_time <= "2023-07-14 12:40:00" | date_time >= "2023-07-17 11:27:00") %>% # removing all the way to missing data

@@ -1,6 +1,6 @@
 #### modeling metabolism and functions to assess model outputs
 ### Jordan Zabrecky
-## last edited 09.25.2024
+## last edited 10.24.2024
 
 # This code models metabolism using the "streamMetabolizer" package and also
 # provides functions for visualizing inputs & outputs, and saving outputs
@@ -507,7 +507,7 @@ rm(salmon_2023, salmon_2023_fit)
 
 # visualize inputs
 visualize_inputs_full(inputs_prepped$sfkeel_mir_2022)
-visualize_inputs_zoomed(inputs_prepped$salmon_2022, "2022-08-10 00:00:00", "2022-08-12 00:00:00")
+visualize_inputs_zoomed(inputs_prepped$sfkeel_mir_2022, "2022-08-10 00:00:00", "2022-08-12 00:00:00")
 
 # model specs
 sfkeel_mir_2022_specs <- specs(bayesian_mm, burnin_steps = 5000, saved_steps = 5000,
@@ -576,3 +576,126 @@ calc_gof_metrics(sfkeel_mir_2022, "/sfkeel_mir_2022/", "sfkeel_mir_2022") # rmse
 
 # remove large model object before starting next run
 rm(sfkeel_mir_2022, sfkeel_mir_2022_fit)
+
+## south fork eel @ miranda 2023
+
+# visualize inputs
+visualize_inputs_full(inputs_prepped$sfkeel_mir_2023)
+visualize_inputs_zoomed(inputs_prepped$sfkeel_mir_2023, "2023-09-10 00:00:00", "2023-09-12 00:00:00")
+
+# model specs
+sfkeel_mir_2023_specs <- specs(bayesian_mm, burnin_steps = 5000, saved_steps = 5000,
+                               thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)
+
+# changing range of log(Q) to better match site max 2.97, min is 1.49
+sfkeel_mir_2023_specs$K600_lnQ_nodes_centers <- c(-1.4, -0.9, -0.4, 0.1, 0.6, 1.1, 1.6)
+# guidelines from github: use 0.5 for centers 1 apart and 0.5 / 5 for centers 0.2 apart
+# so sd half of distance each center is apart
+sfkeel_mir_2023_specs$K600_lnQ_nodediffs_sdlog <- 0.5 / 2
+
+# running model
+sfkeel_mir_2023 <- metab(sfkeel_mir_2023_specs, data = inputs_prepped$sfkeel_mir_2023)
+
+# get fit and save files
+sfkeel_mir_2023_fit <- get_fit(sfkeel_mir_2023)
+write_files(sfkeel_mir_2023_fit, sfkeel_mir_2023, "/sfkeel_mir_2023/",
+            "sfkeel_mir_2023")
+
+# plot metab estimates (note: these are w/o correct depths and will change)
+plot_metab_preds(sfkeel_mir_2023) # seems so much higher without depth applied!
+
+# plot GPP estimates w/ sensor cleaning dates -- no obvious biofouling
+ggplot(sfkeel_mir_2023_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
+  geom_point(color = "darkgreen", size = 3) +
+  geom_line(color = "darkgreen") +
+  geom_vline(xintercept = as_date(c("2023-06-25")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-07-03")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-07-10")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-07-17")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-07-24")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-07-31")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-08-07")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-08-14")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-08-22")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-08-28")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-09-04")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-09-12")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-09-18")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-09-24")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  theme_bw()
+
+# look at DO predictions vs. data on a 7-day interval to look closely
+plot_DO_preds(sfkeel_mir_2023, date_start = "2023-06-18", date_end = "2023-06-25") # look good!
+plot_DO_preds(sfkeel_mir_2023, date_start = "2023-06-25", date_end = "2023-07-01")
+plot_DO_preds(sfkeel_mir_2023, date_start = "2023-07-01", date_end = "2023-07-08")
+plot_DO_preds(sfkeel_mir_2023, date_start = "2023-07-08", date_end = "2023-07-15")
+plot_DO_preds(sfkeel_mir_2023, date_start = "2023-07-15", date_end = "2023-07-22")
+plot_DO_preds(sfkeel_mir_2023, date_start = "2023-07-22", date_end = "2023-07-29")
+plot_DO_preds(sfkeel_mir_2023, date_start = "2023-07-29", date_end = "2023-08-05")
+plot_DO_preds(sfkeel_mir_2023, date_start = "2023-08-05", date_end = "2023-08-12")
+plot_DO_preds(sfkeel_mir_2023, date_start = "2023-08-12", date_end = "2023-08-19")
+plot_DO_preds(sfkeel_mir_2023, date_start = "2023-08-19", date_end = "2023-08-26")
+plot_DO_preds(sfkeel_mir_2023, date_start = "2023-08-26", date_end = "2023-09-03")
+plot_DO_preds(sfkeel_mir_2023, date_start = "2023-09-03", date_end = "2023-09-10")
+plot_DO_preds(sfkeel_mir_2023, date_start = "2023-09-10", date_end = "2023-09-17")
+plot_DO_preds(sfkeel_mir_2023, date_start = "2023-09-17", date_end = "2023-09-24")
+plot_DO_preds(sfkeel_mir_2023, date_start = "2023-09-24", date_end = "2023-09-30")
+
+# plot binning, ER vs. K600, correlation test for ER and K600, and K600
+plot_binning(sfkeel_mir_2023_fit, sfkeel_mir_2023, "South fork eel @ miranda 2023") # points all within bins
+plot_ER_K600(sfkeel_mir_2023_fit, "South fork eel @ miranda 2023")
+cor.test(sfkeel_mir_2023_fit$daily$ER_mean, sfkeel_mir_2023_fit$daily$K600_daily_mean) # not correlated -.119; p = 0.2372
+plot_K600(sfkeel_mir_2023_fit, "South fork eel @ miranda 2023")
+
+# convergence assessment
+sfkeel_mir_2023_fit[["warnings"]] # r-hat not great
+rstan::traceplot(get_mcmc(sfkeel_mir_2023), pars='GPP_daily', nrow=10) # looks good
+rstan::traceplot(get_mcmc(sfkeel_mir_2023), pars='ER_daily', nrow=10)
+rstan::traceplot(get_mcmc(sfkeel_mir_2023), pars='K600_daily', nrow=10) # looks good
+
+# goodness of fit metrics
+calc_gof_metrics(sfkeel_mir_2023, "/sfkeel_mir_2023/", "sfkeel_mir_2023") # rmse 0.25, nrsme 0.048
+
+# remove large model object before starting next run
+rm(sfkeel_mir_2023, sfkeel_mir_2023_fit)
+
+## south fork eel @ standish hickey 2023
+
+# visualize inputs
+visualize_inputs_full(inputs_prepped$sfkeel_sth_2023)
+visualize_inputs_zoomed(inputs_prepped$sfkeel_sth_2023, "2023-09-10 00:00:00", "2023-09-12 00:00:00")
+
+# model specs
+sfkeel_sth_2023_specs <- specs(bayesian_mm, burnin_steps = 5000, saved_steps = 5000,
+                               thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)
+
+# changing range of log(Q) to better match site max 2.97, min is 1.49
+sfkeel_sth_2023_specs$K600_lnQ_nodes_centers <- c(-0.9, -0.6, -0.3, 0.0, 0.3, 0.6, 0.9)
+# guidelines from github: use 0.5 for centers 1 apart and 0.5 / 5 for centers 0.2 apart
+# so sd half of distance each center is apart
+sfkeel_sth_2023_specs$K600_lnQ_nodediffs_sdlog <- 0.3 / 2
+
+# running model
+sfkeel_sth_2023 <- metab(sfkeel_sth_2023_specs, data = inputs_prepped$sfkeel_sth_2023)
+
+# get fit and save files
+sfkeel_sth_2023_fit <- get_fit(sfkeel_sth_2023)
+write_files(sfkeel_sth_2023_fit, sfkeel_sth_2023, "/sfkeel_sth_2023/",
+            "sfkeel_sth_2023")
+
+# plot metab estimates (note: these are w/o correct depths and will change)
+plot_metab_preds(sfkeel_sth_2023) # seems so much higher without depth applied!-- need to figure out why there is only one day for early july..

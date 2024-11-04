@@ -1,6 +1,6 @@
 #### miniDOT data aggregation and cleaning
 ### Jordan Zabrecky
-## last edited: 10.22.2024
+## last edited: 11.04.2024
 
 # This code reads in miniDOT data from the EDI package, removes flagged times,
 # and interpolates for removed time periods < 6 hours long
