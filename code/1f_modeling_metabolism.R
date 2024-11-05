@@ -1,6 +1,6 @@
 #### modeling metabolism and functions to assess model outputs
 ### Jordan Zabrecky
-## last edited 10.24.2024
+## last edited 11.05.2024
 
 # This code models metabolism using the "streamMetabolizer" package and also
 # provides functions for visualizing inputs & outputs, and saving outputs
@@ -287,7 +287,6 @@ cor.test(russian_2022_fit$daily$ER_mean, russian_2022_fit$daily$K600_daily_mean)
 plot_K600(russian_2022_fit, "Russian 2022")
 
 # convergence assessment
-russian_2022_fit[["warnings"]] # high r-hat of 1.66
 rstan::traceplot(get_mcmc(russian_2022), pars='GPP_daily', nrow=10) # looks good!
 rstan::traceplot(get_mcmc(russian_2022), pars='ER_daily', nrow=10)
 rstan::traceplot(get_mcmc(russian_2022), pars='K600_daily', nrow=10)
@@ -350,7 +349,6 @@ cor.test(russian_2022_USGS_fit$daily$ER_mean, russian_2022_USGS_fit$daily$K600_d
 plot_K600(russian_2022_USGS_fit, "Russian 2022 USGS")
 
 # convergence assessment
-russian_2022_USGS_fit[["warnings"]] # high r-hat of 2.01
 rstan::traceplot(get_mcmc(russian_2022_USGS), pars='GPP_daily', nrow=10) # looks good!
 rstan::traceplot(get_mcmc(russian_2022_USGS), pars='ER_daily', nrow=10)
 rstan::traceplot(get_mcmc(russian_2022_USGS), pars='K600_daily', nrow=10) # look decent
@@ -420,7 +418,6 @@ cor.test(salmon_2022_fit$daily$ER_mean, salmon_2022_fit$daily$K600_daily_mean) #
 plot_K600(salmon_2022_fit, "Salmon 2022")
 
 # convergence assessment
-salmon_2022_fit[["warnings"]] # high again
 rstan::traceplot(get_mcmc(salmon_2022), pars='GPP_daily', nrow=10) # looks good
 rstan::traceplot(get_mcmc(salmon_2022), pars='ER_daily', nrow=10)
 rstan::traceplot(get_mcmc(salmon_2022), pars='K600_daily', nrow=10) # look decent
@@ -492,7 +489,6 @@ cor.test(salmon_2023_fit$daily$ER_mean, salmon_2023_fit$daily$K600_daily_mean) #
 plot_K600(salmon_2023_fit, "Salmon 2023")
 
 # convergence assessment
-salmon_2023_fit[["warnings"]] # no r-hat issues but high divergent transition #
 rstan::traceplot(get_mcmc(salmon_2023), pars='GPP_daily', nrow=10) # looks great
 rstan::traceplot(get_mcmc(salmon_2023), pars='ER_daily', nrow=10)
 rstan::traceplot(get_mcmc(salmon_2023), pars='K600_daily', nrow=10) # looks good
@@ -566,7 +562,6 @@ cor.test(sfkeel_mir_2022_fit$daily$ER_mean, sfkeel_mir_2022_fit$daily$K600_daily
 plot_K600(sfkeel_mir_2022_fit, "South fork eel @ miranda 2022")
 
 # convergence assessment
-sfkeel_mir_2022_fit[["warnings"]] # no r-hat issues but high divergent transition #
 rstan::traceplot(get_mcmc(sfkeel_mir_2022), pars='GPP_daily', nrow=10) # looks good
 rstan::traceplot(get_mcmc(sfkeel_mir_2022), pars='ER_daily', nrow=10)
 rstan::traceplot(get_mcmc(sfkeel_mir_2022), pars='K600_daily', nrow=10) # looks good
@@ -662,7 +657,6 @@ cor.test(sfkeel_mir_2023_fit$daily$ER_mean, sfkeel_mir_2023_fit$daily$K600_daily
 plot_K600(sfkeel_mir_2023_fit, "South fork eel @ miranda 2023")
 
 # convergence assessment
-sfkeel_mir_2023_fit[["warnings"]] # r-hat not great
 rstan::traceplot(get_mcmc(sfkeel_mir_2023), pars='GPP_daily', nrow=10) # looks good
 rstan::traceplot(get_mcmc(sfkeel_mir_2023), pars='ER_daily', nrow=10)
 rstan::traceplot(get_mcmc(sfkeel_mir_2023), pars='K600_daily', nrow=10) # looks good
@@ -699,3 +693,69 @@ write_files(sfkeel_sth_2023_fit, sfkeel_sth_2023, "/sfkeel_sth_2023/",
 
 # plot metab estimates (note: these are w/o correct depths and will change)
 plot_metab_preds(sfkeel_sth_2023) # seems so much higher without depth applied!-- need to figure out why there is only one day for early july..
+
+# plot GPP estimates w/ sensor cleaning dates --
+# increases in july after cleaning but want to keep at least two days after cleaning
+# all other biofouling that would have been obvious was removed
+ggplot(sfkeel_sth_2023_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
+  geom_point(color = "darkgreen", size = 3) +
+  geom_line(color = "darkgreen") +
+  geom_vline(xintercept = as_date(c("2023-07-03")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-07-11")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-07-17")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-07-24")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-07-31")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-08-07")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-08-14")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-08-22")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-08-28")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-09-04")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-09-12")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-09-18")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-09-24")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  theme_bw()
+
+# look at DO predictions vs. data on a 7-day interval to look closely
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-06-24", date_end = "2023-07-01") # look fine
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-01", date_end = "2023-07-08")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-08", date_end = "2023-07-15")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-23", date_end = "2023-07-30") # skipping time becuase forgot to turn sensor on; looks good!
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-30", date_end = "2023-08-06")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-08-06", date_end = "2023-08-13")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-08-13", date_end = "2023-08-20")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-08-20", date_end = "2023-08-27")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-08-27", date_end = "2023-09-03")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-09-03", date_end = "2023-09-10")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-09-10", date_end = "2023-09-17")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-09-17", date_end = "2023-09-24")
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-09-24", date_end = "2023-09-30")
+
+# plot binning, ER vs. K600, correlation test for ER and K600, and K600
+plot_binning(sfkeel_sth_2023_fit, sfkeel_sth_2023, "South fork eel @ standish hickey 2023") # points all within bins
+plot_ER_K600(sfkeel_sth_2023_fit, "South fork eel @ standish hickey 2023")
+cor.test(sfkeel_sth_2023_fit$daily$ER_mean, sfkeel_sth_2023_fit$daily$K600_daily_mean) # not correlated .158; p = 0.1878
+plot_K600(sfkeel_sth_2023_fit, "South fork eel @ standish hickey 2023")
+
+# convergence assessment
+rstan::traceplot(get_mcmc(sfkeel_sth_2023), pars='GPP_daily', nrow=10) # looks decent
+rstan::traceplot(get_mcmc(sfkeel_sth_2023), pars='ER_daily', nrow=10)
+rstan::traceplot(get_mcmc(sfkeel_sth_2023), pars='K600_daily', nrow=10) # not horrible
+
+# goodness of fit metrics
+calc_gof_metrics(sfkeel_sth_2023, "/sfkeel_sth_2023/", "sfkeel_sth_2023") # rmse 0.20, nrsme 0.032
+
+# remove large model object though this is the last run :)
+rm(sfkeel_sth_2023, sfkeel_sth_2023_fit)
