@@ -34,12 +34,12 @@ IC <- read_data("IC")
 
 ## (a) Values below detection limit
 # replace values below detection limits with half the detection limit value
-aq400$raw_ammonia_mg_N_L <- replace(aq400$raw_ammonia_mg_N_L, 
-                                    which(aq400$raw_ammonia_mg_N_L == "<0.002"),
+aq400$raw_ammonia_ammonium_mg_N_L <- replace(aq400$raw_ammonia_ammonium_mg_N_L, 
+                                    which(aq400$raw_ammonia_ammonium_mg_N_L == "<0.002"),
                                     "0.001")
 
 # convert column to numeric for calculations
-aq400$raw_ammonia_mg_N_L <- as.numeric(aq400$raw_ammonia_mg_N_L)
+aq400$raw_ammonia_ammonium_mg_N_L <- as.numeric(aq400$raw_ammonia_ammonium_mg_N_L)
 
 # (b) Calculating true ammonium values based on Emerson et al. 1975
 
@@ -73,12 +73,14 @@ for(i in 1:21) {
   water_chemistry$assumed_pH[i] <- assumed_pH[i,]
 }
 
-# function to calculate ammonium using data with assumed pH column
+# function to calculate true proportions of unionized-ammonia (NH3) 
+# and ionized-ammonium (NH4+) using data with assumed pH column 
+# and equation from Emerson et al. (1975)
 calculate_NH4 <- function(data) {
   # assign variables
   temp = data$temp_C
   pH = data$assumed_pH
-  NH3 = data$raw_ammonia_mg_N_L
+  NH3 = data$raw_ammonia_ammonium_mg_N_L
   
   # calculate pKa
   pKa = 0.09018 + 2727.92/(temp+273.15)
