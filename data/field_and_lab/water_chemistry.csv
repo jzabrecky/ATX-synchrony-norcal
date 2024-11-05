@@ -1,4 +1,4 @@
-"field_date","time","site_reach","site","reach","pH","temp_C","DO_mg_L","cond_uS_cm","oPhos_ug_P_L","nitrate_mg_N_L","raw_ammonia_mg_N_L","assumed_pH","ammonium_mg_N_L","TDC_mg_L","DOC_mg_L","Cl_mg_L","SO4_mg_L","Br_mg_L","Na_mg_L","K_mg_L","Mg_mg_L","Ca_mg_L"
+"field_date","time","site_reach","site","reach","pH","temp_C","DO_mg_L","cond_uS_cm","oPhos_ug_P_L","nitrate_mg_N_L","raw_ammonia_ammonium_mg_N_L","assumed_pH","ammonium_mg_N_L","TDC_mg_L","DOC_mg_L","Cl_mg_L","SO4_mg_L","Br_mg_L","Na_mg_L","K_mg_L","Mg_mg_L","Ca_mg_L"
 2022-06-24,"18:00","RUS-1S","RUS","1S",NA,24.82,9.052,NA,5.026,0.016,0.0027,8.07,0.00253,17.82,2.994,7.5,14.45,"0.11",11.17,1.23,16.45,11.21
 2022-06-27,"10:30","SAL-1S","SAL","1S",NA,19.81,9.442,NA,7.768,0.015,0.0134,7.72,0.01313,6.516,2.913,0.52,1.65,"0.02",1.02,0.32,1.88,10.58
 2022-06-27,"14:30","SAL-3","SAL","3",NA,20.49,9.492,NA,7.795,0.031,0.0084,8.11,0.00797,8.974,2.688,0.9,3.44,"0.06",2.24,0.65,3.05,16.22
