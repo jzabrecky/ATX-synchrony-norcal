@@ -1,6 +1,6 @@
 #### Large synchrony figure of metabolism, accrual, and anatoxins (for HABs poster)
 ### Jordan Zabrecky
-## last edited 09.24.2024
+## last edited 10.31.2024
 
 # Preliminary version of synchrony figure for US Harmful Algae Symposium
 
