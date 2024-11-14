@@ -1,6 +1,6 @@
 #### miniDOT data aggregation and flagging
 ### Jordan Zabrecky
-## last edited: 11.04.2024
+## last edited: 11.14.2024
 
 # This code pulls data from miniDOT text files and converts them into csv's.
 # Additionally this code adjusts the sensor time offset from PST, removes time when
@@ -204,8 +204,7 @@ salmon_2023_cleaning <- salmon_2023_cleaning %>%
   filter(date_time <= "2023-08-09 18:25:00" | date_time >= "2023-08-09 19:05:00")
 
 #### (3) Final data cleaning ####
-### (a. removing minor outliers, b. interpolating small amounts of missing data, 
-### c. removing large amounts of bad data)
+### (a. removing minor outliers and b. large amount of data)
 
 # still using 'dygraphs' package in "1b_visualizing_DO_data_cleaning.R" 
 # to visualize data and cleaning
@@ -309,7 +308,7 @@ salmon_2023_cleaning_DO <- salmon_2023_cleaning %>%
   filter(date_time <= "2023-08-20 04:13:00" | date_time >= "2023-08-20 06:07:00") %>% # <2 hours
   filter(date_time <= "2023-08-20 12:33:00" | date_time >= "2023-08-20 13:30:00") # <1 hour
   
-## (c) removing longer periods of biofouling, bad data, etc. that cannot be interpolated
+## (b) removing longer periods of biofouling, bad data, etc. that cannot be interpolated
 
 # south fork eel @ miranda 2022
 # removing time where egg sac had been laid directly on sensor foil
@@ -320,7 +319,8 @@ sfkeel_mir_2022_cleaning_DO <- sfkeel_mir_2022_cleaning_DO %>%
   filter(date_time <= "2022-07-25 10:20:00" | date_time >= "2022-07-28 10:10:00")
 # need to remove oscillating strangeness for temperature as well
 # temperature looks normal for extended time when egg sac laid on foil
-sfkeel_mir_2022_cleaning_temp <- sfkeel_mir_2022_cleaning_temp %>% 
+# will make new "temperature" csv for this site to allow for temperature-only flag
+sfkeel_mir_2022_cleaning_temp <- sfkeel_mir_2022_cleaning %>% 
   filter(date_time <= "2022-07-13 19:30:00" | date_time >= "2022-07-14 09:15:00") %>% 
   filter(date_time <= "2022-07-25 10:20:00" | date_time >= "2022-07-25 19:25:00")
 # looking at the temperature though, there is a weird in between the two oscillating strangeness
@@ -348,11 +348,10 @@ salmon_2022_cleaning_DO <- salmon_2022_cleaning_DO %>%
 # south fork eel @ standish hickey
 sfkeel_sth_2023_cleaning_DO <- sfkeel_sth_2023_cleaning_DO %>% 
   filter(date_time <= "2023-06-29 05:00:00" | date_time >= "2023-07-02 23:50:00") %>%
-  # want to preserve at least 3 days after cleaning 7/3 till next on 7/11...
+  # want to preserve at least 3 days after cleaning the sensors to have more
+  # than a single day estimate between weekly maintenance
   filter(date_time <= "2023-07-06 05:00:00" | date_time >= "2023-07-11 00:35:00") %>%
   filter(date_time <= "2023-07-14 12:40:00" | date_time >= "2023-07-17 11:27:00") %>% # removing all the way to missing data
-  # keeping days below for now because one (the worse one) is within 3 days of cleaning...
-  #filter(date_time <= "2023-07-26 12:10:00" | date_time >= "2023-07-28 08:20:00") %>%
   filter(date_time <= "2023-07-30 08:30:00" | date_time >= "2023-07-31 01:00:00") # this one day looks awful
 
 # salmon 2023
@@ -362,38 +361,76 @@ salmon_2023_cleaning_DO <- salmon_2023_cleaning_DO %>%
   filter(date_time <= "2023-07-19 09:00:00" | date_time >= "2023-07-20 02:20:00") %>% 
   filter(date_time <= "2023-07-22 20:45:00" | date_time >= "2023-07-25 08:25:00")
 
-#### (4) Merging data back together, adding flags for rows where data was removed, and saving ####
+#### (4) Adding flags for bad data and saving final single csv ####
 
-# need to rbind everyone together, add site name information
+# make list of site_year names in order of lists below
+names_list <- c("sfkeel_mir_2022", "russian_2022", "salmon_2022", "sfkeel_mir_2023",
+                "sfkeel_sth_2023", "salmon_2023")
 
-#### OLD CODE BELOW
+# putting cleaning dataframes together in list (preserved all original data excluding maintenance)
+preserved_list <- list(sfkeel_mir_2022_cleaning, russian_2022_cleaning,
+                       salmon_2022_cleaning, sfkeel_mir_2023_cleaning,
+                       sfkeel_sth_2023_cleaning, salmon_2023_cleaning)
 
-# Left join of "cleaning_DO" dataframe to the cleaning dataframe that has preserved & interpolated Temp_C
-sfkeel_mir_2022_miniDOT <- left_join(sfkeel_mir_2022_cleaning_temp, sfkeel_mir_2022_cleaning_DO, "date_time")
-russian_2022_miniDOT <- left_join(russian_2022_cleaning_temp, russian_2022_cleaning_DO, "date_time")
-salmon_2022_miniDOT <- left_join(salmon_2022_cleaning_temp, salmon_2022_cleaning_DO, "date_time")
-sfkeel_mir_2023_miniDOT <- left_join(sfkeel_mir_2023_cleaning_temp, sfkeel_mir_2023_cleaning_DO, "date_time")
-sfkeel_sth_2023_miniDOT <- left_join(sfkeel_sth_2023_cleaning_temp, sfkeel_sth_2023_cleaning_DO, "date_time")
-salmon_2023_miniDOT <- left_join(salmon_2023_cleaning_temp, salmon_2023_cleaning_DO, "date_time")
+# put cleaning_DO dataframes together in a list (which removed bad DO data)
+clean_DO_list <- list(sfkeel_mir_2022_cleaning_DO, russian_2022_cleaning_DO,
+                      salmon_2022_cleaning_DO, sfkeel_mir_2023_cleaning_DO,
+                      sfkeel_sth_2023_cleaning_DO, salmon_2023_cleaning_DO)
 
-# making list of final dataframes
-miniDOT_list <- list(sfkeel_mir_2022_miniDOT, russian_2022_miniDOT, salmon_2022_miniDOT, 
-                     sfkeel_mir_2023_miniDOT, sfkeel_sth_2023_miniDOT, salmon_2023_miniDOT)
-names(miniDOT_list) <- c("sfkeel_mir_2022_miniDOT", "russian_2022_miniDOT", "salmon_2022_miniDOT", 
-                         "sfkeel_mir_2023_miniDOT", "sfkeel_sth_2023_miniDOT", "salmon_2023_miniDOT")
-
-# making a function to change POSIXct column to character to avoid issue in some
-# versions of R where POSIXct drops the "00:00:00" / midnight time when saved to csv
-fix_time_issue <- function(df) {
-  new_df <- df %>% 
-    mutate(date_time = as.character(format(date_time))) %>% 
-  return(new_df)
+# add site year info to cleaning and cleaning_DO dataframes
+for(i in 1:length(preserved_list)) {
+  preserved_list[[i]]$site_year <- names_list[i]
+  clean_DO_list[[i]]$site_year <- names_list[i]
 }
 
-# applying function to list
-miniDOT_list <- lapply(miniDOT_list, function(x) fix_time_issue(x))
+# do same for our single temperature dataframe (which removed bad temp data)
+sfkeel_mir_2022_cleaning_temp$site_year <- "sfkeel_mir_2022"
 
-# saving csv's
-path <- paste(getwd(), "/data/miniDOT/", sep = "")
-lapply(names(miniDOT_list), function(x) write.csv(miniDOT_list[[x]], file = paste(path, x, ".csv", sep = ""), 
-                                                  row.names = FALSE))
+# now, reduce lists into one dataframe and only keep relevant information for DO data frame
+# additionally, add in column for clean DO to indicate that clean DO data is good
+preserved <- bind_rows(preserved_list)
+clean_DO <- bind_rows(clean_DO_list) %>% 
+  select(site_year, date_time, DO_mgL) %>% 
+  mutate(DO_flag = "n")
+
+## adding in clean temperature data
+
+# cleaning single clean temp data frame and adding flag to indicate data is good
+clean_temp <- sfkeel_mir_2022_cleaning_temp %>% 
+  select(site_year, date_time, Temp_C) %>% 
+  mutate(temp_flag = "n")
+
+# all temp data not from sfkeel_mir_2022 was also good so indicate that with "n"
+preserved <- preserved %>% 
+  mutate(temp_flag = case_when(site_year != "sfkeel_mir_2022" ~ "n"))
+
+# join with preserved dataset
+preserved <- left_join(preserved, clean_temp, by = c("site_year", "date_time", "Temp_C"))
+
+# have two separate temp flags now- if both are NA, the data is bad and indicate with "y"
+preserved <- preserved %>% 
+  mutate(temp_flag = case_when(temp_flag.x == "n" ~ "n",
+                               temp_flag.y == "n" ~ "n",
+                               TRUE ~ "y")) %>% 
+  select(-c(temp_flag.x, temp_flag.y)) # remove now not needed columns
+
+## adding in clean DO data
+
+# join clean DO data with flags to preserved dataset
+preserved <- left_join(preserved, clean_DO, by = c("site_year", "date_time", "DO_mgL"))
+
+# fill DO_flag NAs with "y" as those did not make it passed the cleaning process
+preserved$DO_flag <- replace_na(preserved$DO_flag, "y")
+
+# make sure there are no NA's anymore in dataframe
+any(is.na(preserved)) # FALSE- we are good!
+
+# make final dataset- remove columns and reorder
+final <- preserved %>% 
+  select(site_year, date_time, Temp_C, DO_mgL, Q, temp_flag, DO_flag)
+
+# changing date_time to character to avoid any saving issues like before
+final$date_time <- as.character(format(final$date_time))
+
+# save final csv to EDI data package folder
+write.csv(final, "./data/EDI_data_package/miniDOT_data.csv", row.names = FALSE)
