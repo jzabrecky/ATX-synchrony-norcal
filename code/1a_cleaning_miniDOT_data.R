@@ -1,6 +1,6 @@
 #### miniDOT data aggregation and cleaning
 ### Jordan Zabrecky
-## last edited: 11.14.2024
+## last edited: 11.25.2024
 
 # This code reads in miniDOT data from the EDI package, removes flagged times,
 # and interpolates for removed time periods < 6 hours long; used in tandem with
@@ -11,6 +11,10 @@
 # loading necessary packages
 lapply(c("tidyverse","lubridate", "zoo", "dplyr"),
        require, character.only = T)
+
+# get rid of any dplyr masking
+select <- dplyr::select()
+filter <- dplyr::filter()
 
 # reading in data
 miniDOT_data <- read.csv("./data/EDI_data_package/miniDOT_data.csv")
@@ -58,19 +62,19 @@ round_5M <- function(df) {
 # creating functions to interpolate DO and temperature
 interpolate_DO <- function(df) {
   create_filled_TS(round_5M(df), "5M", "DO_mgL") %>% 
-    select(date_time, Filled_Var) %>% 
+    dplyr::select(date_time, Filled_Var) %>% 
     rename(DO_mgL = Filled_Var)
 }
 
 interpolate_temp <- function(df) {
   create_filled_TS(round_5M(df), "5M", "Temp_C") %>% 
-    select(date_time, Filled_Var) %>% 
+    dplyr::select(date_time, Filled_Var) %>% 
     rename(Temp_C = Filled_Var)
 }
 
 # applying functions to dataframe lists
 cleanDO_list <- lapply(cleanDO_list, function(x) interpolate_DO(x))
-cleantemp_list <- lapply(cleantemp_list, function(x) interpolate_te)
+cleantemp_list <- lapply(cleantemp_list, function(x) interpolate_temp(x))
 
 #### (4) Removing periods of interpolation >6 hours ####
 
@@ -120,6 +124,12 @@ cleanDO_list$sfkeel_sth_2023 <- cleanDO_list$sfkeel_sth_2023 %>%
   filter(date_time <= "2023-07-14 12:40:00" | date_time >= "2023-07-17 11:27:00") %>% # removing all the way to missing data
   filter(date_time <= "2023-07-30 08:30:00" | date_time >= "2023-07-31 01:00:00") # this one day looks awful
 
+# remove week period where sensor was not turned on (that was interpolated)
+cleantemp_list$sfkeel_sth_2023 <- cleantemp_list$sfkeel_sth_2023 %>% 
+  filter(date_time <= "2023-07-17 11:26:00" | date_time >= "2023-07-24 19:07:00")
+cleanDO_list$sfkeel_sth_2023 <- cleanDO_list$sfkeel_sth_2023 %>% 
+  filter(date_time <= "2023-07-17 11:26:00" | date_time >= "2023-07-24 19:07:00")
+
 # salmon 2023
 # removing weirdness (super fuzzy with low troughs) 7/19 and 7/22 to 7/25
 # note that when we came to sensor on 7/26 it had been moved to a weird position
@@ -129,59 +139,30 @@ cleanDO_list$salmon_2023 <- cleanDO_list$salmon_2023 %>%
 
 #### (5) Saving edited csvs ####
 
-#### TEST SAVING ONE DATAFRAME TO BEGIN WITH AND MAKE SURE IT DOESN'T CHANGE
-#### THEN GO BACK TO CHANGE DO_MGL COLUMN NAME"
+# make new dataframe list with cleaned temperature list
+final_list <- cleantemp_list
 
-### old interpolation code 
-
-## (b) interpolating missing data using other script: "1c_split_interpolate_data.R"
-
-# create a time series for every five minutes and fill in missing
-# variables via linear interpolation first with the "create_filled_TS" function
-source("code/supplemental_code/S1a_split_interpolate_data.R")
-
-# need to round to nearest 5 minutes first
-round_5M <- function(df) {
-  df$date_time <- round_date(df$date_time, "5 minutes")
-  return(df)
+# combining in cleanDO dataframe
+for(i in 1:length(final_list)) {
+  final_list[[i]] <- left_join(final_list[[i]], cleanDO_list[[i]]) %>% 
+    na.omit()
 }
 
-# creating functions to interpolate DO and temperature
-interpolate_DO <- function(df) {
-  create_filled_TS(round_5M(df), "5M", "DO_mgL") %>% 
-    select(date_time, Filled_Var) %>% 
-    rename(DO_mgL = Filled_Var)
+# remove rows where there is no dissolved oxygen data/NAs
+any(is.na(final_list$sfkeel_sth_2023$DO_mgL))
+
+# making a function to change POSIXct column to character to avoid issue in some
+# versions of R where POSIXct drops the "00:00:00" / midnight time when saved to csv
+fix_time_issue <- function(df) {
+  new_df <- df %>% 
+    mutate(date_time = as.character(format(date_time))) %>% 
+    return(new_df)
 }
 
-interpolate_temp <- function(df) {
-  create_filled_TS(round_5M(df), "5M", "Temp_C") %>% 
-    select(date_time, Filled_Var) %>% 
-    rename(Temp_C = Filled_Var)
-}
+# applying function to list
+final_list <- lapply(final_list, function(x) fix_time_issue(x))
 
-# applying functions to dataframes 
-# (still separately because would have to split the list right after anyways)
-## SKIP THIS SECTION WHEN RUNNING FOR EDI DATA (want to preserve removed data to flag it)
-
-# 2022
-sfkeel_mir_2022_cleaning_temp <- interpolate_temp(sfkeel_mir_2022_cleaning)
-sfkeel_mir_2022_cleaning_DO <- interpolate_DO(sfkeel_mir_2022_cleaning_DO)
-russian_2022_cleaning_temp <- interpolate_temp(russian_2022_cleaning)
-russian_2022_cleaning_DO <- interpolate_DO(russian_2022_cleaning_DO)
-salmon_2022_cleaning_temp <- interpolate_temp(salmon_2022_cleaning)
-salmon_2022_cleaning_DO <- interpolate_DO(salmon_2022_cleaning_DO)
-
-# 2023
-sfkeel_mir_2023_cleaning_temp <- interpolate_temp(sfkeel_mir_2023_cleaning)
-sfkeel_mir_2023_cleaning_DO <- interpolate_DO(sfkeel_mir_2023_cleaning_DO)
-sfkeel_sth_2023_cleaning_temp <- interpolate_temp(sfkeel_sth_2023_cleaning)
-sfkeel_sth_2023_cleaning_DO <- interpolate_DO(sfkeel_sth_2023_cleaning_DO)
-salmon_2023_cleaning_temp <- interpolate_temp(salmon_2023_cleaning)
-salmon_2023_cleaning_DO <- interpolate_DO(salmon_2023_cleaning_DO)
-
-# for standish hickey, we have a week period where we were missing data, so we need
-# to remove interpolation from then
-sfkeel_sth_2023_cleaning_temp <- sfkeel_sth_2023_cleaning_temp %>% 
-  filter(date_time <= "2023-07-17 11:26:00" | date_time >= "2023-07-24 19:07:00")
-sfkeel_sth_2023_cleaning_DO <- sfkeel_sth_2023_cleaning_DO %>% 
-  filter(date_time <= "2023-07-17 11:26:00" | date_time >= "2023-07-24 19:07:00")
+# saving csv's
+path <- paste(getwd(), "/data/miniDOT/", sep = "")
+lapply(names(final_list), function(x) write.csv(final_list[[x]], file = paste(path, x, "_miniDOT.csv", sep = ""), 
+                                                     row.names = FALSE))
