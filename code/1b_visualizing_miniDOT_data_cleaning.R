@@ -18,7 +18,7 @@ view_DO_2022 <- function(x) {
   x <- subset(x, x$date_time >= "2022-06-23 0:00:00" & x$date_time <= "2022-09-23 0:00:00")
   
   # then you can create the xts format, and thus use dygraph
-  dat <- xts(x = x$DO_mgL, order.by = x$date_time)
+  dat <- xts(x = x$DO_mg_L, order.by = x$date_time)
   
   # Make the chart
   p <- dygraph(dat)
@@ -31,7 +31,7 @@ view_DO_2023 <- function(x) {
   x <- subset(x, x$date_time >= "2023-06-18 0:00:00" & x$date_time <= "2023-09-28 0:00:00")
   
   # then you can create the xts format, and thus use dygraph
-  dat <- xts(x = x$DO_mgL, order.by = x$date_time)
+  dat <- xts(x = x$DO_mg_L, order.by = x$date_time)
   
   # Make the chart
   p <- dygraph(dat)

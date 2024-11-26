@@ -1,6 +1,6 @@
 #### gathering DO from external sources to compare to our miniDOT values
 ### Jordan Zabrecky
-## last edited 10.15.2024
+## last edited 11.25.2024
 
 # This code gathers dissolved oxygen data from the USGS gage at Cloverdale
 # to use to model metabolism estimates and compare with our estimates
@@ -37,9 +37,9 @@ clean_USGS_df <- function(df) {
   
   # fill time series with dissolved oxygen every 5 minutes
   new_df <- create_filled_TS(df, "5M", "X_00300_00000") %>% 
-    mutate(DO_mgL = Filled_Var) %>% 
+    mutate(DO_mg_L = Filled_Var) %>% 
     dplyr::rename(Temp_C = X_00010_00000) %>% 
-    dplyr::select(date_time, DO_mgL, Temp_C)
+    dplyr::select(date_time, DO_mg_L, Temp_C)
   
   # finish interpolation for temperature
   new_df$Temp_C <- na.approx(new_df$Temp_C)

@@ -1,4 +1,4 @@
-"date_time","DO_mgL","Temp_C","site_year","site","discharge_m3_s","depth_m","pressure_mbar","SW_W_m_2"
+"date_time","DO_mg_L","Temp_C","site_year","site","discharge_m3_s","depth_m","pressure_mbar","SW_W_m_2"
 "2022-06-20 00:00:00",8.4,18.2,"russian_2022_USGS","russian",2.37043330501274,1,1006.87512379755,0
 "2022-06-20 00:05:00",8.33333333333333,18.1666666666667,"russian_2022_USGS","russian",2.37043330501274,1,1006.85393941142,0
 "2022-06-20 00:10:00",8.26666666666667,18.1333333333333,"russian_2022_USGS","russian",2.37043330501274,1,1006.83275502529,0

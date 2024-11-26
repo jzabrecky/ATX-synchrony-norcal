@@ -1,6 +1,6 @@
 #### miniDOT data aggregation and flagging
 ### Jordan Zabrecky
-## last edited: 11.14.2024
+## last edited: 11.25.2024
 
 # This code pulls data from miniDOT text files and converts them into csv's.
 # Additionally this code adjusts the sensor time offset from PST, removes time when
@@ -20,7 +20,7 @@ rename <- dplyr::rename
 ## Reading in data
 
 # creating header list for csv to be produced
-header_list <- c("Time_Sec", "BV_Volts", "Temp_C", "DO_mgL", "Q")
+header_list <- c("Time_Sec", "BV_Volts", "Temp_C", "DO_mg_L", "Q")
 
 # function to load in all files from a folder
 create_df <- function(source_path) {
@@ -34,7 +34,7 @@ create_df <- function(source_path) {
 time_fix <- function(flnm) {
   flnm$date_time <- as_datetime(flnm$Time_Sec, tz = "America/Los_Angeles")
   flnm %>% 
-    select(date_time, BV_Volts, Temp_C, DO_mgL, Q)
+    select(date_time, BV_Volts, Temp_C, DO_mg_L, Q)
 }
 
 ## reading miniDOT data for each river site, making a data frame,
@@ -390,7 +390,7 @@ sfkeel_mir_2022_cleaning_temp$site_year <- "sfkeel_mir_2022"
 # additionally, add in column for clean DO to indicate that clean DO data is good
 preserved <- bind_rows(preserved_list)
 clean_DO <- bind_rows(clean_DO_list) %>% 
-  select(site_year, date_time, DO_mgL) %>% 
+  select(site_year, date_time, DO_mg_L) %>% 
   mutate(DO_flag = "n")
 
 ## adding in clean temperature data
@@ -417,7 +417,7 @@ preserved <- preserved %>%
 ## adding in clean DO data
 
 # join clean DO data with flags to preserved dataset
-preserved <- left_join(preserved, clean_DO, by = c("site_year", "date_time", "DO_mgL"))
+preserved <- left_join(preserved, clean_DO, by = c("site_year", "date_time", "DO_mg_L"))
 
 # fill DO_flag NAs with "y" as those did not make it passed the cleaning process
 preserved$DO_flag <- replace_na(preserved$DO_flag, "y")
@@ -427,7 +427,7 @@ any(is.na(preserved)) # FALSE- we are good!
 
 # make final dataset- remove columns and reorder
 final <- preserved %>% 
-  select(site_year, date_time, Temp_C, DO_mgL, Q, temp_flag, DO_flag)
+  select(site_year, date_time, Temp_C, DO_mg_L, Q, temp_flag, DO_flag)
 
 # changing date_time to character to avoid any saving issues like before
 final$date_time <- as.character(format(final$date_time))

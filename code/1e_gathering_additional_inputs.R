@@ -1,6 +1,6 @@
 #### gathering all data to model metabolism
 ### Jordan Zabrecky
-## last edited 10.15.2024
+## last edited 11.25.2024
 
 # This code gathers the necessary components for metabolism modeling
 # including the (1) cleaned miniDOT data from "1a_reading_and_cleaning_miniDOT_data.R"
@@ -58,17 +58,17 @@ offsets <- ldply(list.files(path = "./data/miniDOT/intercalibrations/", pattern 
 })
 
 # apply offsets to miniDOT data
-miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "sfkeel_mir_2022")] <- 
-  miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "sfkeel_mir_2022")] + offsets$offset[which(offsets$site_year == "sfkeel_mir_2022")]
+miniDOT_data$DO_mg_L[which(miniDOT_data$site_year == "sfkeel_mir_2022")] <- 
+  miniDOT_data$DO_mg_L[which(miniDOT_data$site_year == "sfkeel_mir_2022")] + offsets$offset[which(offsets$site_year == "sfkeel_mir_2022")]
 # no calibration for russian 2022 as sensor was stolen :(
-miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "salmon_2022")] <- 
-  miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "salmon_2022")] + offsets$offset[which(offsets$site_year == "salmon_2022")]
-miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "sfkeel_mir_2023")] <- 
-  miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "sfkeel_mir_2023")] + offsets$offset[which(offsets$site_year == "sfkeel_mir_2023")]
-miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "sfkeel_sth_2023")] <- 
-  miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "sfkeel_sth_2023")] + offsets$offset[which(offsets$site_year == "sfkeel_sth_2023")]
-miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "salmon_2023")] <- 
-  miniDOT_data$DO_mgL[which(miniDOT_data$site_year == "salmon_2023")] + offsets$offset[which(offsets$site_year == "salmon_2023")]
+miniDOT_data$DO_mg_L[which(miniDOT_data$site_year == "salmon_2022")] <- 
+  miniDOT_data$DO_mg_L[which(miniDOT_data$site_year == "salmon_2022")] + offsets$offset[which(offsets$site_year == "salmon_2022")]
+miniDOT_data$DO_mg_L[which(miniDOT_data$site_year == "sfkeel_mir_2023")] <- 
+  miniDOT_data$DO_mg_L[which(miniDOT_data$site_year == "sfkeel_mir_2023")] + offsets$offset[which(offsets$site_year == "sfkeel_mir_2023")]
+miniDOT_data$DO_mg_L[which(miniDOT_data$site_year == "sfkeel_sth_2023")] <- 
+  miniDOT_data$DO_mg_L[which(miniDOT_data$site_year == "sfkeel_sth_2023")] + offsets$offset[which(offsets$site_year == "sfkeel_sth_2023")]
+miniDOT_data$DO_mg_L[which(miniDOT_data$site_year == "salmon_2023")] <- 
+  miniDOT_data$DO_mg_L[which(miniDOT_data$site_year == "salmon_2023")] + offsets$offset[which(offsets$site_year == "salmon_2023")]
 
 # separating large dataframe into a list of dataframes
 miniDOT_list <- split(miniDOT_data, miniDOT_data$site)

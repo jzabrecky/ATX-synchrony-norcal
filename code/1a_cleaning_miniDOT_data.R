@@ -25,8 +25,6 @@ miniDOT_data$date_time <- as_datetime(miniDOT_data$date_time, tz = "America/Los_
 # split data into a list
 miniDOT_list <- split(miniDOT_data, miniDOT_data$site_year)
 
-#### (3) 
-
 #### (2) Removing flagged data ####
 
 # function to filter out flagged DO data
@@ -63,9 +61,9 @@ round_5M <- function(df) {
 
 # creating functions to interpolate DO and temperature
 interpolate_DO <- function(df) {
-  create_filled_TS(round_5M(df), "5M", "DO_mgL") %>% 
+  create_filled_TS(round_5M(df), "5M", "DO_mg_L") %>% 
     dplyr::select(date_time, Filled_Var) %>% 
-    rename(DO_mgL = Filled_Var)
+    rename(DO_mg_L = Filled_Var)
 }
 
 interpolate_temp <- function(df) {
@@ -80,12 +78,8 @@ cleantemp_list <- lapply(cleantemp_list, function(x) interpolate_temp(x))
 
 #### (4) Removing periods of interpolation >6 hours ####
 
-## HAVING DIFFERENCE ISSUES HERE; FILTERED DATES STILL SEEM TO BE APPEARING?
-
 ## To do this, I am referencing original cleaning script I made for the package
 ## and double checking with script "1b_visualizing_miniDOT_data_cleaning.R"
-
-# NOT UNDERSTANDING WHY THERE IS CHANGES HERE
 
 # south fork eel @ miranda 2022
 # removing time where egg sac had been laid directly on sensor foil
@@ -115,7 +109,7 @@ cleantemp_list$sfkeel_mir_2022 <- cleantemp_list$sfkeel_mir_2022 %>%
 # sensor maintenance; unlike the Russian, it's much harder to distinguish the biofouling here
 # from true DO, so unfortunately we have to remove those days
 cleanDO_list$salmon_2022 <- cleanDO_list$salmon_2022 %>% 
-  filter(date_time <= "2022-07-08 11:50:00" | date_time >= "2022-07-11 19:00:00") %>% 
+  filter(date_time <= "2022-07-08 11:50:00" | date_time >= "2022-07-11 20:00:00") %>% 
   filter(date_time <= "2022-07-18 13:40:00" | date_time >= "2022-07-25 19:00:00")
 
 # south fork eel @ miranda 2023

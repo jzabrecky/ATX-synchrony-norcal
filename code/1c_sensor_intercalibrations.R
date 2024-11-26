@@ -1,6 +1,6 @@
 #### intercalibration for miniDOTs for 2022 and 2023 field season
 ### Jordan Zabrecky
-## last edited: 09.11.2024
+## last edited: 11.25.2024
 
 # This code calibrates miniDOT dissolved oxygen sensors via the bucket method
 # and then relates the dissolved oxygen measurements to the estimated 100% DO saturation
@@ -27,7 +27,7 @@ lapply(c("tidyverse", "lubridate", "data.table", "here"), require,
 ## Reading in data
 
 # creating header list for csv to be produced
-header_list <- c("Time_Sec", "BV_Volts", "Temp_C", "DO_mgL", "Q")
+header_list <- c("Time_Sec", "BV_Volts", "Temp_C", "DO_mg_L", "Q")
 
 # function to load in all files from a folder
 create_df <- function(source_path) {
@@ -41,7 +41,7 @@ create_df <- function(source_path) {
 time_fix <- function(flnm) {
   flnm$date_time <- as_datetime(flnm$Time_Sec, tz = "America/Los_Angeles")
   flnm %>% 
-    select(date_time, BV_Volts, Temp_C, DO_mgL, Q, miniDOT_no)
+    select(date_time, BV_Volts, Temp_C, DO_mg_L, Q, miniDOT_no)
 }
 
 ## 03-2023 (post 2022 field season & pre 2023 field season)
@@ -98,7 +98,7 @@ post_2022_temp <- ggplot(data = post_2022, aes(x = date_time, y = Temp_C, color 
              color = "darkgray", linetype = 2) # yeast added & lid closed
 # all temperature is roughly in line- yay!
 
-post_2022_DO <- ggplot(data = post_2022, aes(x = date_time, y = DO_mgL, color = miniDOT_no)) +
+post_2022_DO <- ggplot(data = post_2022, aes(x = date_time, y = DO_mg_L, color = miniDOT_no)) +
   geom_point() +
   scale_x_datetime(limits = as_datetime(c("2023-03-30 18:05:00", "2023-04-01 12:35:00"), 
                                         tz = "America/Los_Angeles")) +
@@ -117,7 +117,7 @@ for(i in 1:length(june_list)) {
 }
 june <- reduce(june_list, rbind) # reducing list
 june <- time_fix(june) # applying time fix
-june_DO <- ggplot(data = june, aes(x = date_time, y = DO_mgL, color = miniDOT_no)) +
+june_DO <- ggplot(data = june, aes(x = date_time, y = DO_mg_L, color = miniDOT_no)) +
   geom_point() +
   geom_vline(xintercept = as_datetime(c("2024-06-14 14:07:00"), tz = "America/Los_Angeles"), 
              color = "darkgray", linetype = 2) # yeast added & lid closed
@@ -139,7 +139,7 @@ post_2023_temp <- ggplot(data = post_2023, aes(x = date_time, y = Temp_C, color 
 # temperature for 521120 diverges part way through but maybe this is because an ice pack was placed
 # closer to this one than the other two because the temperature converges again after yeast was added
 
-post_2023_DO <- ggplot(data = post_2023, aes(x = date_time, y = DO_mgL, color = miniDOT_no)) +
+post_2023_DO <- ggplot(data = post_2023, aes(x = date_time, y = DO_mg_L, color = miniDOT_no)) +
   geom_point() +
   scale_x_datetime(limits = as_datetime(c("2024-01-16 19:16:00", "2024-01-18 12:40:00"), 
                                         tz = "America/Los_Angeles")) +
@@ -156,7 +156,7 @@ post_2022_plateau <- post_2022 %>%
   filter(date_time >= as_datetime("2023-03-31 11:55:00", tz = "America/Los_Angeles")
          & date_time <= as_datetime("2023-03-31 12:05:00", tz = "America/Los_Angeles"))
 # plots
-post_2022_plateau_DO <- ggplot(data = post_2022_plateau, aes(x = date_time, y = DO_mgL, color = miniDOT_no)) +
+post_2022_plateau_DO <- ggplot(data = post_2022_plateau, aes(x = date_time, y = DO_mg_L, color = miniDOT_no)) +
   geom_point(size = 4) +
   geom_line()
 post_2022_plateau_temp <- ggplot(data = post_2022_plateau, aes(x = date_time, y = Temp_C, color = miniDOT_no)) +
@@ -166,8 +166,8 @@ post_2022_plateau_temp <- ggplot(data = post_2022_plateau, aes(x = date_time, y 
 # create a df to summarize this information
 post_2022_plateau_summary <- post_2022_plateau %>% 
   dplyr::group_by(miniDOT_no) %>% 
-    dplyr::summarize(DO_mgL_mean = mean(DO_mgL),
-              DO_mgL_sd = sd(DO_mgL),
+    dplyr::summarize(DO_mg_L_mean = mean(DO_mg_L),
+              DO_mg_L_sd = sd(DO_mg_L),
               Temp_C_mean = mean(Temp_C),
               Temp_C_sd = sd(Temp_C),
               pressure_mmHg = 648.0) # pressure at 12pm 3/31
@@ -178,7 +178,7 @@ post_2023_plateau <- post_2023 %>%
          & date_time <= as_datetime("2024-01-17 12:10:00", tz = "America/Los_Angeles"))
 
 # plots
-post_2023_plateau_DO <- ggplot(data = post_2023_plateau, aes(x = date_time, y = DO_mgL, color = miniDOT_no)) +
+post_2023_plateau_DO <- ggplot(data = post_2023_plateau, aes(x = date_time, y = DO_mg_L, color = miniDOT_no)) +
   geom_point(size = 4) +
   geom_line()
 post_2023_plateau_temp <- ggplot(data = post_2023_plateau, aes(x = date_time, y = Temp_C, color = miniDOT_no)) +
@@ -188,8 +188,8 @@ post_2023_plateau_temp <- ggplot(data = post_2023_plateau, aes(x = date_time, y 
 # create a df to summarize this information
 post_2023_plateau_summary <- post_2023_plateau %>% 
   dplyr::group_by(miniDOT_no) %>% 
-  dplyr::summarize(DO_mgL_mean = mean(DO_mgL),
-            DO_mgL_sd = sd(DO_mgL),
+  dplyr::summarize(DO_mg_L_mean = mean(DO_mg_L),
+            DO_mg_L_sd = sd(DO_mg_L),
             Temp_C_mean = mean(Temp_C),
             Temp_C_sd = sd(Temp_C),
             pressure_mmHg = 644.8) # pressure at 12:05pm 1/17
@@ -219,30 +219,30 @@ post_2023_plateau_summary$Temp_C_sd[1] <- mean(post_2023_plateau_summary$Temp_C_
 # apply function to each summary data frame & then calculate offset from sensor's DO reading
 post_2022_plateau_summary <- post_2022_plateau_summary %>% 
   mutate(est_oxygen_sat = oxygen_sat(Temp_C_mean, pressure_mmHg)) %>% 
-  mutate(offset = est_oxygen_sat - DO_mgL_mean)
+  mutate(offset = est_oxygen_sat - DO_mg_L_mean)
 post_2023_plateau_summary <- post_2023_plateau_summary %>% 
   mutate(est_oxygen_sat = oxygen_sat(Temp_C_mean, pressure_mmHg)) %>% 
-  mutate(offset = est_oxygen_sat - DO_mgL_mean)
+  mutate(offset = est_oxygen_sat - DO_mg_L_mean)
 
 #### (5) Look at offsets applied to data and save information ####
 
 # apply offsets to data
 post_2022_plateau <- post_2022_plateau %>% 
-  mutate(offset_DO_mgL = case_when(miniDOT_no == "162475" ~ (DO_mgL + post_2022_plateau_summary$offset[1]),
-                                   miniDOT_no == "521120" ~ (DO_mgL + post_2022_plateau_summary$offset[2]),
-                                   miniDOT_no == "529728" ~ (DO_mgL + post_2022_plateau_summary$offset[3]),
-                                   miniDOT_no == "663402" ~ (DO_mgL + post_2022_plateau_summary$offset[4])))
+  mutate(offset_DO_mg_L = case_when(miniDOT_no == "162475" ~ (DO_mg_L + post_2022_plateau_summary$offset[1]),
+                                   miniDOT_no == "521120" ~ (DO_mg_L + post_2022_plateau_summary$offset[2]),
+                                   miniDOT_no == "529728" ~ (DO_mg_L + post_2022_plateau_summary$offset[3]),
+                                   miniDOT_no == "663402" ~ (DO_mg_L + post_2022_plateau_summary$offset[4])))
 
 post_2023_plateau <- post_2023_plateau %>% 
-  mutate(offset_DO_mgL = case_when(miniDOT_no == "521120" ~ (DO_mgL + post_2023_plateau_summary$offset[1]),
-                                   miniDOT_no == "529728" ~ (DO_mgL + post_2023_plateau_summary$offset[2]),
-                                   miniDOT_no == "663402" ~ (DO_mgL + post_2023_plateau_summary$offset[3])))
+  mutate(offset_DO_mg_L = case_when(miniDOT_no == "521120" ~ (DO_mg_L + post_2023_plateau_summary$offset[1]),
+                                   miniDOT_no == "529728" ~ (DO_mg_L + post_2023_plateau_summary$offset[2]),
+                                   miniDOT_no == "663402" ~ (DO_mg_L + post_2023_plateau_summary$offset[3])))
 
 # plotting data with new offsets
-post_2022_offset <- ggplot(data = post_2022_plateau, aes(x = date_time, y = offset_DO_mgL, color = miniDOT_no)) +
+post_2022_offset <- ggplot(data = post_2022_plateau, aes(x = date_time, y = offset_DO_mg_L, color = miniDOT_no)) +
   geom_point(size = 4) +
   geom_line()
-post_2023_offset <- ggplot(data = post_2023_plateau, aes(x = date_time, y = offset_DO_mgL, color = miniDOT_no)) +
+post_2023_offset <- ggplot(data = post_2023_plateau, aes(x = date_time, y = offset_DO_mg_L, color = miniDOT_no)) +
   geom_point(size = 4) +
   geom_line()
                                   

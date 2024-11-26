@@ -1,4 +1,4 @@
-"date_time","Temp_C","DO_mgL","site_year","site","discharge_m3_s","depth_m","pressure_mbar","SW_W_m_2"
+"date_time","Temp_C","DO_mg_L","site_year","site","discharge_m3_s","depth_m","pressure_mbar","SW_W_m_2"
 "2023-06-18 11:35:00",20.781,8.53991127601664,"sfkeel_mir_2023","sfkeel_mir",4.75785896346644,1,1003.7853836475,815.621666666667
 "2023-06-18 11:40:00",20.79,8.56391127601664,"sfkeel_mir_2023","sfkeel_mir",4.75785896346644,1,1003.75878155624,825.053333333333
 "2023-06-18 11:45:00",20.865,8.57591127601664,"sfkeel_mir_2023","sfkeel_mir",4.75785896346644,1,1003.73217946498,834.485
