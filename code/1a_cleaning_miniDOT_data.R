@@ -13,17 +13,19 @@ lapply(c("tidyverse","lubridate", "zoo", "dplyr"),
        require, character.only = T)
 
 # get rid of any dplyr masking
-select <- dplyr::select()
-filter <- dplyr::filter()
+select <- dplyr::select
+filter <- dplyr::filter
 
 # reading in data
 miniDOT_data <- read.csv("./data/EDI_data_package/miniDOT_data.csv")
 
 # change date_time from character to date_time object
-miniDOT_data$date_time <- ymd_hms(miniDOT_data$date_time)
+miniDOT_data$date_time <- as_datetime(miniDOT_data$date_time, tz = "America/Los_Angeles")
 
 # split data into a list
 miniDOT_list <- split(miniDOT_data, miniDOT_data$site_year)
+
+#### (3) 
 
 #### (2) Removing flagged data ####
 
@@ -78,8 +80,12 @@ cleantemp_list <- lapply(cleantemp_list, function(x) interpolate_temp(x))
 
 #### (4) Removing periods of interpolation >6 hours ####
 
+## HAVING DIFFERENCE ISSUES HERE; FILTERED DATES STILL SEEM TO BE APPEARING?
+
 ## To do this, I am referencing original cleaning script I made for the package
 ## and double checking with script "1b_visualizing_miniDOT_data_cleaning.R"
+
+# NOT UNDERSTANDING WHY THERE IS CHANGES HERE
 
 # south fork eel @ miranda 2022
 # removing time where egg sac had been laid directly on sensor foil
@@ -109,7 +115,7 @@ cleantemp_list$sfkeel_mir_2022 <- cleantemp_list$sfkeel_mir_2022 %>%
 # sensor maintenance; unlike the Russian, it's much harder to distinguish the biofouling here
 # from true DO, so unfortunately we have to remove those days
 cleanDO_list$salmon_2022 <- cleanDO_list$salmon_2022 %>% 
-  filter(date_time <= "2022-07-8 11:50:00" | date_time >= "2022-07-11 19:00:00") %>% 
+  filter(date_time <= "2022-07-08 11:50:00" | date_time >= "2022-07-11 19:00:00") %>% 
   filter(date_time <= "2022-07-18 13:40:00" | date_time >= "2022-07-25 19:00:00")
 
 # south fork eel @ miranda 2023
@@ -144,12 +150,8 @@ final_list <- cleantemp_list
 
 # combining in cleanDO dataframe
 for(i in 1:length(final_list)) {
-  final_list[[i]] <- left_join(final_list[[i]], cleanDO_list[[i]]) %>% 
-    na.omit()
+  final_list[[i]] <- left_join(final_list[[i]], cleanDO_list[[i]])
 }
-
-# remove rows where there is no dissolved oxygen data/NAs
-any(is.na(final_list$sfkeel_sth_2023$DO_mgL))
 
 # making a function to change POSIXct column to character to avoid issue in some
 # versions of R where POSIXct drops the "00:00:00" / midnight time when saved to csv
