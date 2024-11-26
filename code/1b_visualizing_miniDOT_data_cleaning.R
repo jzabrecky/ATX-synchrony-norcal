@@ -1,6 +1,6 @@
 #### data visualization for miniDOT data cleaning
 ### Jordan Zabrecky
-## last edited: 11.14.2024
+## last edited: 11.25.2024
 ## (note that dygraphs does not seem to display graph with 4.4.0 version of R)
 
 # This supporting code helped visualize the data cleaning process with
@@ -69,25 +69,25 @@ view_temp_2023 <- function(x) {
 #### (2) Visualizations (dygraphs) ####
 
 # DO cleaning
-view_DO_2022(sfkeel_mir_2022_cleaning_DO) # looks decent. (05.17.24)
-view_DO_2022(russian_2022_cleaning_DO) # looks decent. (05.17.24)
-view_DO_2022(salmon_2022_cleaning_DO)  # lost a lot of days but looks decent now? (05.16.24)
+view_DO_2022(cleanDO_list$sfkeel_mir_2022) # looks decent. (05.17.24)
+view_DO_2022(cleanDO_list$russian_2022) # looks decent. (05.17.24)
+view_DO_2022(cleanDO_list$salmon_2022)  # lost a lot of days but looks decent now? (05.16.24)
 
-view_DO_2023(sfkeel_mir_2023_cleaning_DO) # looks good! (09.14.24)
-view_DO_2023(sfkeel_sth_2023_cleaning_DO) # reupdated trying to get more days after 7.3.24 aren't horrible (11.04.24)
-view_DO_2023(salmon_2023_cleaning_DO) # looks decent (05.17.24)
+view_DO_2023(cleanDO_list$sfkeel_mir_2023) # looks good! (09.14.24)
+view_DO_2023(cleanDO_list$sfkeel_sth_2023) # reupdated trying to get more days after 7.3.24 aren't horrible (11.04.24)
+view_DO_2023(cleanDO_list$salmon_2023) # looks decent (05.17.24)
 # curious that DO does not hit as high of a max here-- fire effects?
 
 # temp cleaning
-view_temp_2022(sfkeel_mir_2022_cleaning_temp) # decided to remove period between weird oscillations 
+view_temp_2022(cleantemp_list$sfkeel_mir_2022) # decided to remove period between weird oscillations 
                                         # where T seems unrealistically low (05.17.24)
-view_temp_2022(russian_2022_cleaning_temp) # looks good! (05.17.24)
-view_temp_2022(salmon_2022_cleaning_temp) # looks good! (05.16.24)
+view_temp_2022(cleantemp_list$russian_2022) # looks good! (05.17.24)
+view_temp_2022(cleantemp_list$salmon_2022) # looks good! (05.16.24)
 
-view_temp_2023(sfkeel_mir_2023_cleaning_temp) # looks good! (05.17.24)
-view_temp_2023(sfkeel_sth_2023_cleaning_temp) # looks good! (07.15.24)
-view_temp_2023(salmon_2023_cleaning_temp) # looks good! (05.16.24)
+view_temp_2023(cleantemp_list$sfkeel_mir_2023) # looks good! (05.17.24)
+view_temp_2023(cleantemp_list$sfkeel_sth_2023) # looks good! (07.15.24)
+view_temp_2023(cleantemp_list$salmon_2023) # looks good! (05.16.24)
 
-# external data from script 1d
+# external data from script "1d_getting_external_DO.R"
 view_DO_2022(USGS_russian) # needed to remove one period but that's it!
 view_temp_2022(USGS_russian) # looks great!
