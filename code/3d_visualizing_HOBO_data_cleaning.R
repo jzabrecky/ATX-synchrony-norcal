@@ -4,7 +4,7 @@
 ## (note that dygraphs does not seem to display graph with 4.4.0 version of R)
 
 # This supporting code helped visualize the data cleaning process with
-# the code from "3c_HOBO_c.R" using the 'dygraphs' package
+# the code from "3c_HOBO_conductivity.R" using the 'dygraphs' package
 
 #### (1) Loading libraries and creating functions to quickly visualize ####
 

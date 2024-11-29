@@ -52,10 +52,7 @@ miniDOT_data$date_time <- as_datetime(miniDOT_data$date_time, tz = "America/Los_
 ## (b) applying offsets from intercalibrations to measured DO
 
 # read in offset csvs
-offsets <- ldply(list.files(path = "./data/miniDOT/intercalibrations/", pattern = "offsets"), function(filename) {
-  d <- read.csv(paste("./data/miniDOT/intercalibrations/", filename, sep = ""))
-  return(d)
-})
+offsets <- read.csv("./data/EDI_data_package/miniDOT_calibration_offsets.csv")
 
 # apply offsets to miniDOT data
 miniDOT_data$DO_mg_L[which(miniDOT_data$site_year == "sfkeel_mir_2022")] <- 
@@ -152,15 +149,9 @@ names(GLDAS_processed) <- site_names # adding names to list
 ## and we are in a mountainous area, so we will adjust the GLDAS data with these measurements
 
 # reading in extech local barometric pressure data
-extech_data <- ldply(list.files(path = "./data/field_and_lab/raw_data/", pattern = "field_params"), function(filename) {
-  df <- read.csv(paste("data/field_and_lab/raw_data/", filename, sep = ""))
-  new_df <- df %>% 
-    mutate(date_time = mdy_hm(paste(field_date, time), tz = "America/Los_Angeles"),
-           year = year(date_time),
-           pressure_mbar_extech = pressure_mmHg * 1.333) %>% 
-    na.omit() %>% 
-    select(date_time, year, site, pressure_mbar_extech)
-})
+extech_data <- read.csv("./data/EDI_data_package/barometric_pressure.csv") %>% 
+  mutate(date_time = ymd_hms(date_time, tz = "America/Los_Angeles"),
+         year = year(date_time))
 
 # to preserve processed data, will make a new list
 GLDAS_adjusted <- GLDAS_processed

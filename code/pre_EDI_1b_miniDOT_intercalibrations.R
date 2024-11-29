@@ -262,6 +262,11 @@ post_2023_plateau_summary$site_year <- "salmon_2023"
 post_2023_plateau_summary$site_year[which(post_2023_plateau_summary$miniDOT_no == 521120)] <- "sfkeel_sth_2023"
 post_2023_plateau_summary$site_year[which(post_2023_plateau_summary$miniDOT_no == 663402)] <- "sfkeel_mir_2023"
 
+# rbind the two csv's together
+final <- rbind(post_2022_plateau_summary, post_2023_plateau_summary) %>% 
+  dplyr::select(site_year, offset) %>% 
+  na.omit %>% 
+  dplyr::filter(site_year != "roving_sensor")
+
 # save csv's
-write.csv(post_2022_plateau_summary, "./data/miniDOT/intercalibrations/offsets_2022.csv", row.names = FALSE)
-write.csv(post_2023_plateau_summary, "./data/miniDOT/intercalibrations/offsets_2023.csv", row.names = FALSE)
+write.csv(final, "./data/EDI_data_package/miniDOT_calibration_offsets.csv", row.names = FALSE)
