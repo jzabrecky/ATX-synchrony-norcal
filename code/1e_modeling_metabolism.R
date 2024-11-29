@@ -1,6 +1,6 @@
 #### modeling metabolism and functions to assess model outputs
 ### Jordan Zabrecky
-## last edited 11.25.2024
+## last edited 11.29.2024
 
 # This code models metabolism using the "streamMetabolizer" package and also
 # provides functions for visualizing inputs & outputs, and saving outputs
