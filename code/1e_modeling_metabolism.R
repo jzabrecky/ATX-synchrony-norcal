@@ -1,6 +1,6 @@
 #### modeling metabolism and functions to assess model outputs
 ### Jordan Zabrecky
-## last edited 11.05.2024
+## last edited 11.29.2024
 
 # This code models metabolism using the "streamMetabolizer" package and also
 # provides functions for visualizing inputs & outputs, and saving outputs
@@ -50,7 +50,7 @@ metab_prep <- function(df) {
     # calculate solar time function from streamMetabolizer
     # will account for our data being in PST
     mutate(solar.time = calc_solar_time(date_time, longitude),
-           DO.obs = DO_mgL,
+           DO.obs = DO_mg_L,
            # calculate DO saturation using function from streamMetabolizer
            DO.sat = calc_DO_sat(Temp_C, pressure_mbar, salinity.water = 0, 
                                 model = "garcia-benson"),
@@ -305,8 +305,6 @@ visualize_inputs_zoomed(inputs_prepped$russian_2022_USGS, "2022-07-01 00:00:00",
 
 # using same specs and binning
 
-russian_2022_USGS <- readRDS("./russian_2022_USGS/russian_2022_USGSmetab_obj.rds")
-
 # get fit and save files
 russian_2022_USGS_fit <- get_fit(russian_2022_USGS)
 write_files(russian_2022_USGS_fit, russian_2022_USGS, "/russian_2022_USGS/", "russian_2022_USGS")
@@ -385,6 +383,7 @@ write_files(salmon_2022_fit, salmon_2022, "/salmon_2022/",
 
 # plot metab estimates (note: these are w/o correct depths and will change)
 plot_metab_preds(salmon_2022) # ER estimation issues; some 95% into positive; likely due to high Q?
+# also GPP drop late August by fire to the south; overestimates drop as 95% interval into negative
 
 # plot GPP estimates w/ sensor cleaning dates
 ggplot(salmon_2022_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
@@ -414,16 +413,16 @@ plot_DO_preds(salmon_2022, date_start = "2022-09-18", date_end = "2022-09-22")
 # plot binning, ER vs. K600, correlation test for ER and K600, and K600
 plot_binning(salmon_2022_fit, salmon_2022, "Salmon 2022") # points all within bins
 plot_ER_K600(salmon_2022_fit, "Salmon 2022")
-cor.test(salmon_2022_fit$daily$ER_mean, salmon_2022_fit$daily$K600_daily_mean) # correlated .482; p << 0.001
+cor.test(salmon_2022_fit$daily$ER_mean, salmon_2022_fit$daily$K600_daily_mean) # correlated .479; p << 0.001
 plot_K600(salmon_2022_fit, "Salmon 2022")
 
 # convergence assessment
-rstan::traceplot(get_mcmc(salmon_2022), pars='GPP_daily', nrow=10) # looks good
+rstan::traceplot(get_mcmc(salmon_2022), pars='GPP_daily', nrow=10) # looks great
 rstan::traceplot(get_mcmc(salmon_2022), pars='ER_daily', nrow=10)
 rstan::traceplot(get_mcmc(salmon_2022), pars='K600_daily', nrow=10) # look decent
 
 # goodness of fit metrics
-calc_gof_metrics(salmon_2022, "/salmon_2022/", "salmon_2022") # rmse 0.52, nrsme 0.053
+calc_gof_metrics(salmon_2022, "/salmon_2022/", "salmon_2022") # rmse 0.51, nrsme 0.052
 
 # remove large model object before starting next run
 rm(salmon_2022, salmon_2022_fit)
@@ -485,7 +484,7 @@ plot_DO_preds(salmon_2023, date_start = "2023-09-20", date_end = "2023-09-28")
 # plot binning, ER vs. K600, correlation test for ER and K600, and K600
 plot_binning(salmon_2023_fit, salmon_2023, "Salmon 2023") # points all within bins
 plot_ER_K600(salmon_2023_fit, "Salmon 2023")
-cor.test(salmon_2023_fit$daily$ER_mean, salmon_2023_fit$daily$K600_daily_mean) # correlated -.568; p << 0.001
+cor.test(salmon_2023_fit$daily$ER_mean, salmon_2023_fit$daily$K600_daily_mean) # correlated -.569; p << 0.001
 plot_K600(salmon_2023_fit, "Salmon 2023")
 
 # convergence assessment
@@ -562,7 +561,7 @@ cor.test(sfkeel_mir_2022_fit$daily$ER_mean, sfkeel_mir_2022_fit$daily$K600_daily
 plot_K600(sfkeel_mir_2022_fit, "South fork eel @ miranda 2022")
 
 # convergence assessment
-rstan::traceplot(get_mcmc(sfkeel_mir_2022), pars='GPP_daily', nrow=10) # looks good
+rstan::traceplot(get_mcmc(sfkeel_mir_2022), pars='GPP_daily', nrow=10) # looks great
 rstan::traceplot(get_mcmc(sfkeel_mir_2022), pars='ER_daily', nrow=10)
 rstan::traceplot(get_mcmc(sfkeel_mir_2022), pars='K600_daily', nrow=10) # looks good
 
@@ -746,7 +745,7 @@ plot_DO_preds(sfkeel_sth_2023, date_start = "2023-09-24", date_end = "2023-09-30
 # plot binning, ER vs. K600, correlation test for ER and K600, and K600
 plot_binning(sfkeel_sth_2023_fit, sfkeel_sth_2023, "South fork eel @ standish hickey 2023") # points all within bins
 plot_ER_K600(sfkeel_sth_2023_fit, "South fork eel @ standish hickey 2023")
-cor.test(sfkeel_sth_2023_fit$daily$ER_mean, sfkeel_sth_2023_fit$daily$K600_daily_mean) # not correlated .158; p = 0.1878
+cor.test(sfkeel_sth_2023_fit$daily$ER_mean, sfkeel_sth_2023_fit$daily$K600_daily_mean) # not correlated .139; p = 0.2469
 plot_K600(sfkeel_sth_2023_fit, "South fork eel @ standish hickey 2023")
 
 # convergence assessment
