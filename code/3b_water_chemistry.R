@@ -1,10 +1,11 @@
 #### putting together water chemistry data from field and lab measurements
 ### Jordan Zabrecky
-## last edited: 10.03.2024
+## last edited: 11.29.2024
 
 # This code combines in-situ water chemistry measurements, AQ400 nitrate, ammonium,
 # and orthophosphate values, Shimadzu total dissolved carbon, dissolved organic
 # carbon, and Ion Chromatography anions & cations (2022 only) for water samples
+# and also processes duplicates
 
 #### (1) Loading libraries and reach data ####
 
@@ -16,112 +17,172 @@ lapply(c("tidyverse", "lubridate", "plyr"), require, character.only = T)
 # function to read in data from our folder to a data frame based on name
 # (note that the folder path is hard-coded in)
 read_data <- function(name) {
-  ldply(list.files(path = "./data/field_and_lab/raw_data/", 
+  ldply(list.files(path = "./data/EDI_data_package/", 
                    pattern = name), function(filename) {
-                     d <- read.csv(paste("data/field_and_lab/raw_data/", filename, sep = ""))
-                     d$field_date <- mdy(d$field_date)
+                     d <- read.csv(paste("data/EDI_data_package/", filename, sep = ""))
+                     d$field_date <- ymd(d$field_date)
                      return(d)
                    })
 }
 
 # reading in all water chemistry parameters
-field_params <- read_data("field_params")
-aq400 <- read_data("aq400")
-shimadzu <- read_data("shimadzu")
-IC <- read_data("IC")
+field_params <- read_data("in_situ")
+aq400 <- read_data("nutrient") %>% 
+  dplyr::rename(ammonium_mg_N_L = calculated_ammonium_mg_N_L )
+shimadzu <- read_data("carbon")
+IC <- read_data("anion_cation")
 
 #### (2) Processing AQ400 values ####
 
-## (a) Values below detection limit
-# replace values below detection limits with half the detection limit value
-aq400$raw_ammonia_ammonium_mg_N_L <- replace(aq400$raw_ammonia_ammonium_mg_N_L, 
-                                    which(aq400$raw_ammonia_ammonium_mg_N_L == "<0.002"),
-                                    "0.001")
+## (a) analyzing instrument duplicates
+aq400_instrument_dups <- aq400 %>%
+  filter(instrument_duplicate == "y") %>% 
+  dplyr::group_by(site_reach, site, reach, field_date, assumed_pH) %>% 
+  dplyr::summarize(mean_ophos = mean(oPhos_ug_P_L),
+                   sd_ophos = sd(oPhos_ug_P_L),
+                   rsd_ophos = sd_ophos * 100 / mean_ophos,
+                   mean_nitrate = mean(nitrate_mg_N_L),
+                   sd_nitrate = sd(nitrate_mg_N_L),
+                   rsd_nitrate = sd_nitrate * 100 / mean_nitrate,
+                   mean_amm = mean(ammonium_mg_N_L), 
+                   sd_amm = sd(ammonium_mg_N_L),
+                   rsd_amm = sd_amm * 100 / mean_amm,
+                   # preserved keeps value if it was only a duplicate for a
+                   # different nutrient (for when we join this back in)
+                   preserve_ophos = mean(na.omit(oPhos_ug_P_L)),
+                   preserve_nitrate = mean(na.omit(nitrate_mg_N_L)),
+                   preserve_amm = mean(na.omit(ammonium_mg_N_L)))
 
-# convert column to numeric for calculations
-aq400$raw_ammonia_ammonium_mg_N_L <- as.numeric(aq400$raw_ammonia_ammonium_mg_N_L)
+# look at instrument duplicate results
+view(aq400_instrument_dups) #ophos and nitrate more consistent than ammonium
+mean(na.omit(aq400_instrument_dups$rsd_ophos)) # average 3.44%
+mean(na.omit(aq400_instrument_dups$rsd_nitrate)) # average 4.52%
+mean(na.omit(aq400_instrument_dups$rsd_amm)) # average 11.31%
 
-# (b) Calculating true ammonium values based on Emerson et al. 1975
+## (b) analyzing field_duplicates
+aq400_field_dups <- aq400 %>%
+  filter(field_duplicate == "y") %>% 
+  dplyr::group_by(site_reach, site, reach, field_date, assumed_pH) %>% 
+  dplyr::summarize(mean_ophos = mean(oPhos_ug_P_L),
+                   sd_ophos = sd(oPhos_ug_P_L),
+                   rsd_ophos = sd_ophos * 100 / mean_ophos,
+                   mean_nitrate = mean(nitrate_mg_N_L),
+                   sd_nitrate = sd(nitrate_mg_N_L),
+                   rsd_nitrate = sd_nitrate * 100 / mean_nitrate,
+                   mean_amm = mean(ammonium_mg_N_L), 
+                   sd_amm = sd(ammonium_mg_N_L),
+                   rsd_amm = sd_amm * 100 / mean_amm)
 
-# need to use pH and temperature data to calculate ammonium, so merge df's
-water_chemistry <- left_join(field_params, aq400, by = c("field_date", "site_reach", "site", "reach"))
+# look at field duplicate results
+view(aq400_field_dups) #ophos more consistent than nitrate and ammonium
+mean(aq400_field_dups$rsd_ophos) # average 5.88%
+mean(aq400_field_dups$rsd_nitrate) # average 11.70%
+mean(aq400_field_dups$rsd_amm) # average 24.71% which is high but field duplicate
 
-# we unfortunately did not have a pH probe first month in the field
-# so let's just assume the missing pH was roughly similar to the first time
-# we were able to measure pH for each site_reach
-# and call this column "assumed_pH"
+## (c) putting aq400 values back together
 
-# create data frame (that will we convert to a vector) to fill in missing values
-assumed_pH <- water_chemistry %>% 
-  filter(field_date < mdy("7-28-2022")) %>% 
-  mutate(assumed_pH = case_when(site_reach == "RUS-1S" ~ water_chemistry$pH[25],
-                                site_reach == "SAL-1S" ~ water_chemistry$pH[49],
-                                site_reach == "SAL-2" ~ water_chemistry$pH[50],
-                                site_reach == "SAL-3" ~ water_chemistry$pH[51],
-                                site_reach == "SFE-M-1S" ~ water_chemistry$pH[22],
-                                site_reach == "SFE-M-3" ~ water_chemistry$pH[23],
-                                site_reach == "SFE-M-4" ~ water_chemistry$pH[24],
-                                site_reach == "RUS-2" ~ water_chemistry$pH[26],
-                                site_reach == "RUS-3" ~ water_chemistry$pH[27])) %>% 
-  select(assumed_pH)
+# original data that does not contain duplicates
+nutrients <- aq400 %>% 
+  filter(instrument_duplicate == "n" & field_duplicate == "n") %>% 
+  select(site_reach, site, reach, field_date, oPhos_ug_P_L, nitrate_mg_N_L,
+         ammonium_mg_N_L, assumed_pH)
 
-# create column in water chemistry data frame
-water_chemistry$assumed_pH <- water_chemistry$pH
+# instrument duplicates
+aq400_instrument_dups <- aq400_instrument_dups %>% 
+  dplyr::rename(oPhos_ug_P_L = preserve_ophos,
+                nitrate_mg_N_L = preserve_nitrate,
+                ammonium_mg_N_L = preserve_amm) %>% 
+  select(site_reach, site, reach, field_date, oPhos_ug_P_L, nitrate_mg_N_L,
+         ammonium_mg_N_L, assumed_pH)
 
-# fill in missing values with above vector
-for(i in 1:21) {
-  water_chemistry$assumed_pH[i] <- assumed_pH[i,]
-}
+# field duplicates
+aq400_field_dups <- aq400_field_dups %>% 
+  dplyr::rename(oPhos_ug_P_L = mean_ophos,
+                nitrate_mg_N_L = mean_nitrate,
+                ammonium_mg_N_L = mean_amm) %>% 
+  select(site_reach, site, reach, field_date, oPhos_ug_P_L, nitrate_mg_N_L,
+         ammonium_mg_N_L, assumed_pH)
 
-# function to calculate true proportions of unionized-ammonia (NH3) 
-# and ionized-ammonium (NH4+) using data with assumed pH column 
-# and equation from Emerson et al. (1975)
-calculate_NH4 <- function(data) {
-  # assign variables
-  temp = data$temp_C
-  pH = data$assumed_pH
-  NH3 = data$raw_ammonia_ammonium_mg_N_L
-  
-  # calculate pKa
-  pKa = 0.09018 + 2727.92/(temp+273.15)
-  
-  # calculate fraction of NH3
-  f = 1/(10^(pKa-pH)+1)
-  
-  # calculate concentration of ammonium (NH4)
-  NH4 = (1-f)*NH3
-  
-  # creating new column for calculated ammonium (NH4) concentration
-  data$ammonium_mg_N_L <- round(NH4, 5) # limit decimal places to 5 like input values
-  
-  # return data with new column
-  return(data)
-}
+# merging together data frames
+nutrients <- rbind(nutrients, aq400_field_dups, aq400_instrument_dups)
 
-# apply function
-water_chemistry <- calculate_NH4(water_chemistry)
+# join with field parameters
+water_chemistry <- left_join(field_params, nutrients, by = c("field_date",
+                                                                "site_reach",
+                                                                "site", "reach"))
 
-#### (3) Processing Shimadzu and Ion Chromotography values
+#### (3) Processing Shimadzu data ####
 
-# all shimadzu values above detection limit (50 ug/L or 0.05 mg/L)
+## (a) analyzing field duplicates
+shimadzu_field_dups <- shimadzu %>%
+  filter(field_duplicate == "y") %>% 
+  dplyr::group_by(site_reach, site, reach, field_date) %>% 
+  dplyr::summarize(mean_TDC = mean(TDC_mg_L),
+                   sd_TDC = sd(TDC_mg_L),
+                   rsd_TDC = sd_TDC * 100 / mean_TDC,
+                   mean_DOC = mean(DOC_mg_L),
+                   sd_DOC = sd(DOC_mg_L),
+                   rsd_DOC = sd_DOC * 100 / mean_DOC)
 
-# ion-chromatography cations & anions
-IC$Br_mg_L <- replace(IC$Br_mg_L, which(IC$Br_mg_L == "<0.01"), "0.005")
-# don't need to convert to numeric as we aren't doing any calculations in this script
+# look at field duplicate results
+view(shimadzu_field_dups) #DOC worse than TDC but again field duplicates not instrument 
+mean(shimadzu_field_dups$rsd_TDC) # average 12.84%
+mean(shimadzu_field_dups$rsd_DOC) # average 25.07%
 
-#### (4) Joining data together and saving final csv ####
+## (b) putting shimadzu values back together
 
-# join in Shimadzu data
-water_chemistry <- left_join(water_chemistry, shimadzu, by = c("site_reach", "site",
-                                                               "reach", "field_date"))
+# original data that does not contain duplicates
+carbon <- shimadzu %>% 
+  filter(field_duplicate == "n") %>% 
+  select(site_reach, site, reach, field_date, TDC_mg_L, DOC_mg_L)
 
-# join in IC data
-water_chemistry <- left_join(water_chemistry, IC, by = c("site_reach", "site",
-                                                         "reach", "field_date"))
+# field duplicates
+shimadzu_field_dups <- shimadzu_field_dups %>% 
+  dplyr::rename(TDC_mg_L = mean_TDC,
+                DOC_mg_L = mean_DOC) %>% 
+  select(site_reach, site, reach, field_date, TDC_mg_L, DOC_mg_L)
 
-# remove pressure measurements
-water_chemistry_final <- water_chemistry %>%
-  select(!pressure_mmHg)
+# merging together data frames
+carbon <- rbind(carbon, shimadzu_field_dups)
+
+# join with water chemistry
+water_chemistry <- left_join(water_chemistry, carbon, by = c("field_date",
+                                                             "site_reach",
+                                                             "site", "reach"))
+
+#### (4) Processing IC data ####
+
+## (a) analyzing field duplicates
+IC_field_dups <- IC %>%
+  filter(field_duplicate == "y")
+
+# just looking at them visually since there is only three and will 
+# probably not use this data anyways
+view(IC_field_dups)
+
+# average out duplicates
+IC_field_dups <- IC_field_dups %>% 
+  dplyr::group_by(field_date, site_reach, site, reach) %>% 
+  dplyr::summarize(Cl_mg_L = mean(Cl_mg_L),
+                   SO4_mg_L = mean(SO4_mg_L),
+                   Br_mg_L = mean(Br_mg_L),
+                   Na_mg_L = mean(Na_mg_L),
+                   K_mg_L = mean(K_mg_L),
+                   Mg_mg_L = mean(Mg_mg_L),
+                   Ca_mg_L = mean(Ca_mg_L))
+
+# original data that does not contain duplicates
+anions_cations <- IC %>% 
+  filter(field_duplicate == "n") %>% 
+  select(!Br_below_detection & !field_duplicate)
+
+# join in data
+anions_cations <- rbind(anions_cations, IC_field_dups)
+
+# join with water chemistry
+water_chemistry <- left_join(water_chemistry, anions_cations, by = c("field_date",
+                                                             "site_reach",
+                                                             "site", "reach"))
 
 # save csv
-write.csv(water_chemistry_final, "./data/field_and_lab/water_chemistry.csv", row.names = FALSE)
+write.csv(water_chemistry, "./data/field_and_lab/water_chemistry.csv", row.names = FALSE)

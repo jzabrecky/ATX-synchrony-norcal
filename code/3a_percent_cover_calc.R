@@ -1,6 +1,6 @@
 #### calculating percent cover from reach surveys for each reach & site
 ### Jordan Zabrecky
-## last edited: 09.30.2024
+## last edited: 11.26.2024
 
 # This code calculates averages using % cover data for each study reach
 # and additionally each river site (designated by nearby sensors & USGS gage)
@@ -13,35 +13,12 @@
 lapply(c("tidyverse", "lubridate"), require, character.only = T)
 
 # loading raw % cover data
-percover22_raw <- read.csv("./data/field_and_lab/raw_data/percover_2022.csv")
-percover23_raw <- read.csv("./data/field_and_lab/raw_data/percover_2023.csv")
+percover <- read.csv("./data/EDI_data_package/benthic_surveys.csv")
 
-#### (2) Checking field data ####
-# externally checked for issues, but double-checking!
-
-# making temporary data frames with a total column
-percover22_test <- percover22_raw %>% 
-  mutate(total = green_algae + Microcoleus + Anabaena_Cylindrospermum + bare_biofilm + other_N_fixers)
-
-percover23_test <- percover23_raw %>% 
-  mutate(total = green_algae + Microcoleus + Anabaena_Cylindrospermum + bare_biofilm + other_N_fixers)
-
-# looking to see if any != 100%
-which(percover22_test$total != 100)
-which(percover23_test$total != 100)
-# all 100- we are all good :)
-
-# remove the temporary dataframes
-rm(percover22_test, percover23_test)
-
-# merging them
-percover_raw <- rbind(percover22_raw, percover23_raw)
+# convert field_date to date type
+percover$field_date <- mdy(percover$field_date)
 
 #### (3) Calculating percent cover for each reach on each sampling day ####
-
-# creating new dataframe for manipulations
-percover <- percover_raw %>% 
-  mutate(field_date = mdy(field_date))
 
 ## function to calculate % cover averages for each reach on each sampling day
 average_per_reach <- function(data) {
