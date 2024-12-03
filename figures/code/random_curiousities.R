@@ -209,3 +209,76 @@ Q_depth <- ggplot(data = sophie_offset$sfkeel_sth, aes(x = log(discharge_cms), y
   ggtitle("Standish Hickey (Sophie w/ offset in blue; kayak in Red") +
   theme_bw()
 Q_depth
+
+#### scatter plot of % cover vs. % transects
+percover <- percover %>% 
+  mutate(percent_micro_transects = proportion_micro_transects * 100,
+         percent_ana_cyl_transects = proportion_ana_cyl_transects * 100)
+
+micro_scatterplots <- ggplot(data = percover, aes(x = microcoleus, percent_micro_transects)) +
+  geom_point(color = "purple", size = 2) +
+  labs(x = "Microcoleus % cover (measured via quadrat)", y = "% of Transects w/ Microcoleus Present") +
+  facet_wrap(~site_reach) +
+  theme_bw()
+micro_scatterplots
+
+
+ana_scatterplots <- ggplot(data = percover, aes(x = anabaena_cylindrospermum, percent_ana_cyl_transects)) +
+  geom_point(color = "green", size = 2) +
+  labs(x = "Anabaena and/or Cylindrospermum % cover (measured via quadrat)", 
+       y = "% of Transects w/ Anabaena and/or Cylindrospermum Present") +
+  facet_wrap(~site_reach) +
+  theme_bw()
+ana_scatterplots
+
+# creation of 50-50 metric
+percover_metric <- percover %>% 
+  mutate(metric_micro = (percent_micro_transects * .5) + (microcoleus * .5),
+         metric_anacyl = (percent_ana_cyl_transects * .5) + (anabaena_cylindrospermum * .5)) %>% 
+  select(field_date, site_reach, microcoleus, anabaena_cylindrospermum, percent_micro_transects, 
+         percent_ana_cyl_transects, metric_micro, metric_anacyl) %>% 
+  mutate(year = year(field_date),
+         site_reach_year = paste(site_reach, year))
+
+# maybe over time comparing the two and metric whatever that may be
+percover_long <- pivot_longer(percover_metric, cols = c(3:8), names_to = "type", values_to = "value")
+percover_long_micro <- percover_long %>% 
+  filter(type == "metric_micro" | type == "microcoleus" | type == "percent_micro_transects") %>% 
+  dplyr::filter(site_reach != "RUS-1S" & site_reach != "RUS-2" & site_reach != "RUS-3")
+percover_long_anacyl <- percover_long %>% 
+  filter(type == "anabaena_cylindrospermum" | type == "percent_ana_cyl_transects" | type == "metric_anacyl") %>% 
+  filter(site_reach != "SAL-1S" & site_reach != "SAL-2" & site_reach != "SAL-3")
+
+## plots yay
+micro_time_plot <- ggplot(data = percover_long_micro, aes(x = field_date, y = value, color = type, shape = type)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~site_reach_year, scales = "free") +
+  scale_color_manual(labels = c("Calculated Metric", "Quadrat Percent Cover", "Percent of Transects Present"), 
+                     values = c("red", "blue", "green")) +
+  scale_shape_manual(labels = c("Calculated Metric", "Quadrat Percent Cover", "Percent of Transects Present"), 
+                     values = c(15, 16, 17)) +
+  labs("Microcoleus") +
+  theme_bw()
+micro_time_plot
+# definitely prefer this to just cover but looking at eel-sth I wonder if we could do 2/3 quadrat cover, 1/3 transect cover
+# I guess if it's just a metric though the value does not necessarily reflect the % cover I feel that the entire reach was covered
+
+anacyl_time_plot <- ggplot(data = percover_long_anacyl, aes(x = field_date, y = value, color = type, shape = type)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~site_reach_year, scales = "free") +
+  scale_color_manual(labels = c("Quadrat Percent Cover", "Calculated Metric", "Percent of Transects Present"), 
+                     values = c("red", "blue", "green")) +
+  scale_shape_manual(labels = c("Quadrat Percent Cover", "Calculated Metric", "Percent of Transects Present"), 
+                     values = c(15, 16, 17)) +
+  labs("Anabaena & Cylindrospermum") +
+  theme_bw()
+anacyl_time_plot
+
+# could also think about percent of transects that it could theoretically occupy 
+# however, this is complicated by the fact in that mid August virtually everything seems to get covered with
+# microcoleus even in the pools
+# so for a lot of eel sites it would be out of all transects anyways
+
+# also realized plots for salmon and russian aren't even necessary here
