@@ -1,6 +1,6 @@
 #### getting field and lab data together for the EDI package
 ### Jordan Zabrecky
-## last edited: 11.28.2024
+## last edited: 12.06.2024
 
 # This code puts together raw field and lab data for release in the EDI package
 
@@ -171,13 +171,13 @@ aq400 <- calculate_NH4(aq400)
 aq400 <- aq400 %>% replace(is.na(.), "NA")
 
 # saving csv
-write.csv(aq400, "./data/EDI_data_package/water_nutrient_measurements.csv",
+write.csv(aq400, "./data/EDI_data_package/water_nutrient_concentrations.csv",
           row.names = FALSE)
 
 ## (c) shimadzu carbon measurements
 
 # everything is good so just need to write the csv!
-write.csv(shimadzu, "./data/EDI_data_package/water_carbon_measurements.csv",
+write.csv(shimadzu, "./data/EDI_data_package/water_carbon_concentrations.csv",
           row.names = FALSE)
 
 ## (d) IC anion/cation
@@ -186,24 +186,184 @@ write.csv(shimadzu, "./data/EDI_data_package/water_carbon_measurements.csv",
 IC$Br_mg_L <- replace(IC$Br_mg_L, which(IC$Br_mg_L == "<0.01"), "0.005")
 
 # save csv
-write.csv(IC, "./data/EDI_data_package/water_anion_cation_measurements.csv",
+write.csv(IC, "./data/EDI_data_package/water_anion_cation_concentrations.csv",
           row.names = FALSE)
 
 #### (4) Kayak depths ####
 
 ## (a) South Fork Eel River
+
+# read in data
 sfkeel_kayak <- read.csv("./data/field_and_lab/raw_data/sfkeel_kayak_measurements.csv")
 
+# change column names, site names, and remove columns we don't necessarily need
+sfkeel_kayak <- sfkeel_kayak %>% 
+  dplyr::rename(field_date = Date,
+         measurement_type = Meas_Type,
+         transect = Transect) %>% 
+  mutate(meters = case_when(is.na(Width_m) ~ (Depth_cm_final / 100),
+                            TRUE ~ Width_m),
+         site = case_when(Site == "SfkEel_Miranda" ~ "SFE-M",
+                          Site == "SfkEel_Standish" ~ "SFE-SH")) %>% 
+  select(field_date, site, transect, measurement_type, meters)
+
 ## (b) Salmon River
-## NEED TO CHECK WITH LAUREL AND SALMON RIVER
 
-# replace site names
+# read in data
+salmon_kayak <- read.csv("./data/field_and_lab/raw_data/salmon_kayak_measurements.csv")
 
-# want someway to put these together I think
+# change column names, add site name, transect, measurement type, and remove columns we don't necessarily need
+salmon_kayak <- salmon_kayak %>% 
+  dplyr::rename(field_date = Date, 
+                meters = Depth_m) %>% 
+  mutate(site = "SAL",
+         measurement_type = "depth",
+         transect = "NA") %>% # no transect counts for salmon river
+  select(field_date, site, transect, measurement_type, meters)
+
+# rbind two dataframes together and omit any NA (e.g. from bad GPS estimates for width)
+kayak_final <- rbind(sfkeel_kayak, salmon_kayak) %>% 
+  na.omit() # won't omit the character put in NA's above
+
+# convert field_date to yyyy-mm-dd
+kayak_final$field_date <- mdy(kayak_final$field_date)
+
+# save csv
+write.csv(kayak_final, "./data/EDI_data_package/kayak_depth_width.csv", row.names = FALSE)
 
 #### (5) Pebble Count ####
 
-#### (6) Ash-Free Dry-Mass ####
+# read in data
+pebble_count <- read.csv("./data/field_and_lab/raw_data/pebble_count.csv")
 
-# need to put triplicates in?
+# change column and site names
+pebble_count <- pebble_count %>% 
+  dplyr::rename(field_date = Date,
+                sample_number = X.,
+                intermediate_axis_mm = Intermediate_axis._mm,
+                habitat_type = Habitat_type,
+                transect = Transect) %>% 
+  mutate(site = case_when(Site == "SfkEel_Miranda" ~ "SFE-M",
+                          Site == "SfkEel_Standish" ~ "SFE-SH")) %>% 
+  mutate(site_reach = case_when(Section == "EEL-4S" ~ "SFE-M-1S",
+                                Section == "EEL-BUG" ~ "SFE-M-2",
+                                Section == "EEL-3UP" ~ "SFE-M-3",
+                                Section == "EEL-2UP" ~ "SFE-M-4",
+                                Section == "EEL-STH" ~ "SFE-SH-1S",
+                                Section == "kayak_entry" ~ "SFE-SH-kayak-entry")) %>% 
+  select(field_date, site, site_reach, transect, sample_number, intermediate_axis_mm, habitat_type)
 
+any(is.na(pebble_count))
+
+# convert field_date to yyyy-mm-dd
+pebble_count$field_date <- mdy(pebble_count$field_date)
+
+# save csv
+write.csv(pebble_count, "./data/EDI_data_package/pebble_count.csv", row.names = FALSE)
+
+#### (6) Sontek Measured Discharge ####
+
+# read in data
+sontek <- read.csv("./data/field_and_lab/raw_data/sontek_discharge.csv")
+
+# make date time column and select what we care about and notes column for SFE-SH
+sontek <- sontek %>% 
+  mutate(date_time = mdy_hm(paste(date, time, sep = " "))) %>% 
+  mutate(discharge_flag = case_when(site == "SFE-SH" ~ "Y",
+                           TRUE ~ "N")) %>% 
+  select(site, date_time, discharge_m3_s, discharge_flag)
+
+# making a function to change date_time column to character to avoid issue in some
+# versions of R where date_time drops the "00:00:00" / midnight time when saved to csv
+sontek$date_time <- as.character(format(sontek$date_time))
+
+# save csv
+write.csv(sontek, "./data/EDI_data_package/discharge_measurements.csv", row.names = FALSE)
+
+#### (6) Target Sample Percent Organic Matter ####
+
+# reading in weights measured at UC-B Angelo Reserve Lab
+dry_mass <- ldply(list.files(path = "./data/field_and_lab/raw_data/", 
+                         pattern = "angelo"), function(filename) {
+                           d <- read.csv(paste("data/field_and_lab/raw_data/", filename, sep = ""))
+                           d$field_date <- mdy(d$field_date)
+                           return(d)
+                         })
+
+# calculate dry weight (both organic and inorganic matter) without tin weight
+dry_mass$dry_sample_g <- dry_mass$dry_sample_tin_g - dry_mass$tin_g
+
+# calculate AFDM (ash-free dry mass or organic matter)
+dry_mass$afdm_g <- dry_mass$dry_sample_tin_g - dry_mass$combusted_sample_tin_g
+
+# calculate percent organic matter (percent of matter that is organic/combusted)
+dry_mass$percent_organic_matter <- (dry_mass$afdm_g / dry_mass$dry_sample_g) * 100
+
+# round everything to reasonable decimal places
+dry_mass <- dry_mass %>% 
+  mutate(dry_sample_g = round(dry_sample_g, digits = 5),
+         afdm_g = round(afdm_g, digits = 5),
+         percent_organic_matter = round(percent_organic_matter, digits = 5))
+
+# replace missing values with NA (samples that molded) as missing value code for EDI
+dry_mass <- dry_mass %>% replace(is.na(.), "NA")
+
+# save csv
+write.csv(dry_mass, "./data/EDI_data_package/target_sample_percent_organic_matter.csv", row.names = FALSE)
+
+#### (7) Target Sample Anatoxins ####
+
+# reading in ATX data and sample metadata
+anatoxins_full <- read.csv("./data/field_and_lab/raw_data/SUNY_ESF_LCMS_MS.csv")
+metadata <- read.csv("./data/field_and_lab/raw_data/SUNY_ESF_metadata.csv")
+
+## (a) cleaning ESF csv
+# lots of cleaning to be done with SUNY ESF data sheet...
+view(anatoxins_full)
+
+# columns 2, 26, 27, 31, 32, 33, 36, 38, 40, 42 are important
+anatoxins_reduced <- anatoxins_full[c(2, 26, 27, 34, 37, 39, 41, 43)]
+# (I already know all of our samples had none of the 
+# three cylindrospermopsin derivatives tested, so not including them here)
+
+# rename these columns to be more computer-legible
+labels <- c("ESF_ID", "MCY_ug_g", "MCY_det_limit_full", "ATX_det_limit_full", 
+            "ATXa_ug_g", "HTXa_ug_g", "dhATXa_ug_g", "dhHTXa_ug_g")
+
+# adding labels as column names
+colnames(anatoxins_reduced) <- labels
+
+# convert columns that are character class to numeric 
+# (this will replace the "-" with NA)
+anatoxins_reduced[5:8] <- sapply(anatoxins_reduced[5:8], as.numeric)
+
+# parse detection limit column and convert to numeric
+anatoxins_reduced <- anatoxins_reduced %>%
+  mutate(MCY_det_limit = as.numeric(str_sub(anatoxins_reduced$MCY_det_limit_full,3, 6)),
+         ATX_det_limit = as.numeric(str_sub(anatoxins_reduced$ATX_det_limit_full,3, 8))) %>% 
+  select(-MCY_det_limit_full, -ATX_det_limit_full)
+
+# calculate total anatoxins
+anatoxins_processed <- anatoxins_reduced %>% 
+  mutate(ATX_all_ug_g = ATXa_ug_g + HTXa_ug_g + dhATXa_ug_g + dhHTXa_ug_g)
+
+# fill in missing values/non-detects with "ND"
+anatoxins_processed <- replace(anatoxins_processed, is.na(anatoxins_processed), "ND")
+
+# match ESF_ID with metadata
+combined <- left_join(metadata, anatoxins_processed, by = "ESF_ID") %>% 
+  dplyr::select(!ESF_ID) %>% 
+  # un-needed Gloeotrichia and Microcoleus from Poudre
+  filter(sample_type != "Gloeotrichia" & sample_type != "Microcoleus")
+
+# convert field_date to yyyy-mm-dd
+combined$field_date <- mdy(combined$field_date)
+
+# convert to character to add in NAs
+combined$field_date <- as.character(combined$field_date)
+
+# replace blank sample information with NA (no information) as missing value code for EDI
+combined <- combined %>% replace(is.na(.), "NA")
+
+# save csv
+write.csv(combined, './data/EDI_data_package/anatoxin_concentrations.csv', row.names = FALSE)
