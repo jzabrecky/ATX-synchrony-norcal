@@ -446,4 +446,4 @@ any(is.na(final)) # FALSE- we are good!
 final$date_time <- as.character(format(final$date_time))
 
 # save final csv to EDI data package folder
-write.csv(final, "./data/EDI_data_package/HOBO_cond_data.csv", row.names = FALSE)
+write.csv(final, "./data/EDI_data_package/HOBO_conductivity_data.csv", row.names = FALSE)

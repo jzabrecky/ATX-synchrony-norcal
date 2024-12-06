@@ -1,6 +1,6 @@
 #### processing chlorophyll-a and pheophytin concentrations for freeze-dried cyanobacteria mass
 ### Jordan Zabrecky (modified from Joanna Blaszczak)
-## last edited 10.08.24
+## last edited 12.06.24
 
 # This code calculates chlorophyll-a and pheophytin concentrations for freeze-dried
 # cyanobacteria mass from RFUs obtained from the Blaszczak Lab's Trilogy Fluorometer 

@@ -17,7 +17,7 @@ filter <- dplyr::filter
 rename <- dplyr::rename
 
 # load in HOBO data & only keep columns we care about
-HOBO <- read.csv("./data/EDI_data_package/HOBO_cond_data.csv") %>% 
+HOBO <- read.csv("./data/EDI_data_package/HOBO_conductivity_data.csv") %>% 
   rename(cond_uS_cm = low_range_cond_uS_cm) %>%  # using low range
   select(date_time, site_year, temp_C, cond_uS_cm, cond_flag)
 
