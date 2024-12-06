@@ -1,6 +1,6 @@
 #### assembling and flagging HOBO U-24 sensor conductivity & temperature data
 ### Jordan Zabrecky
-## last edited 11.26.24
+## last edited 12.05.24
 
 # This code reads in csv's of conductivity data from HOBO-U24 sensors saved 
 # from the HOBOware software and removes any outliers or periods where 
@@ -147,7 +147,8 @@ HOBO_list$sfkeel_sth_2023 <- HOBO_list$sfkeel_sth_2023 %>%
   filter(date_time <= "2023-08-07 07:45:00" | date_time >= "2023-08-07 08:20:00") %>% 
   filter(date_time <= "2023-08-14 08:09:00" | date_time >= "2023-08-14 08:29:00") %>% 
   filter(date_time <= "2023-08-22 08:00:00" | date_time >= "2023-08-22 08:50:00") %>% 
-  filter(date_time <= "2023-08-24 11:08:00" | date_time >= "2023-08-24 11:10:00") %>%  # toggled w/ brick to redeploy HOBO
+  # toggled w/ brick to redeploy HOBO; remove missing times where HOBO on but not in water
+  filter(date_time <= "2023-08-24 07:40:00" | date_time >= "2023-08-24 11:10:00") %>% 
   filter(date_time <= "2023-08-28 08:37:00" | date_time >= "2023-08-28 08:58:00") %>% 
   filter(date_time <= "2023-09-04 08:34:00" | date_time >= "2023-09-04 08:50:00") %>% 
   filter(date_time <= "2023-09-12 08:20:00" | date_time >= "2023-09-12 08:40:00") %>% 
@@ -216,6 +217,7 @@ sfkeel_mir_2022_cleaning_cond <- HOBO_list$sfkeel_mir_2022 %>%
   filter(date_time <= "2022-07-27 00:40:00" | date_time >= "2022-07-27 02:10:00") %>% # <2 hours
   filter(date_time <= "2022-07-27 10:20:00" | date_time >= "2022-07-27 10:50:00") %>% # <2 hours
   filter(date_time <= "2022-07-27 11:45:00" | date_time >= "2022-07-27 16:50:00") %>% # <6 hours
+  filter(date_time <= "2022-08-01 07:50:00" | date_time >= "2022-08-01 20:50:00") %>% # >6 hours
   filter(date_time <= "2022-08-02 23:10:00" | date_time >= "2022-08-02 23:50:00") %>% # <1 hour
   filter(date_time <= "2022-08-05 18:50:00" | date_time >= "2022-08-05 19:10:00") %>% # <1 hour
   filter(date_time <= "2022-08-06 01:40:00" | date_time >= "2022-08-06 01:50:00") %>% # <1 hour
@@ -294,7 +296,9 @@ salmon_2022_cleaning_cond <- HOBO_list$salmon_2022 %>%
   filter(date_time <= "2022-09-15 10:40:00" | date_time >= "2022-09-15 12:10:00") %>% # <2 hours
   filter(date_time <= "2022-09-15 23:50:00" | date_time >= "2022-09-16 00:10:00") %>% # <1 hour
   filter(date_time <= "2022-09-16 13:20:00" | date_time >= "2022-09-16 16:50:00") %>% # <4 hours
-  filter(date_time <= "2022-09-16 17:50:00" | date_time >= "2022-09-16 21:40:00") # <4 hours
+  filter(date_time <= "2022-09-16 17:50:00" | date_time >= "2022-09-16 21:40:00") %>% # <4 hours
+  # just removing the rest because it's all kinda not good
+  filter(date_time <= "2022-09-17 06:15:00")
 
 # south fork eel @ miranda 2023
 sfkeel_mir_2023_cleaning_cond <- HOBO_list$sfkeel_mir_2023 %>% 
@@ -350,6 +354,7 @@ sfkeel_mir_2023_cleaning_cond <- HOBO_list$sfkeel_mir_2023 %>%
 sfkeel_sth_2023_cleaning_cond <- HOBO_list$sfkeel_sth_2023 %>% 
   filter(date_time <= "2023-07-15 08:50:00" | date_time >= "2023-07-15 09:10:00") %>% # <1 hour
   filter(date_time <= "2023-07-29 12:10:00" | date_time >= "2023-07-29 13:20:00") %>% # <1 hour
+  filter(date_time <= "2023-08-21 14:10:00" | date_time >= "2023-08-21 21:10:00") %>% # >7 hours
   filter(date_time <= "2023-08-27 06:50:00" | date_time >= "2023-08-27 07:20:00") %>% # <1 hour
   filter(date_time <= "2023-08-31 23:50:00" | date_time >= "2023-09-01 00:50:00") %>% # <3 hours
   filter(date_time <= "2023-09-01 03:40:00" | date_time >= "2023-09-01 03:50:00") %>% # <1 hour
@@ -387,6 +392,7 @@ salmon_2023_cleaning_cond <- HOBO_list$salmon_2023 %>%
   filter(date_time <= "2023-08-19 02:20:00" | date_time >= "2023-08-19 04:30:00") %>% # <3 hours
   filter(date_time <= "2023-08-19 07:10:00" | date_time >= "2023-08-19 08:10:00") %>% # <2 hours
   filter(date_time <= "2023-08-19 08:20:00" | date_time >= "2023-08-19 09:20:00") %>% # <2 hours
+  filter(date_time <= "2023-08-21 12:20:00" | date_time >= "2023-08-21 23:10:00") %>% # >24 hours messiness
   filter(date_time <= "2023-08-23 01:50:00" | date_time >= "2023-08-23 02:10:00") %>% # <1 hour
   filter(date_time <= "2023-08-24 19:10:00" | date_time >= "2023-08-24 21:50:00") %>% # <3 hours
   filter(date_time <= "2023-08-25 16:50:00" | date_time >= "2023-08-25 17:10:00") %>% # <1 hour
@@ -394,10 +400,13 @@ salmon_2023_cleaning_cond <- HOBO_list$salmon_2023 %>%
   filter(date_time <= "2023-08-27 17:40:00" | date_time >= "2023-08-27 17:50:00") %>% # <1 hour
   filter(date_time <= "2023-08-28 23:50:00" | date_time >= "2023-08-29 01:40:00") %>% # <3 hours
   filter(date_time <= "2023-08-29 18:20:00" | date_time >= "2023-08-29 18:40:00") %>% # <1 hour
+  filter(date_time <= "2023-09-06 15:40:00" | date_time >= "2023-09-07 19:20:00") %>% # >24 hours messiness
   filter(date_time <= "2023-09-09 10:10:00" | date_time >= "2023-09-09 11:10:00") %>% # <2 hours
   filter(date_time <= "2023-09-11 01:20:00" | date_time >= "2023-09-11 01:40:00") %>% # <1 hour
   filter(date_time <= "2023-09-12 12:20:00" | date_time >= "2023-09-12 13:20:00") %>% # <2 hours
-  filter(date_time <= "2023-09-15 02:20:00" | date_time >= "2023-09-15 02:50:00") # <1 hours
+  filter(date_time <= "2023-09-15 02:20:00" | date_time >= "2023-09-15 02:50:00") %>% # <1 hours
+  # just removing the rest because it's all kinda not good
+  filter(date_time <= "2023-09-15 16:20:00")
 
 #### (3) Adding flags for bad/removed data and saving final csv ####
 
