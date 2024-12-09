@@ -343,12 +343,8 @@ anatoxins_reduced <- anatoxins_reduced %>%
          ATX_det_limit = as.numeric(str_sub(anatoxins_reduced$ATX_det_limit_full,3, 8))) %>% 
   select(-MCY_det_limit_full, -ATX_det_limit_full)
 
-# calculate total anatoxins
-anatoxins_processed <- anatoxins_reduced %>% 
-  mutate(ATX_all_ug_g = ATXa_ug_g + HTXa_ug_g + dhATXa_ug_g + dhHTXa_ug_g)
-
 # fill in missing values/non-detects with "ND"
-anatoxins_processed <- replace(anatoxins_processed, is.na(anatoxins_processed), "ND")
+anatoxins_processed <- replace(anatoxins_reduced, is.na(anatoxins_reduced), "ND")
 
 # match ESF_ID with metadata
 combined <- left_join(metadata, anatoxins_processed, by = "ESF_ID") %>% 
@@ -364,6 +360,11 @@ combined$field_date <- as.character(combined$field_date)
 
 # replace blank sample information with NA (no information) as missing value code for EDI
 combined <- combined %>% replace(is.na(.), "NA")
+
+# put detection limit columns before values
+combined <- combined %>% 
+  relocate(MCY_det_limit, .before = MCY_ug_g) %>% 
+  relocate(ATX_det_limit, .before = MCY_ug_g)
 
 # save csv
 write.csv(combined, './data/EDI_data_package/anatoxin_concentrations.csv', row.names = FALSE)

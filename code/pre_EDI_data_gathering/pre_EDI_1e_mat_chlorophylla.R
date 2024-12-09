@@ -1,6 +1,6 @@
 #### processing chlorophyll-a and pheophytin concentrations for freeze-dried cyanobacteria mass
 ### Jordan Zabrecky (modified from Joanna Blaszczak)
-## last edited 12.06.24
+## last edited 12.07.24
 
 # This code calculates chlorophyll-a and pheophytin concentrations for freeze-dried
 # cyanobacteria mass from RFUs obtained from the Blaszczak Lab's Trilogy Fluorometer 
@@ -36,7 +36,7 @@ metadata <- ldply(list.files(pattern = "_metadata.csv"), function(filename) {
 rawRFU <- rawRFU %>% 
   mutate(Extraction_vol_L = Extraction_vol / 1000) %>% # mL to L
   select(!Extraction_vol) %>% 
-  rename(Extraction_vol = Extraction_vol_L) # giving this column the old name to keep code the same
+  dplyr::rename(Extraction_vol = Extraction_vol_L) # giving this column the old name to keep code the same
 
 # check data frame formatting
 sapply(rawRFU, class)
@@ -149,53 +149,14 @@ chla_pheo_calculations <- left_join(na.omit(processed_data),
 
 #### (4) Final processing of chlorophyll-a and pheophytin calculations ####
 
-## (a) remove values below detection limit and with negative pheophytin values
+# remove values below detection limit and with negative pheophytin values
+# and get ready for final csv
 chla_pheo_final <- chla_pheo_calculations %>% 
   filter(RFU_bdl == 0) %>% # RFU below detection limit
-  filter(Pheo_ug_mg > 0) # negative pheophytin values
+  filter(Pheo_ug_mg > 0) %>%  # negative pheophytin values
+  mutate(field_date = mdy(field_date)) %>% # convert to yyyy-mm-dd
+  dplyr::rename(sample_type = type) %>% 
+  select(field_date, site_reach, sample_type, triplicate, Chla_ug_mg, Pheo_ug_mg)
 
-## (b) analyze triplicates
-
-# filter out triplicates and calculate summary statistics
-triplicates <- chla_pheo_final %>% 
-  filter(triplicate == "y") %>% 
-  dplyr::group_by(field_date, site_reach, type) %>% 
-  dplyr::summarize(mean_chla = mean(Chla_ug_mg),
-                   sd_chla = sd(Chla_ug_mg),
-                   rsd_chla = sd_chla * 100 / mean_chla,
-                   mean_pheo = mean(Pheo_ug_mg)) %>% 
-  ungroup() %>% 
-  distinct()
-
-# look at triplicate results
-view(triplicates) # RSD max is 78% which is very high, the next is 33%
-mean(triplicates$rsd_chla) # average is 12.6%
-
-# some thoughts on high RSD:
-# the highest samples are all TM (those with 12.5% and up)
-# this is likely due to the sediment amounts in the mats
-# so when we take a small amount (~2 mg), which we need to do
-# to get plausible values on the fluorometer (i.e. no negative pheophytin)
-# it is highly possible that sometimes our sample is mostly sediment
-# and sometimes more mat material is included
-
-## (c) put together final dataset and save
-
-# take dataset and select for columns we care about before merging
-triplicates_final <- triplicates %>% 
-  dplyr::rename(Chla_ug_mg = mean_chla,
-                Pheo_ug_mg = mean_pheo) %>% 
-  select(field_date, site_reach, type, Chla_ug_mg, Pheo_ug_mg)
-
-# remove triplicates from original dataset before joining the two
-final <- chla_pheo_final %>% 
-  filter(triplicate == "n") %>% 
-  select(field_date, site_reach, type, Chla_ug_mg, Pheo_ug_mg)
-
-# add processed/averaged triplicates back in & do some conversions
-final <- rbind(final, triplicates_final) %>% 
-  dplyr::rename(sample_type = type) %>% # renaming to match conventions from % org matter
-  select(field_date, site_reach, sample_type, Chla_ug_mg, Pheo_ug_mg)
-
-# save csv
-write.csv(final, "../../cyano_chla.csv", row.names = FALSE)
+# save final csv
+write.csv(chla_pheo_final, "../../../EDI_data_package/target_sample_chlorophyll.csv", row.names = FALSE)
