@@ -317,3 +317,98 @@ anacyl_time_plot
 # so for a lot of eel sites it would be out of all transects anyways
 
 # also realized plots for salmon and russian aren't even necessary here
+
+#### DEPTH FIGURES ####
+
+# histograms of with and without TM
+
+percover_full <- read.csv("./data/EDI_data_package/benthic_surveys.csv")
+percover_full$field_date <- ymd(percover_full$field_date)
+percover_full$year <- year(percover_full$field_date)
+
+# focus only on SFE 2023
+percover_sfe <- percover_full %>% 
+  dplyr::filter(site == "SFE-SH" | site == "SFE-M") %>% 
+  dplyr::filter(year == 2023) %>% 
+  select(site_reach, site, field_date, depth_cm, Microcoleus, Micro_pres, riffle_rapid) %>% 
+  mutate(quadrat_presence = case_when(Microcoleus > 0 ~ "y",
+                              TRUE ~ "n")) %>% 
+  na.omit() # drop rows with NA
+percover_sfe$field_date <- replace(percover_sfe$field_date, which(percover_sfe$field_date == ymd("2023-07-11"))
+                                   , ymd("2023-07-10"))
+
+# z-score by day
+percover_sfe$day_z_score <- ave(percover_sfe$depth_cm, percover_sfe$field_date, FUN = scale)
+
+# z-score depth by site & day
+percover_sfe$site_day_z_score <- ave(percover_sfe$depth_cm, percover_sfe$field_date, percover_sfe$site, FUN = scale)
+
+### TRANSECT VERSION
+
+# density plots
+not_scored <- ggplot(percover_sfe, aes(x = depth_cm, group = Micro_pres, fill = Micro_pres)) +
+  geom_density() +
+  labs(title = "Not Scored/Standardized (Transect Presence)") +
+  theme_bw()
+not_scored
+
+scored_by_day <- ggplot(percover_sfe, aes(x = day_z_score, group = Micro_pres, fill = Micro_pres)) +
+  geom_density() +
+  labs(title = "Scored/Standardized by Date (Transect Presence)") +
+  theme_bw()
+scored_by_day
+
+scored_by_day_site <- ggplot(percover_sfe, aes(x = site_day_z_score, group = Micro_pres, fill = Micro_pres)) +
+  geom_density() +
+  labs(title = "Scored/Standardized by Date and Site (STH vs. MIR) (Transect Presence)") +
+  theme_bw()
+scored_by_day_site
+
+# boxplots
+not_scored_box <- ggplot(percover_sfe, aes(y = depth_cm, group = Micro_pres, fill = Micro_pres)) +
+  geom_boxplot() +
+  labs(title = "Not Scored/Standardized (Transect Presence)") +
+  theme_bw()
+not_scored_box
+
+scored_by_day_box <- ggplot(percover_sfe, aes(y = day_z_score, group = Micro_pres, fill = Micro_pres)) +
+  geom_boxplot() +
+  labs(title = "Scored/Standardized by Date (Transect Presence)") +
+  theme_bw()
+scored_by_day_box
+
+scored_by_day_site_box <- ggplot(percover_sfe, aes(y = site_day_z_score, group = Micro_pres, fill = Micro_pres)) +
+  geom_boxplot() +
+  labs(title = "Scored/Standardized by Date and Site (STH vs. MIR) (Transect Presence)") +
+  theme_bw()
+scored_by_day_site_box
+
+## PRESENT IN QUADRAT VERSION
+
+# density plots
+not_scored_q <- ggplot(percover_sfe, aes(x = depth_cm, group = quadrat_presence, fill = quadrat_presence)) +
+  geom_density() +
+  labs(title = "Not Scored/Standardized (Quadrat Presence)") +
+  theme_bw()
+not_scored_q
+
+scored_by_day_q <- ggplot(percover_sfe, aes(x = day_z_score, group = quadrat_presence, fill = quadrat_presence)) +
+  geom_density() +
+  labs(title = "Scored/Standardized by Date (Quadrat Presence)") +
+  theme_bw()
+scored_by_day_q
+
+# boxplots
+not_scored_box_q <- ggplot(percover_sfe, aes(y = depth_cm, group = quadrat_presence, fill = quadrat_presence)) +
+  geom_boxplot() +
+  labs(title = "Not Scored/Standardized (Quadrat Presence)") +
+  theme_bw()
+not_scored_box_q
+
+scored_by_day_box_q <- ggplot(percover_sfe, aes(y = day_z_score, group = quadrat_presence, fill = quadrat_presence)) +
+  geom_boxplot() +
+  labs(title = "Scored/Standardized by Date (Quadrat Presence)") +
+  theme_bw()
+scored_by_day_box_q
+
+

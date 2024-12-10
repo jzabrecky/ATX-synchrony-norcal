@@ -1,6 +1,6 @@
 #### calculating percent cover from reach surveys for each reach & site
 ### Jordan Zabrecky
-## last edited: 11.26.2024
+## last edited: 12.10.2024
 
 # This code calculates averages using % cover data for each study reach
 # and additionally each river site (designated by nearby sensors & USGS gage)
@@ -15,8 +15,15 @@ lapply(c("tidyverse", "lubridate"), require, character.only = T)
 # loading raw % cover data
 percover <- read.csv("./data/EDI_data_package/benthic_surveys.csv")
 
-# convert field_date to date type
-percover$field_date <- mdy(percover$field_date)
+# change "y" to 1's and "n" to 0's
+percover[percover == "y"] <- 1
+percover[percover == "n"] <- 0
+
+# convert field_date to date type and binary columns adjusted above to numeric
+percover$field_date <- ymd(percover$field_date)
+percover$Micro_pres <- as.numeric(percover$Micro_pres)
+percover$Ana_Cyl_pres <- as.numeric(percover$Ana_Cyl_pres)
+percover$riffle_rapid <- as.numeric(percover$riffle_rapid)
 
 #### (3) Calculating percent cover for each reach on each sampling day ####
 
@@ -32,14 +39,19 @@ average_per_reach <- function(data) {
       other_nfixers = mean(other_N_fixers),
       micro_transects = sum(Micro_pres),
       ana_cyl_transects = sum(Ana_Cyl_pres),
+      riffle_rapid_transects = sum(riffle_rapid, na.rm = TRUE),
       total_transects = length(transect),
       proportion_micro_transects = micro_transects / total_transects,
-      proportion_ana_cyl_transects = ana_cyl_transects / total_transects
+      proportion_ana_cyl_transects = ana_cyl_transects / total_transects,
+      proportion_riffle_rapid_transects = riffle_rapid_transects / total_transects,
+      average_depth_cm_sampled = mean(depth_cm),
+      median_depth_cm_sampled = median(depth_cm)
     ) %>% 
     ungroup() %>% 
     select(field_date, site_reach, site, reach, green_algae, microcoleus,
            anabaena_cylindrospermum, bare_biofilm, other_nfixers, micro_transects, ana_cyl_transects, 
-           total_transects, proportion_micro_transects, proportion_ana_cyl_transects) %>% 
+           total_transects, proportion_micro_transects, proportion_ana_cyl_transects,
+           proportion_riffle_rapid_transects, average_depth_cm_sampled, median_depth_cm_sampled) %>% 
     distinct() %>% 
     na.omit()
 }
@@ -65,14 +77,19 @@ average_per_site <- function(data) {
       other_nfixers = mean(other_N_fixers),
       micro_transects = sum(Micro_pres),
       ana_cyl_transects = sum(Ana_Cyl_pres),
+      riffle_rapid_transects = sum(riffle_rapid, na.omit = TRUE),
       total_transects = length(transect),
       proportion_micro_transects = micro_transects / total_transects,
-      proportion_ana_cyl_transects = ana_cyl_transects / total_transects
+      proportion_ana_cyl_transects = ana_cyl_transects / total_transects,
+      proportion_riffle_rapid_transects = riffle_rapid_transects / total_transects,
+      average_depth_cm_sampled = mean(depth_cm),
+      median_depth_cm_sampled = median(depth_cm)
     ) %>% 
     ungroup() %>% 
     select(field_date, site, green_algae, microcoleus,
            anabaena_cylindrospermum, bare_biofilm, other_nfixers, micro_transects, ana_cyl_transects, 
-           total_transects, proportion_micro_transects, proportion_ana_cyl_transects) %>% 
+           total_transects, proportion_micro_transects, proportion_ana_cyl_transects,
+           proportion_riffle_rapid_transects, average_depth_cm_sampled, median_depth_cm_sampled) %>% 
     distinct() %>% 
     na.omit()
 }

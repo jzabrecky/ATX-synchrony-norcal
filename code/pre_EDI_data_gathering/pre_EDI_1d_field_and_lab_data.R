@@ -1,6 +1,6 @@
 #### getting field and lab data together for the EDI package
 ### Jordan Zabrecky
-## last edited: 12.06.2024
+## last edited: 12.10.2024
 
 # This code puts together raw field and lab data for release in the EDI package
 
@@ -50,8 +50,16 @@ which(percover_test$total != 100)
 # remove the temporary data frame
 rm(percover_test)
 
+# replace "not recorded" or missing values with NA
+percover$depth_cm <- replace(percover$depth_cm, which(percover$depth_cm == "not recorded"), "NA")
+percover$riffle_rapid <- replace(percover$riffle_rapid, which(percover$riffle_rapid == "not recorded"), "NA")
+
 # convert date time to character
-percover$date_time <- as.character(format(percover$date_time))
+percover$field_date <- as.character(format(percover$field_date))
+
+# reordering to have depth earlier in the column
+percover <- percover %>% 
+  relocate(depth_cm, .before = green_algae)
 
 # save csv
 write.csv(percover, "./data/EDI_data_package/benthic_surveys.csv", row.names = FALSE)
