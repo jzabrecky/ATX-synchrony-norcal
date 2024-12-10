@@ -1,6 +1,6 @@
 #### processing anatoxin concentrations from benthic mats
 ### Jordan Zabrecky
-## last edited 12.08.2024
+## last edited 12.09.2024
 
 # This script takes in anatoxin concentrations, chlorophyll-a concentrations, 
 # and percent organic matter from targeted samples (TM- target Microcoleus and
@@ -197,8 +197,36 @@ eval(nrow(org_matter_final) == (nrow(per_org_matter)-(2*nrow(triplicates_org_mat
 #### (3) Combining datasets and making calculations ####
 
 # merge in chlorophyll and percent organic matter data
-anatoxins_final <- left_join(anatoxins_final, chla, by = c("site_reach", "field_date", "sample_type"))
+anatoxins_final <- left_join(anatoxins_final, chla_final, by = c("site_reach", "field_date", "sample_type"))
 
 # note that SFE-M-3 7.14.22 TM has no chl-a value -- not enough material leftover to calculate chla
-# we will just fill in this value with the TM chl-a downstream that day, but it doesn't matter because ATX is 0
+# we will just fill in this value with the TM chl-a downstream that day (but it doesn't matter because ATX is 0)
 anatoxins_final$Chla_ug_mg[1] <- anatoxins_final$Chla_ug_mg[2]
+
+# merge in percent organic matter data
+anatoxins_final <- left_join(anatoxins_final, org_matter_final, by = c("site_reach", "field_date", "sample_type"))
+
+# calculate anatoxins ug / (approximate) g chlorophyll-a AND anatoxins ug / (approximate) g organic matter
+anatoxins_final <- anatoxins_final %>% 
+  dplyr::mutate(Chla_ug_g = Chla_ug_mg * 1000,
+                Pheo_ug_g = Pheo_ug_mg * 1000,
+                ATX_all_ug_chla_ug = round((ATX_all_ug_g / (Chla_ug_g)), 7),
+                ATX_all_ug_orgmat_g = round((ATX_all_ug_g * (percent_organic_matter/100)), 7))
+
+# create final csv for time series data
+anatoxins_final_timeseries <- anatoxins_final %>% 
+  filter(sample_type != "riffle_exp") %>% # exclude riffle experiment
+  select(field_date, site_reach, sample_type, ATXa_ug_g, dhATXa_ug_g, HTXa_ug_g, ATX_all_ug_g, 
+         Chla_ug_g, Pheo_ug_g, percent_organic_matter, ATX_all_ug_chla_ug, ATX_all_ug_orgmat_g) %>% 
+  arrange(field_date) # arrange in order of date
+
+# create final csv for riffle experiment
+anatoxins_final_riffle <- anatoxins_final %>% 
+  filter(sample_type == "riffle_exp") %>% # is only the riffle experiment
+  select(field_date, site_reach, sample_type, ATXa_ug_g, dhATXa_ug_g, HTXa_ug_g, ATX_all_ug_g, 
+         Chla_ug_g, Pheo_ug_g, percent_organic_matter, ATX_all_ug_chla_ug, ATX_all_ug_orgmat_g) %>% 
+  arrange(field_date) # arrange in order of date
+
+# save new csvs
+write.csv(anatoxins_final_timeseries, "./data/field_and_lab/cyano_atx.csv", row.names = FALSE)
+write.csv(anatoxins_final_riffle, "./data/field_and_lab/riffle_exp_atx.csv", row.names = FALSE)
