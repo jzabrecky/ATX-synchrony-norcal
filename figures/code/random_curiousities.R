@@ -231,6 +231,35 @@ ana_scatterplots <- ggplot(data = percover, aes(x = anabaena_cylindrospermum, pe
   theme_bw()
 ana_scatterplots
 
+micro_time_plot <- ggplot(data = percover_long_micro_2, aes(x = field_date, y = value, color = type, shape = type)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~site_reach_year, scales = "free") +
+  scale_color_manual(labels = c("Quadrat Percent Cover", "Percent of Transects Present"), 
+                     values = c("red", "blue")) +
+  scale_shape_manual(labels = c("Quadrat Percent Cover", "Percent of Transects Present"), 
+                     values = c(15, 16)) +
+  labs(title = "Microcoleus") +
+  theme_bw()
+micro_time_plot
+
+anacyl_time_plot <- ggplot(data = percover_long_anacyl_2, aes(x = field_date, y = value, color = type, shape = type)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~site_reach_year, scales = "free") +
+  scale_color_manual(labels = c("Quadrat Percent Cover", "Percent of Transects Present"), 
+                     values = c("red", "blue")) +
+  scale_shape_manual(labels = c("Quadrat Percent Cover", "Percent of Transects Present"), 
+                     values = c(15, 16)) +
+  labs(title = "Anabaena & Cylindrospermum") +
+  theme_bw()
+anacyl_time_plot
+
+
+
+
+
+
 # creation of 50-50 metric
 percover_metric <- percover %>% 
   mutate(metric_micro = (percent_micro_transects * .5) + (microcoleus * .5),
@@ -245,9 +274,15 @@ percover_long <- pivot_longer(percover_metric, cols = c(3:8), names_to = "type",
 percover_long_micro <- percover_long %>% 
   filter(type == "metric_micro" | type == "microcoleus" | type == "percent_micro_transects") %>% 
   dplyr::filter(site_reach != "RUS-1S" & site_reach != "RUS-2" & site_reach != "RUS-3")
+  filter(type == "metric_micro" | type == "microcoleus" | type == "percent_micro_transects") %>% 
+  dplyr::filter(site_reach != "RUS-1S" & site_reach != "RUS-2" & site_reach != "RUS-3")
+percover_long_micro_2 <- percover_long_micro %>% 
+    filter(type != "metric_micro")
 percover_long_anacyl <- percover_long %>% 
   filter(type == "anabaena_cylindrospermum" | type == "percent_ana_cyl_transects" | type == "metric_anacyl") %>% 
   filter(site_reach != "SAL-1S" & site_reach != "SAL-2" & site_reach != "SAL-3")
+percover_long_anacyl_2 <- percover_long_anacyl %>% 
+  filter(type != "metric_anacyl")
 
 ## plots yay
 micro_time_plot <- ggplot(data = percover_long_micro, aes(x = field_date, y = value, color = type, shape = type)) +
