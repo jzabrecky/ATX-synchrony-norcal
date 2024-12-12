@@ -1,6 +1,6 @@
 #### processing metabolism outputs
 ### Jordan Zabrecky
-## last edited 10.18.2024
+## last edited 12.11.2024
 
 # This code processes metabolism outputs from the "streamMetabolizer" package
 # from script "1g_processing_metabolism_outputs.csv" and saves a csv
@@ -8,7 +8,7 @@
 #### (1) Loading packages and reading in data #### 
 
 # loading packages
-lapply(c("tidyverse", "plyr", "lubridate"), require, character.only = T)
+lapply(c("tidyverse", "plyr", "lubridate", "dataRetrieval"), require, character.only = T)
 
 # function to read in data across subfolders of certain name
 read_metab_data <- function(path, pattern) {
@@ -37,24 +37,71 @@ daily_metab <- read_metab_data(path = "./data/metab_model_outputs/", pattern = "
 
 # read in metrics data
 metrics <- read_metab_data(path = "./data/metab_model_outputs/", pattern = "metrics.csv")
-# briefly look at these
+# briefly look at these- supplemental table
 
-#### (2) Processing metabolism data ####
+#### (2) Making depth-discharge relationships ####
 
-# read in RMSE and nRMSE data
+#function to get channel geomorphology data from USGS
+geomorph_data <- function(site_num) {
+  df <- readNWISmeas(siteNumbers = site_num, expanded = T) %>%
+    dplyr::filter(measured_rating_diff == "Good")%>%
+    dplyr::select("chan_discharge", "chan_width","chan_area", "chan_velocity", "measurement_dt", "site_no")%>%
+    mutate(mean_z = chan_area/chan_width) %>% 
+    # convert from ft to meters
+    mutate(discharge_m3_s = chan_discharge / 35.31,
+           depth_m = mean_z * 0.3048)
+  return(df)
+}
 
-metab_data <- ldply(list.files(path = "./data/metab_model_outputs/", pattern = "_miniDOT.csv"), function(filename) {
-  d <- read.csv(paste("data/miniDOT/", filename, sep = ""))
-  d$site_year = filename %>% stringr::str_remove("_miniDOT.csv")
-  d$site = d$site_year %>% str_sub(end=-6)
-  return(d)
-})
+# function to plot and visualize depth-discharge relationship
+Q_depth_plot <- function(x, y , model) {
+  ggplot() +
+    geom_point(aes(x = x, y = y), size = 3, color = "skyblue") + 
+    geom_abline(slope = model$coefficients[[2]], intercept = model$coefficients[[1]], 
+                linewidth =1.5, color="darkblue", linetype = "dotted") +
+    xlab("Discharge (cms)")+
+    ylab("Depth (m)")+
+    theme_bw()
+}
 
-# loading RMSE and nRMSE data
+## south fork eel @ miranda
 
+# read in data from sophie's geomorph model
+depths_mir <- read.csv("./data/modeled_depths/sophie_sfkeel_mir_depth.csv")
 
+## south fork eel @ standish hickey
 
+# read in data from sophie's geomorph model
+depths_sth <- read.csv("./data/modeled_depths/sophie_sfkeel_sth_depth.csv")
 
+## salmon
+
+# get salmon river geomorphology
+geomorph_sal <- geomorph_data("11522500")
+
+# linear log-depth ~ log-discharge model
+salmon_depth_model <- lm(log(depth_m) ~ log(discharge_m3_s), data = geomorph_sal)
+
+# visualize relationship
+Q_depth_plot(x = log(geomorph_sal$discharge_m3_s), y = log(geomorph_sal$depth_m), 
+             model = salmon_depth_model)
+
+## russian
+
+# get russian river geomorphology
+geomorph_rus <- geomorph_data("11463000")
+
+# linear log-depth ~ log-discharge model
+russian_depth_model <- lm(log(depth_m) ~ log(discharge_m3_s), data = geomorph_sal)
+
+# visualize relationship
+Q_depth_plot(x = log(geomorph_rus$discharge_m3_s), y = log(geomorph_rus$depth_m), 
+             model = russian_depth_model)
+
+#### (3) Processing metabolism data ####
+# apply depths (need to get daily discharge)
+# get rid of negative GPP/positive ER
+# calculate NEP
 
 
 

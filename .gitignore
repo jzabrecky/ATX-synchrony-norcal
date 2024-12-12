@@ -10,6 +10,8 @@ data/NLDAS/
 data/metab_model_outputs/
 data/misc_to_del/
 data/metab_model_inputs/old_to_delete
+# (cannot publicly release data collected by karuk tribe)
+data/karuk_tribe_data
 # ignore old code & data (that may later be deleted!)
 code/old_code_toDEL
 data/OLD_metab_model_outputs
