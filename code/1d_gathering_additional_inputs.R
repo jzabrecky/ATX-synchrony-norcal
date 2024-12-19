@@ -1,6 +1,6 @@
 #### gathering all data to model metabolism
 ### Jordan Zabrecky
-## last edited 11.25.2024
+## last edited 12.27.2024
 
 # This code gathers the necessary components for metabolism modeling
 # including the (1) cleaned miniDOT data from "1a_reading_and_cleaning_miniDOT_data.R"
@@ -76,7 +76,7 @@ miniDOT_list <- split(miniDOT_data, miniDOT_data$site)
 external_DO <- ldply(list.files(path = "./data/external_DO/", pattern = ".csv"), function(filename) {
   d <- read.csv(paste("./data/external_DO/", filename, sep = ""))
   d$site_year = filename %>% str_sub(end=-5)
-  d$site = d$site_year %>% str_sub(end=-11) # maybe need if else depending on source for future DO imports...
+  d$site = strsplit(filename, split = "_")[[1]][1]
   return(d)
 })
 
@@ -317,16 +317,29 @@ lapply(names(final), function(x) write.csv(final[[x]], file = paste(x, "_modelin
 
 ## saving external dataframes
 
-# left join data together separately
+# left join data together separately as indexes won't line up
 russian_2022_USGS <- (list(external_DO_list$russian_2022_USGS, discharge$russian, GLDAS_adjusted$russian, 
                            NLDAS_formatted$russian)) %>% 
   join_all(by = "date_time", type = "left")
+salmon_2022_karuk <- (list(external_DO_list$salmon_2022_karuk, discharge$salmon, GLDAS_adjusted$salmon, 
+                           NLDAS_formatted$russian)) %>% 
+  join_all(by = "date_time", type = "left")
+salmon_2023_karuk <- (list(external_DO_list$salmon_2023_karuk, discharge$salmon, GLDAS_adjusted$salmon,
+                           NLDAS_formatted$salmon)) %>% 
+  join_all(by = "date_time", type = "left")
+
+# combine into a list to save
+final_external <- list(russian_2022_USGS, salmon_2022_karuk, salmon_2023_karuk)
+names(final_external) <- c("russian_2022_USGS", "salmon_2022_karuk", "salmon_2023_karuk")
 
 # check for issues
-anyNA(russian_2022_USGS) # none!
+lapply(final_external, anyNA) # none!
 
 # changing date_time to character to avoid any saving issues like before
-russian_2022_USGS$date_time <- as.character(format(russian_2022_USGS$date_time))
+for(i in 1:length(final_external)) {
+  final_external[[i]]$date_time <- as.character(format(final_external[[i]]$date_time))
+}
 
-# save csvs separately
-write.csv(russian_2022_USGS, "./russian_2022_USGS_modelinputs.csv", row.names = FALSE)
+# saving csvs for metabolism model input
+lapply(names(final_external), function(x) write.csv(final_external[[x]], file = paste(x, "_modelinputs", ".csv", sep = ""), 
+                                           row.names = FALSE))
