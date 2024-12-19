@@ -1,6 +1,6 @@
 #### gathering all data to model metabolism
 ### Jordan Zabrecky
-## last edited 12.27.2024
+## last edited 12.18.2024
 
 # This code gathers the necessary components for metabolism modeling
 # including the (1) cleaned miniDOT data from "1a_reading_and_cleaning_miniDOT_data.R"
@@ -322,7 +322,7 @@ russian_2022_USGS <- (list(external_DO_list$russian_2022_USGS, discharge$russian
                            NLDAS_formatted$russian)) %>% 
   join_all(by = "date_time", type = "left")
 salmon_2022_karuk <- (list(external_DO_list$salmon_2022_karuk, discharge$salmon, GLDAS_adjusted$salmon, 
-                           NLDAS_formatted$russian)) %>% 
+                           NLDAS_formatted$salmon)) %>% 
   join_all(by = "date_time", type = "left")
 salmon_2023_karuk <- (list(external_DO_list$salmon_2023_karuk, discharge$salmon, GLDAS_adjusted$salmon,
                            NLDAS_formatted$salmon)) %>% 
