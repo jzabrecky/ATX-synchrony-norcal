@@ -1,6 +1,6 @@
 #### gathering DO from external sources to compare to our miniDOT values
 ### Jordan Zabrecky
-## last edited 12.17.2024
+## last edited 12.19.2024
 
 # This code gathers dissolved oxygen data from the USGS gage at Cloverdale
 # to use to model metabolism estimates and compare with our estimates
@@ -54,6 +54,7 @@ clean_USGS_df <- function(df) {
   return(new_df)
 }
 df <- karuk_DO_salmon
+
 # function to apply to interpolate and clean karuk dataframe
 clean_karuk_df <- function(df) {
   
@@ -88,6 +89,11 @@ karuk_salmon <- clean_karuk_df(karuk_DO_salmon)
 USGS_russian <- USGS_russian %>% 
   dplyr::filter(date_time <= "2022-08-30 10:50:00" | date_time >= "2022-08-31 09:40:00")
 
+# remove weird midday drop on 7/5/2022 in Salmon River (does not make sense and model does not like it)
+karuk_salmon$DO_mg_L[which(karuk_salmon$date_time == ymd_hms("2022-07-05 12:00:00", tz = "America/Los_Angeles")):
+                       which(karuk_salmon$date_time == ymd_hms("2022-07-05 18:15:00", tz = "America/Los_Angeles"))] <- NA
+karuk_salmon$DO_mg_L <- na.approx(karuk_salmon$DO_mg_L)
+  
 #### (4) Saving external data ####
 
 # convert date time to character to avoid issues
@@ -96,9 +102,9 @@ karuk_salmon$date_time <- as.character(format(karuk_salmon$date_time))
 
 # separating salmon into two dataframes for 2022 and 2023 following dates of miniDOT dataframes
 karuk_salmon_2022 <- karuk_salmon %>% 
-  filter(date_time >= "2022-06-26 19:05:00" & date_time <= "2022-09-21 17:50:00")
+  dplyr::filter(date_time >= "2022-06-26 19:05:00" & date_time <= "2022-09-21 17:50:00")
 karuk_salmon_2023 <- karuk_salmon %>% 
-  filter(date_time >= "2023-06-27 19:40:00" & date_time <= "2023-09-27 11:30:00")
+  dplyr::filter(date_time >= "2023-06-27 19:40:00" & date_time <= "2023-09-27 11:30:00")
 
 # save dataframe into external DO folder
 write.csv(USGS_russian, "./data/external_DO/russian_2022_USGS.csv", row.names = FALSE)
