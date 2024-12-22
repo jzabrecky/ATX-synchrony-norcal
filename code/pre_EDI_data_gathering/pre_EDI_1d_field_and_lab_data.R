@@ -245,7 +245,7 @@ salmon_kayak <- salmon_kayak %>%
   select(field_date, site, transect, measurement_type, meters)
 
 # rbind two dataframes together and omit any NA (e.g. from bad GPS estimates for width)
-kayak_final <- rbind(sfkeel_kayak, salmon_kayak) %>% 
+kayak_final <- rbind(sfkeel_kayak, salmon_kayak, russian_kayak) %>% 
   na.omit() # won't omit the character put in NA's above
 
 # convert field_date to yyyy-mm-dd
