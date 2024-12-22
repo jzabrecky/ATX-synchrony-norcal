@@ -460,7 +460,7 @@ ggplot(salmon_2022_karuk_fit$daily, aes(x = date, y = GPP_mean)) + # plot with s
 
 # look at DO predictions vs. data on a 7-day interval to look closely
 plot_DO_preds(salmon_2022_karuk, date_start = "2022-06-27", date_end = "2022-07-03")
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-03", date_end = "2022-07-10")
+plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-03", date_end = "2022-07-10") # 7/5 data is weird
 plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-10", date_end = "2022-07-17")
 plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-17", date_end = "2022-07-24")
 plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-24", date_end = "2022-07-31")
@@ -469,7 +469,7 @@ plot_DO_preds(salmon_2022_karuk, date_start = "2022-08-06", date_end = "2022-08-
 plot_DO_preds(salmon_2022_karuk, date_start = "2022-08-13", date_end = "2022-08-20")
 plot_DO_preds(salmon_2022_karuk, date_start = "2022-08-20", date_end = "2022-08-27")
 plot_DO_preds(salmon_2022_karuk, date_start = "2022-08-27", date_end = "2022-09-04")
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-09-04", date_end = "2022-09-11") # definitely some weirdness here that corresponds to huge GPP drop
+plot_DO_preds(salmon_2022_karuk, date_start = "2022-09-04", date_end = "2022-09-11")
 plot_DO_preds(salmon_2022_karuk, date_start = "2022-09-11", date_end = "2022-09-18")
 plot_DO_preds(salmon_2022_karuk, date_start = "2022-09-18", date_end = "2022-09-22") 
 
