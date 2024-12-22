@@ -347,19 +347,19 @@ percover_sfe$site_day_z_score <- ave(percover_sfe$depth_cm, percover_sfe$field_d
 
 # density plots
 not_scored <- ggplot(percover_sfe, aes(x = depth_cm, group = Micro_pres, fill = Micro_pres)) +
-  geom_density() +
+  geom_density(alpha = 0.2) +
   labs(title = "Not Scored/Standardized (Transect Presence)") +
   theme_bw()
 not_scored
 
 scored_by_day <- ggplot(percover_sfe, aes(x = day_z_score, group = Micro_pres, fill = Micro_pres)) +
-  geom_density() +
+  geom_density(alpha = 0.2) +
   labs(title = "Scored/Standardized by Date (Transect Presence)") +
   theme_bw()
 scored_by_day
 
 scored_by_day_site <- ggplot(percover_sfe, aes(x = site_day_z_score, group = Micro_pres, fill = Micro_pres)) +
-  geom_density() +
+  geom_density(alpha = 0.2) +
   labs(title = "Scored/Standardized by Date and Site (STH vs. MIR) (Transect Presence)") +
   theme_bw()
 scored_by_day_site
@@ -387,7 +387,7 @@ scored_by_day_site_box
 
 # density plots
 not_scored_q <- ggplot(percover_sfe, aes(x = depth_cm, group = quadrat_presence, fill = quadrat_presence)) +
-  geom_density() +
+  geom_density(alpha = 0.2) +
   labs(title = "Not Scored/Standardized (Quadrat Presence)") +
   theme_bw()
 not_scored_q

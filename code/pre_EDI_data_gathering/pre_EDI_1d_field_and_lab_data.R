@@ -1,6 +1,6 @@
 #### getting field and lab data together for the EDI package
 ### Jordan Zabrecky
-## last edited: 12.10.2024
+## last edited: 12.21.2024
 
 # This code puts together raw field and lab data for release in the EDI package
 
@@ -215,7 +215,22 @@ sfkeel_kayak <- sfkeel_kayak %>%
                           Site == "SfkEel_Standish" ~ "SFE-SH")) %>% 
   select(field_date, site, transect, measurement_type, meters)
 
-## (b) Salmon River
+## (b) Russian River
+
+# read in data
+russian_kayak <- read.csv("./data/field_and_lab/raw_data/russian_kayak_measurements.csv")
+
+# change column names, site names, and remove columns we don't necessarily need
+russian_kayak <- russian_kayak %>% 
+  dplyr::rename(field_date = Date,
+                measurement_type = Meas_Type,
+                transect = Transect) %>% 
+  mutate(meters = case_when(is.na(Width_m) ~ (Depth_cm_final / 100),
+                            TRUE ~ Width_m),
+         site = "RUS") %>% 
+  select(field_date, site, transect, measurement_type, meters)
+
+## (C) Salmon River
 
 # read in data
 salmon_kayak <- read.csv("./data/field_and_lab/raw_data/salmon_kayak_measurements.csv")
