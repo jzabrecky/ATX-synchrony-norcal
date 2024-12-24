@@ -853,7 +853,7 @@ ggplot(sfkeel_sth_2023_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sen
 plot_DO_preds(sfkeel_sth_2023, date_start = "2023-06-24", date_end = "2023-07-01") # look fine
 plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-01", date_end = "2023-07-08")
 plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-08", date_end = "2023-07-15")
-plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-23", date_end = "2023-07-30") # skipping time becuase forgot to turn sensor on; looks good!
+plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-23", date_end = "2023-07-30") # skipping time because forgot to turn sensor on; looks good!
 plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-30", date_end = "2023-08-06")
 plot_DO_preds(sfkeel_sth_2023, date_start = "2023-08-06", date_end = "2023-08-13")
 plot_DO_preds(sfkeel_sth_2023, date_start = "2023-08-13", date_end = "2023-08-20")
