@@ -1,6 +1,6 @@
 #### processing metabolism outputs
 ### Jordan Zabrecky
-## last edited 12.14.2024
+## last edited 12.23.2024
 
 # This code processes metabolism outputs from the "streamMetabolizer" package
 # from script "1g_processing_metabolism_outputs.csv" and saves a csv
@@ -71,7 +71,7 @@ USGS_daily_discharge <- lapply(USGS_daily_discharge, function(x) clean_discharge
 
 #### (2) Making depth-discharge relationships ####
 
-#function to get channel geomorphology data from USGS
+# function to get channel geomorphology data from USGS
 geomorph_data <- function(site_num) {
   df <- readNWISmeas(siteNumbers = site_num, expanded = T) %>%
     dplyr::filter(measured_rating_diff == "Good")%>%
@@ -83,70 +83,143 @@ geomorph_data <- function(site_num) {
   return(df)
 }
 
-# function to plot and visualize depth-discharge relationship
-Q_depth_plot <- function(x, y , model) {
+# function to get and edit discharge data from USGS
+discharge_data <- function(site_num, start_date, end_date) {
+  df <- readNWISdv(site_num, "00060", start_date, end_date) %>% 
+    mutate(field_date = ymd(Date),
+           discharge_m3_s = X_00060_00003 / 35.31) %>% 
+    dplyr::select(field_date, discharge_m3_s)
+  return(df)
+}
+
+# function to plot and visualize log depth-log discharge relationship model
+Q_depth_model_plot <- function(x, y , model) {
   ggplot() +
     geom_point(aes(x = x, y = y), size = 3, color = "skyblue") + 
     geom_abline(slope = model$coefficients[[2]], intercept = model$coefficients[[1]], 
                 linewidth =1.5, color="darkblue", linetype = "dotted") +
-    xlab("Discharge (cms)")+
-    ylab("Depth (m)")+
+    xlab("Log(Discharge (cm^3/s))")+
+    ylab("Log(Depth (m))")+
+    theme_bw()
+}
+
+# function to plot and visualize final data w/ kayak depths
+Q_depth_final_plot <- function(USGS_discharge_data, kayak_data, xlim, ylim) {
+  ggplot() +
+    geom_point(aes(x = USGS_discharge_data$discharge_m3_s, 
+                   y = USGS_discharge_data$depth_m), size = 2, color = "skyblue") +
+    geom_point(aes(x = kayak_data$discharge_m3_s, y = kayak_data$mean_depth_m),
+               size = 3, color = "darkblue") +
+    xlab("Discharge (cm^3/s)") +
+    ylab("Depth (m)") +
+    xlim(xlim) +
+    ylim(ylim) +
     theme_bw()
 }
 
 ## south fork eel @ miranda
 
-# read in data from sophie's geomorph model
-depths_sfkeel <- read.csv("./data/modeled_depths/sfkeel_modeled_depths.csv")
+# get south fork eel @ miranda river kayak depth
+kayak_miranda <- read.csv("./data/EDI_data_package/kayak_depth_width.csv") %>% 
+  dplyr::filter(site == "SFE-M" & measurement_type == "depth") %>%
+  filter(transect != 18) %>% # removed transects 18 as first date was half depth of later two dates
+  filter(transect != 5 & transect != 12) %>%  # removed transects 5 & 12 as first date was ~0.3 m lower than second date
+  dplyr::mutate(field_date = ymd(field_date)) %>% 
+  dplyr::group_by(field_date) %>% 
+  dplyr::summarize(mean_depth_m = mean(meters))
 
-# roughly a log-log relationship so will just use that
-miranda_depth_model <- lm(log(median_depth_mir) ~ log(discharge_cms), data = depths_sfkeel)
+# linear log-depth ~ log-discharge model (Leopold and Maddock (1953))
+kayak_miranda <- left_join(kayak_miranda, discharge_data("11476500", kayak_miranda$field_date[1],
+                                                         kayak_miranda$field_date[3]),
+                           by = "field_date")
 
-# visualize relationship
-Q_depth_plot(x = log(depths_sfkeel$discharge_cms), y = log(depths_sfkeel$median_depth_mir), 
-             model = miranda_depth_model)
+# linear log-depth ~ log-discharge model (Leopold and Maddock (1953))
+miranda_depth_model <- lm(log(mean_depth_m) ~ log(discharge_m3_s), data = kayak_miranda)
+
+# visualize log-log relationship with model
+Q_depth_model_plot(x = log(kayak_miranda$discharge_m3_s), y = log(kayak_miranda$mean_depth_m), 
+                   model = miranda_depth_model)
 
 ## south fork eel @ standish hickey
 
-# roughly a log-log relationship so will just use that
-sth_depth_model <- lm(log(median_depth_stan) ~ log(discharge_cms), data = depths_sfkeel)
+# get south fork eel @ standish hickey river kayak depth
+kayak_standish <- read.csv("./data/EDI_data_package/kayak_depth_width.csv") %>% 
+  dplyr::filter(site == "SFE-SH" & measurement_type == "depth") %>%
+  dplyr::mutate(field_date = ymd(field_date)) %>% 
+  dplyr::group_by(field_date) %>% 
+  dplyr::summarize(mean_depth_m = mean(meters))
+
+# linear log-depth ~ log-discharge model (Leopold and Maddock (1953))
+kayak_standish <- left_join(kayak_standish, discharge_data("11475800", kayak_standish$field_date[1],
+                                                           kayak_standish$field_date[3]),
+                           by = "field_date")
+
+# linear log-depth ~ log-discharge model (Leopold and Maddock (1953))
+standish_depth_model <- lm(log(mean_depth_m) ~ log(discharge_m3_s), data = kayak_standish)
 
 # visualize relationship
-Q_depth_plot(x = log(depths_sfkeel$discharge_cms), y = log(depths_sfkeel$median_depth_stan), 
-             model = sth_depth_model)
+Q_depth_model_plot(x = log(kayak_standish$discharge_m3_s), y = log(kayak_standish$mean_depth_m), 
+                   model = standish_depth_model)
 
 ## salmon
 
-# get salmon river kayak depths
+# get russian river geomorphology
+geomorph_sal <- geomorph_data("11522500")
+
+# get salmon river kayak depth
 kayak_salmon <- read.csv("./data/EDI_data_package/kayak_depth_width.csv") %>% 
   dplyr::filter(site == "SAL" & measurement_type == "depth") %>%
-  dplyr::mutate(Date = ymd(field_date)) %>% 
-  dplyr::group_by(Date) %>% 
+  dplyr::mutate(field_date = ymd(field_date)) %>% 
+  dplyr::group_by(field_date) %>% 
   dplyr::summarize(mean_depth_m = mean(meters))
 
 # join in daily discharge data
-kayak_salmon <- left_join(kayak_salmon, readNWISdv("11522500", "00060", 
-                                                   kayak_salmon$Date[1], 
-                                                   kayak_salmon$Date[2]))
+kayak_salmon <- left_join(kayak_salmon, discharge_data("11522500", kayak_salmon$field_date[1], 
+                                                       kayak_salmon$field_date[1]),
+                          by = "field_date")
 
-# linear log-depth ~ log-discharge model
+# linear log-depth ~ log-discharge model (Leopold and Maddock (1953))
 salmon_depth_model <- lm(log(depth_m) ~ log(discharge_m3_s), data = geomorph_sal)
 
-# visualize relationship
-Q_depth_plot(x = log(geomorph_sal$discharge_m3_s), y = log(geomorph_sal$depth_m), 
-             model = salmon_depth_model)
+# calculate offset
+salmon_offset <- kayak_salmon$mean_depth_m[1] - 
+  exp(salmon_depth_model$coefficients[[1]] +
+        (log(kayak_salmon$discharge_m3_s[1])
+         * salmon_depth_model$coefficients[[2]]))
+
+# visualize relationship (geomorph data only will check w/ kayak offset later
+Q_depth_model_plot(x = log(geomorph_sal$discharge_m3_s), y = log(geomorph_sal$depth_m), 
+                   model = salmon_depth_model)
 
 ## russian
 
 # get russian river geomorphology
 geomorph_rus <- geomorph_data("11463000")
 
-# linear log-depth ~ log-discharge model
-russian_depth_model <- lm(log(depth_m) ~ log(discharge_m3_s), data = geomorph_sal)
+# get salmon river kayak depth
+kayak_russian <- read.csv("./data/EDI_data_package/kayak_depth_width.csv") %>% 
+  dplyr::filter(site == "RUS" & measurement_type == "depth") %>%
+  dplyr::mutate(field_date = ymd(field_date)) %>% 
+  dplyr::group_by(field_date) %>% 
+  dplyr::summarize(mean_depth_m = mean(meters))
+
+# join in daily discharge data
+kayak_russian <- left_join(kayak_russian, discharge_data("11463000", kayak_russian$field_date[1], 
+                                                       kayak_russian$field_date[1]),
+                          by = "field_date")
+
+# linear log-depth ~ log-discharge model (Leopold and Maddock (1953))
+russian_depth_model <- lm(log(depth_m) ~ log(discharge_m3_s), data = geomorph_rus)
+
+# calculate offset
+russian_offset <- kayak_russian$mean_depth_m[1] - 
+  exp(russian_depth_model$coefficients[[1]] +
+        (log(kayak_russian$discharge_m3_s[1])
+         * russian_depth_model$coefficients[[2]]))
 
 # visualize relationship
-Q_depth_plot(x = log(geomorph_rus$discharge_m3_s), y = log(geomorph_rus$depth_m), 
-             model = russian_depth_model)
+Q_depth_model_plot(x = log(geomorph_rus$discharge_m3_s), y = log(geomorph_rus$depth_m), 
+                   model = russian_depth_model)
 
 ## apply depths to discharge dataframe
 USGS_daily_discharge$russian$depth_m <- exp(russian_depth_model$coefficients[[1]] + 
@@ -158,9 +231,19 @@ USGS_daily_discharge$salmon$depth_m <- exp(salmon_depth_model$coefficients[[1]] 
 USGS_daily_discharge$sfkeel_mir$depth_m <- exp(miranda_depth_model$coefficients[[1]] +
                                                  (log(USGS_daily_discharge$sfkeel_mir$discharge_m3_s)
                                                   * miranda_depth_model$coefficients[[2]]))
-USGS_daily_discharge$sfkeel_sth$depth_m <- exp(sth_depth_model$coefficients[[1]] +
+USGS_daily_discharge$sfkeel_sth$depth_m <- exp(standish_depth_model$coefficients[[1]] +
                                                  (log(USGS_daily_discharge$sfkeel_sth$discharge_m3_s)
-                                                  * sth_depth_model$coefficients[[2]]))
+                                                  * standish_depth_model$coefficients[[2]]))
+
+# apply offset to salmon & russian
+USGS_daily_discharge$salmon$depth_m <- USGS_daily_discharge$salmon$depth_m + salmon_offset
+USGS_daily_discharge$russian$depth_m <- USGS_daily_discharge$russian$depth_m + russian_offset
+
+# check offset plots
+Q_depth_final_plot(USGS_daily_discharge$russian, kayak_russian, c(0,5), c(0,3))
+Q_depth_final_plot(USGS_daily_discharge$salmon, kayak_salmon, c(0, 24), c(0,3))
+Q_depth_final_plot(USGS_daily_discharge$sfkeel_mir, kayak_miranda, c(0,3), c(0,2))
+Q_depth_final_plot(USGS_daily_discharge$sfkeel_sth, kayak_standish, c(0,3), c(0,2))
 
 #### (3) Processing metabolism data ####
 
