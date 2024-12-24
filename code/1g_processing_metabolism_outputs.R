@@ -320,5 +320,5 @@ for(i in 1:length(daily_metab_list)) {
 # save processed metabolism estimates as csv's
 lapply(names(daily_metab_final), function(x) write.csv(daily_metab_final[[x]], 
                                                        file = paste("./data/metab_model_outputs_processed/", 
-                                                                    x, "_modelinputs", ".csv", sep = ""), 
+                                                                    x, "_metab", ".csv", sep = ""), 
                                                        row.names = FALSE))
