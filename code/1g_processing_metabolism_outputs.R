@@ -63,7 +63,7 @@ clean_discharge <- function(df) {
     # convert time zone as data is in UTC
     mutate(date = ymd(Date),
            discharge_m3_s = as.double(X_00060_00003) / 35.31) %>% # rename parameter to discharge
-    select(date, discharge_m3_s)
+    dplyr::select(date, discharge_m3_s)
 }
 
 # apply function to data frame
@@ -122,8 +122,8 @@ Q_depth_final_plot <- function(USGS_discharge_data, kayak_data, xlim, ylim) {
 # get south fork eel @ miranda river kayak depth
 kayak_miranda <- read.csv("./data/EDI_data_package/kayak_depth_width.csv") %>% 
   dplyr::filter(site == "SFE-M" & measurement_type == "depth") %>%
-  filter(transect != 18) %>% # removed transects 18 as first date was half depth of later two dates
-  filter(transect != 5 & transect != 12) %>%  # removed transects 5 & 12 as first date was ~0.3 m lower than second date
+  dplyr::filter(transect != 18) %>% # removed transects 18 as first date was half depth of later two dates
+  dplyr::filter(transect != 5 & transect != 12) %>%  # removed transects 5 & 12 as first date was ~0.3 m lower than second date
   dplyr::mutate(field_date = ymd(field_date)) %>% 
   dplyr::group_by(field_date) %>% 
   dplyr::summarize(mean_depth_m = mean(meters))
@@ -257,6 +257,10 @@ daily_metab_list$salmon_2022 <- left_join(daily_metab_list$salmon_2022,
                                           USGS_daily_discharge$salmon, by = "date")
 daily_metab_list$salmon_2023 <- left_join(daily_metab_list$salmon_2023,
                                           USGS_daily_discharge$salmon, by = "date")
+daily_metab_list$salmon_2022_karuk <- left_join(daily_metab_list$salmon_2022_karuk,
+                                                USGS_daily_discharge$salmon, by = "date")
+daily_metab_list$salmon_2023_karuk <- left_join(daily_metab_list$salmon_2023_karuk,
+                                                USGS_daily_discharge$salmon, by = "date")
 daily_metab_list$sfkeel_mir_2022 <- left_join(daily_metab_list$sfkeel_mir_2022,
                                               USGS_daily_discharge$sfkeel_mir, by = "date")
 daily_metab_list$sfkeel_mir_2023 <- left_join(daily_metab_list$sfkeel_mir_2023,
@@ -264,21 +268,29 @@ daily_metab_list$sfkeel_mir_2023 <- left_join(daily_metab_list$sfkeel_mir_2023,
 daily_metab_list$sfkeel_sth_2023 <- left_join(daily_metab_list$sfkeel_sth_2023,
                                               USGS_daily_discharge$sfkeel_mir, by = "date")
 
+# note for applying depths after running metabolism model
+# thus, as we are not dividing GPP by anything, our GPP will be in units g O2 m^-3 d^-1
+# so to get it in g O2 m^-2 d^-1 we will multiply by depth (m/m^-3 = 1/m^-2)
+
 # function to finish processing metabolism dataframes
 metab_processing <- function(df) {
   new_df <- df %>%
-    mutate(GPP.mean = GPP_mean * depth_m,
+    dplyr::mutate(GPP.mean = GPP_mean * depth_m,
            GPP.2.5.pct = GPP_2.5pct * depth_m,
            GPP.97.5.pct = GPP_97.5pct * depth_m,
            ER.mean = ER_mean * depth_m,
            ER.2.5.pct = ER_2.5pct * depth_m,
            ER.97.5.pct = ER_97.5pct * depth_m) %>% 
-    filter(GPP.2.5.pct > 0 & ER.2.5.pct < 0) %>%
-    mutate(NEP.mean = GPP.mean + ER.mean,
+    dplyr::filter(GPP.mean > 0 & ER.mean < 0) %>%
+    dplyr::mutate(NEP.mean = GPP.mean + ER.mean,
            NEP.2.5.pct = GPP.2.5.pct + ER.2.5.pct,
            NEP.97.5.pct = GPP.97.5.pct + ER.97.5.pct) %>% 
-    dplyr::select(site_year, date, GPP.mean, GPP.2.5.pct, GPP.97.5.pct, ER.mean,
-                  ER.2.5.pct, ER.97.5.pct, NEP.mean, NEP.2.5.pct, NEP.97.5.pct)
+    dplyr::select(site_year, date, GPP.mean, GPP.2.5.pct, GPP.97.5.pct, GPP_Rhat,
+                  ER.mean, ER.2.5.pct, ER.97.5.pct, ER_Rhat, NEP.mean, NEP.2.5.pct, 
+                  NEP.97.5.pct, K600_daily_mean, K600_daily_Rhat) %>% 
+    dplyr::filter(K600_daily_Rhat < 1.1) %>% # remove values with bad r-hats
+    dplyr::filter(K600_daily_Rhat < 1.1) %>% 
+    dplyr::filter(K600_daily_Rhat < 1.1)
   
   return(new_df)
 }
@@ -286,11 +298,27 @@ metab_processing <- function(df) {
 # apply function to list of metabolism outputs
 daily_metab_final <- lapply(daily_metab_list, function(x) metab_processing(x))
 
-# NEED TO LOOK AT SALMON DEPTHS- VERY DIFFERENT FROM MODEL and 2022 and 2023 very different
-# ALSO COMPARE RUSSIAN; south fork eels look like where I would expect them to be;
-# look at how joanna's model differs from what I did (she used an exponential)
+# plot original versus processed GPP
+plot_GPP <- function(original_data, processed_data) {
+  ggplot() +
+    geom_point(aes(x = original_data$date, y = original_data$GPP_mean), 
+               color = "gray", size = 2.5, alpha = 1)  +
+    geom_point(aes(x = processed_data$date, y = processed_data$GPP.mean), 
+               color = "#456C2B", size = 2.5, alpha = 1)  +
+    labs(title = as.character(original_data$site_year[1])) +
+    theme_bw()
+}
 
-# ALSO REALIZING I USED GEOMORPH INSTEAD OF KAYAK DEPTHS WHOOPS
-# ISSUES w/ SALMON RIVER KAYAK DATA-- IF NOT DOING THIS REMOVE FROM EDI DATA
+# apply to list of dataframes
+for(i in 1:length(daily_metab_list)) {
+  print(plot_GPP(daily_metab_list[[i]], daily_metab_final[[i]]))
+}
 
-# if using geomorph data investigate WHY it is so different from original estimates
+# thoughts 12/23/2024:
+# like everything but the salmon data lol
+
+# save processed metabolism estimates as csv's
+lapply(names(daily_metab_final), function(x) write.csv(daily_metab_final[[x]], 
+                                                       file = paste("./data/metab_model_outputs_processed/", 
+                                                                    x, "_modelinputs", ".csv", sep = ""), 
+                                                       row.names = FALSE))

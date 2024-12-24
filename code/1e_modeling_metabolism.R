@@ -1,6 +1,6 @@
 #### modeling metabolism and functions to assess model outputs
 ### Jordan Zabrecky
-## last edited 12.17.2024
+## last edited 12.20.2024
 
 # This code models metabolism using the "streamMetabolizer" package and also
 # provides functions for visualizing inputs & outputs, and saving outputs
@@ -427,11 +427,11 @@ calc_gof_metrics(salmon_2022, "/salmon_2022/", "salmon_2022") # rmse 0.51, nrsme
 # remove large model object before starting next run
 rm(salmon_2022, salmon_2022_fit)
 
-## salmon river 2022 (Karuk data)
+## salmon river 2022 (Karuk Tribe data)
 
 # visualize inputs
 visualize_inputs_full(inputs_prepped$salmon_2022_karuk)
-visualize_inputs_zoomed(inputs_prepped$salmon_2022_karuk, "2022-08-10 00:00:00", "2022-08-12 00:00:00")
+visualize_inputs_zoomed(inputs_prepped$salmon_2022_karuk, "2022-07-04 00:00:00", "2022-07-06 00:00:00")
 
 # using same specs and binning
 
@@ -444,9 +444,7 @@ write_files(salmon_2022_karuk_fit, salmon_2022_karuk, "/salmon_2022_karuk/",
             "salmon_2022_karuk")
 
 # plot metab estimates (note: these are w/o correct depths and will change)
-plot_metab_preds(salmon_2022_karuk)
-# definitely issues with some GPP and ER estimates too close to 0 or negative and positive respectively
-# GPP still increases over the summer
+plot_metab_preds(salmon_2022_karuk) # GPP still increasing across the summer but not as drastically
 
 # plot GPP estimates w/ sensor cleaning dates-- of course no relation with our cleaning here!
 ggplot(salmon_2022_karuk_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
@@ -460,7 +458,7 @@ ggplot(salmon_2022_karuk_fit$daily, aes(x = date, y = GPP_mean)) + # plot with s
 
 # look at DO predictions vs. data on a 7-day interval to look closely
 plot_DO_preds(salmon_2022_karuk, date_start = "2022-06-27", date_end = "2022-07-03")
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-03", date_end = "2022-07-10") # 7/5 data is weird
+plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-03", date_end = "2022-07-10")
 plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-10", date_end = "2022-07-17")
 plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-17", date_end = "2022-07-24")
 plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-24", date_end = "2022-07-31")
@@ -476,24 +474,21 @@ plot_DO_preds(salmon_2022_karuk, date_start = "2022-09-18", date_end = "2022-09-
 # plot binning, ER vs. K600, correlation test for ER and K600, and K600
 plot_binning(salmon_2022_karuk_fit, salmon_2022_karuk, "Salmon 2022 Karuk") # points all within bins
 plot_ER_K600(salmon_2022_karuk_fit, "Salmon 2022 Karuk")
-cor.test(salmon_2022_karuk_fit$daily$ER_mean, salmon_2022_karuk_fit$daily$K600_daily_mean) # correlated -0.757; p << 0.001
+cor.test(salmon_2022_karuk_fit$daily$ER_mean, salmon_2022_karuk_fit$daily$K600_daily_mean) # correlated -0.626; p << 0.001
 plot_K600(salmon_2022_karuk_fit, "Salmon 2022 Karuk")
 
 # convergence assessment
-rstan::traceplot(get_mcmc(salmon_2022_karuk), pars='GPP_daily', nrow=10) # literally terrible
+rstan::traceplot(get_mcmc(salmon_2022_karuk), pars='GPP_daily', nrow=10) # pretty bad
 rstan::traceplot(get_mcmc(salmon_2022_karuk), pars='ER_daily', nrow=10)
 rstan::traceplot(get_mcmc(salmon_2022_karuk), pars='K600_daily', nrow=10) # look decent
 
 # goodness of fit metrics
-calc_gof_metrics(salmon_2022__karuk, "/salmon_2022_karuk/", "salmon_2022_karuk") # rmse 0.51, nrsme 0.052
+calc_gof_metrics(salmon_2022_karuk, "/salmon_2022_karuk/", "salmon_2022_karuk") # rmse 0.06, nrsme 0.020
 
 # remove large model object before starting next run
-rm(salmon_2022, salmon_2022_fit)
+rm(salmon_2022_karuk, salmon_2022_karuk_fit)
 
-
-
-
-## salmon river 2023 (will hopefully redo with external data)
+## salmon river 2023-- sensor likely had biofouling issues, redo w/ Karuk tribe data below
 
 # visualize inputs
 visualize_inputs_full(inputs_prepped$salmon_2023)
@@ -563,6 +558,67 @@ calc_gof_metrics(salmon_2023, "/salmon_2023/", "salmon_2023") # rmse 0.55, nrsme
 
 # remove large model object before starting next run
 rm(salmon_2023, salmon_2023_fit)
+
+## salmon river 2023 (Karuk Tribe data)
+
+# visualize inputs
+visualize_inputs_full(inputs_prepped$salmon_2023_karuk)
+visualize_inputs_zoomed(inputs_prepped$salmon_2023_karuk, "2023-08-10 00:00:00", "2023-08-12 00:00:00")
+
+# running model
+salmon_2023_karuk <- metab(salmon_2023_specs, data = inputs_prepped$salmon_2023_karuk)
+
+# get fit and save files
+salmon_2023_karuk_fit <- get_fit(salmon_2023_karuk)
+write_files(salmon_2023_karuk_fit, salmon_2023_karuk, "/salmon_2023_karuk/",
+            "salmon_2023_karuk")
+
+# plot metab estimates (note: these are w/o correct depths and will change)
+plot_metab_preds(salmon_2023_karuk) # maybe one day of ER interval above 0?
+
+# plot GPP estimates w/ sensor cleaning dates-- no obvious biofouling
+ggplot(salmon_2023_karuk_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
+  geom_point(color = "darkgreen", size = 3) +
+  geom_line(color = "darkgreen") +
+  geom_vline(xintercept = as_date(c("2023-07-13")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-07-27")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2023-08-10")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  theme_bw()
+
+# look at DO predictions vs. data on a 7-day interval to look closely
+plot_DO_preds(salmon_2023_karuk, date_start = "2023-06-28", date_end = "2023-07-05") # connected but weird flat bottom
+plot_DO_preds(salmon_2023_karuk, date_start = "2023-07-05", date_end = "2023-07-12") # some disconnections but in realm of DO observe
+plot_DO_preds(salmon_2023_karuk, date_start = "2023-07-12", date_end = "2023-07-19")
+plot_DO_preds(salmon_2023_karuk, date_start = "2023-07-19", date_end = "2023-07-26")
+plot_DO_preds(salmon_2023_karuk, date_start = "2023-07-26", date_end = "2023-07-31")
+plot_DO_preds(salmon_2023_karuk, date_start = "2023-07-31", date_end = "2023-08-07")
+plot_DO_preds(salmon_2023_karuk, date_start = "2023-08-07", date_end = "2023-08-15")
+plot_DO_preds(salmon_2023_karuk, date_start = "2023-08-15", date_end = "2023-08-22") # really weird here
+plot_DO_preds(salmon_2023_karuk, date_start = "2023-08-22", date_end = "2023-08-29")
+plot_DO_preds(salmon_2023_karuk, date_start = "2023-08-29", date_end = "2023-09-06") # again weirdness
+plot_DO_preds(salmon_2023_karuk, date_start = "2023-09-06", date_end = "2023-09-13")
+plot_DO_preds(salmon_2023_karuk, date_start = "2023-09-13", date_end = "2023-09-20")
+plot_DO_preds(salmon_2023_karuk, date_start = "2023-09-20", date_end = "2023-09-28")
+
+# plot binning, ER vs. K600, correlation test for ER and K600, and K600
+plot_binning(salmon_2023_karuk_fit, salmon_2023_karuk, "Salmon 2023") # points all within bins
+plot_ER_K600(salmon_2023_karuk_fit, "Salmon 2023 (Karuk)")
+cor.test(salmon_2023_karuk_fit$daily$ER_mean, salmon_2023_karuk_fit$daily$K600_daily_mean) # correlated -.879; p << 0.001
+plot_K600(salmon_2023_karuk_fit, "Salmon 2023")
+
+# convergence assessment
+rstan::traceplot(get_mcmc(salmon_2023_karuk), pars='GPP_daily', nrow=10) # terrible
+rstan::traceplot(get_mcmc(salmon_2023_karuk), pars='ER_daily', nrow=10)
+rstan::traceplot(get_mcmc(salmon_2023_karuk), pars='K600_daily', nrow=10) # terrible
+
+# goodness of fit metrics
+calc_gof_metrics(salmon_2023_karuk, "/salmon_2023_karuk/", "salmon_2023_karuk") # rmse 0.079, nrsme 0.030
+
+# remove large model object before starting next run
+rm(salmon_2023_karuk, salmon_2023_karuk_fit)
 
 ## south fork eel @ miranda 2022
 
