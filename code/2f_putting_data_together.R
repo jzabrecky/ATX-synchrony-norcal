@@ -1,6 +1,6 @@
 #### putting all field and lab data together for south fork eel 2023
 ### Jordan Zabrecky
-## last edited: 12.17.2024
+## last edited: 12.23.2024
 
 # This script aggregates all field and lab information for reaches
 # on the South Fork Eel in 2023
@@ -63,5 +63,8 @@ sfkeel23 <- all %>%
          TM_percent_organic_matter, TAC_ATX_all_ug_orgmat_g, TAC_Chla_ug_g, TAC_Pheo_ug_g,
          TAC_percent_organic_matter)
 
-# fill anatoxin NAs with 0's when Microcoleus or TAC present??
-# instead of just all of those 0's?
+# currently filling out all NA's (no ATX sample taken) with 0's but may rethink in future
+sfkeel23 <- sfkeel23 %>% replace(is.na(.), 0)
+
+# save csv
+write.csv(sfkeel23, "./data/field_and_lab/sfkeel23_combined.csv", row.names = FALSE)
