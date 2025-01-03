@@ -1,6 +1,6 @@
 #### putting all field and lab data together for south fork eel 2023
 ### Jordan Zabrecky
-## last edited: 12.23.2024
+## last edited: 01.02.2024
 
 # This script aggregates all field and lab information for reaches
 # on the South Fork Eel in 2023
@@ -8,7 +8,7 @@
 #### (1) Loading data and libraries ####
 
 # loading libraries
-lapply(c("tidyverse", "lubridate"), require, character.only = T)
+lapply(c("tidyverse", "lubridate", "plyr"), require, character.only = T)
 
 # read in data
 anatoxins <- read.csv("./data/field_and_lab/cyano_atx.csv")

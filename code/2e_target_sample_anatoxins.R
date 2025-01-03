@@ -1,6 +1,6 @@
 #### processing anatoxin concentrations from benthic mats
 ### Jordan Zabrecky
-## last edited 12.09.2024
+## last edited 01.02.2024
 
 # This script takes in anatoxin concentrations, chlorophyll-a concentrations, 
 # and percent organic matter from targeted samples (TM- target Microcoleus and

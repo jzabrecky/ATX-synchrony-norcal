@@ -1,6 +1,6 @@
 #### processing chlorophyll-a and pheophytin concentrations for freeze-dried cyanobacteria mass
 ### Jordan Zabrecky (modified from Joanna Blaszczak)
-## last edited 12.07.24
+## last edited 01.02.24
 
 # This code calculates chlorophyll-a and pheophytin concentrations for freeze-dried
 # cyanobacteria mass from RFUs obtained from the Blaszczak Lab's Trilogy Fluorometer 
@@ -157,6 +157,17 @@ chla_pheo_final <- chla_pheo_calculations %>%
   mutate(field_date = mdy(field_date)) %>% # convert to yyyy-mm-dd
   dplyr::rename(sample_type = type) %>% 
   select(field_date, site_reach, sample_type, triplicate, Chla_ug_mg, Pheo_ug_mg)
+
+# we have a couple of samples that got accidentally got ran twice 
+# so will just take the first one
+which(chla_pheo_final$sample_type == "TM" & 
+        chla_pheo_final$field_date == mdy("9/12/2023") &
+        chla_pheo_final$site_reach == "SFE-M-1S")
+chla_pheo_final <- chla_pheo_final[-202,]
+which(chla_pheo_final$sample_type == "TM" & 
+        chla_pheo_final$field_date == mdy("9/12/2023") &
+        chla_pheo_final$site_reach == "SFE-SH-1S")
+chla_pheo_final <- chla_pheo_final[-222,]
 
 # save final csv
 write.csv(chla_pheo_final, "../../../EDI_data_package/target_sample_chlorophyll.csv", row.names = FALSE)
