@@ -59,8 +59,9 @@ sfkeel23 <- all %>%
          bare_biofilm, other_nfixers, proportion_micro_transects, proportion_ana_cyl_transects,
          proportion_riffle_rapid_transects, average_depth_cm_sampled, median_depth_cm_sampled, 
          pH, temp_C, DO_mg_L, cond_uS_cm, oPhos_ug_P_L, nitrate_mg_N_L, ammonium_mg_N_L,
-         TDC_mg_L, DOC_mg_L, TM_ATX_all_ug_orgmat_g, TM_Chla_ug_g, TM_Pheo_ug_g, 
-         TM_percent_organic_matter, TAC_ATX_all_ug_orgmat_g, TAC_Chla_ug_g, TAC_Pheo_ug_g,
+         TDC_mg_L, DOC_mg_L, TM_ATX_all_ug_g, TM_ATX_all_ug_orgmat_g, TM_ATX_all_ug_chla_ug,
+         TM_Chla_ug_g, TM_Pheo_ug_g, TM_percent_organic_matter, TAC_ATX_all_ug_g,
+         TAC_ATX_all_ug_orgmat_g, TAC_ATX_all_ug_chla_ug, TAC_Chla_ug_g, TAC_Pheo_ug_g,
          TAC_percent_organic_matter)
 
 # currently filling out all NA's (no ATX sample taken) with 0's but may rethink in future
