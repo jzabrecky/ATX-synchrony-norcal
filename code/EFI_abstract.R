@@ -6,6 +6,9 @@
 library(tidyverse)
 library(zoo)
 library(randomForest)
+library(factoextra)
+library(rstan)
+library(StanHeaders)
 
 # read in data
 
@@ -30,6 +33,7 @@ metab_sfkeelsth_23 <- left_join(dates, metab_sfkeelsth_23, by = "field_date")
 
 # looks like we have all dates for south fork eel 2023 miranda but not standish
 metab_sfkeelsth_23$GPP.mean <- na.approx(metab_sfkeelsth_23$GPP.mean)
+metab_sfkeelsth_23$discharge_m3_s <- na.approx(metab_sfkeelsth_23$discharge_m3_s)
 
 # probably will want to normalize GPP per site
 
@@ -124,7 +128,11 @@ sfkeel23_sth <- sfkeel23 %>%
 
 sfkeel23_mir <- left_join(sfkeel23_mir, metab_visits, by = c("field_date"))
 sfkeel23_sth <- left_join(sfkeel23_sth, metab_visits_sth, by = c("field_date"))
-# yay!
+# add in discharge
+sfkeel23_mir <- left_join(sfkeel23_mir, metab_sfkeelmir_23 %>% select(field_date, discharge_m3_s),
+                          by = c("field_date"))
+sfkeel23_sth <- left_join(sfkeel23_sth, metab_sfkeelsth_23 %>% select(field_date, discharge_m3_s),
+                          by = c("field_date"))
 
 #### getting prior microcoleus cover and anabaena/cyl cover
 
@@ -193,12 +201,77 @@ varImpPlot(tm_atx_pred) # cond, microcoleus, ophos, nfixers, chla of mat, nitrat
 plot(tac_atx_pred)
 varImpPlot(tac_atx_pred) # anacyl, temp, cond 
 
+covars_PCA <- covars[,]
+atx_PCA <- prcomp(covars_PCA, scale = TRUE)
+
+#Show the percentage of variances explained by each principal component.
+fviz_eig(atx_PCA) # elbow at like 3-5
+
+#Positive correlated variables point to the same side of the plot.
+#Negative correlated variables point to opposite sides of the graph.
+fviz_pca_var(atx_PCA,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE)     # Avoid text overlapping
+
+## normalize/z-score
+sfkeel23_all_final <- sfkeel23_all_final %>% 
+  relocate(TAC_ATX_all_ug_orgmat_g, .after = site) %>% 
+  relocate(TM_ATX_all_ug_orgmat_g, .after = site) %>% 
+  relocate(anabaena_cylindrospermum, .after = site) %>% 
+  relocate(microcoleus, .after = site) %>% 
+  select(!TM_ATX_all_ug_g) %>% 
+  select(!TAC_ATX_all_ug_g) %>% 
+  select(!TM_ATX_all_ug_chla_ug) %>% 
+  select(!TAC_ATX_all_ug_chla_ug)
+
+# meh may just not for now
+# McAllister et al. 2018 log-transforms the nutrients and root-squares the discharge
+
 #### FINAL: MODELING ITERATION STEPS ####
 
+# separate out df for site
+pred_M_1s <- sfkeel23_all_final %>% 
+  filter(site_reach != "SFE-M-1S")
+pred_M_2 <- sfkeel23_all_final %>% 
+  filter(site_reach != "SFE-M-2")
+pred_M_3 <- sfkeel23_all_final %>% 
+  filter(site_reach != "SFE-M-3")
+pred_M_4 <- sfkeel23_all_final %>% 
+  filter(site_reach != "SFE-M-4")
+pred_SH_1s <- sfkeel23_all_final %>% 
+  filter(site_reach != "SFE-SH-1S")
+
 ## (1) Microcoleus occurence
+
+setwd("./code/misc_code/EFI_prelim_STAN")
 
 # look at joanna's notes
 
 # just with prior occupancy
+model1_M_1S_data <- list(N = nrow(pred_M_1s), cover = pred_M_1s$microcoleus,
+                         prior_cover = pred_M_1s$prior_cover)
+model1_M_1S <- stan(file = "cover_model1.stan", data = model1_M_1S_data,
+                    chains = 3, iter = 2000, warmup = 1000)
+
+# rows of data
+N <- nrow(training)
+
+model1_data <- list(N = N, cover = pred_M_1s$microcoleus, covar1 = pred_M_1s$prior_microcoleus)
+
+model1 <- stan(file = "20230331_ForecastingChallenge2.stan", data = model1_data, 
+               chains = 3, iter = 2000, warmup = 1000)
+
+launch_shinystan(model1)
+
+params1 <- rstan::extract(model1, c("b0", "b1", "b2", "b3", "sigma"))
+par(mfrow=c(2,3))
+hist(params1$b0, ylim = c(0,800))
+hist(params1$b1, ylim = c(0,800))
+hist(params1$b2, ylim = c(0,800))
+hist(params1$b3, ylim = c(0,800))
+hist(params1$sigma, ylim = c(0,800))
+
+# including water quality parameters
 
 # predicting both occurance (as cover for now) and atx separately
