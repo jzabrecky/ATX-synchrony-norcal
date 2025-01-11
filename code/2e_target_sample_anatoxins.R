@@ -1,6 +1,6 @@
 #### processing anatoxin concentrations from benthic mats
 ### Jordan Zabrecky
-## last edited 01.02.2024
+## last edited 01.11.2024
 
 # This script takes in anatoxin concentrations, chlorophyll-a concentrations, 
 # and percent organic matter from targeted samples (TM- target Microcoleus and
@@ -70,11 +70,16 @@ chlorophyll <- read.csv("./data/EDI_data_package/target_sample_chlorophyll.csv")
 per_org_matter <- read.csv("./data/EDI_data_package/target_sample_percent_organic_matter.csv") %>% 
   select(field_date, site_reach, sample_type, triplicate, percent_organic_matter)
 
-# note: had two samples (6/29/2022 SFE-M-3 and SFE-M-4 that molded before we 
+# note: had two samples (TM 6/29/2022 SFE-M-3 and SFE-M-4 that molded before we 
 # had a dessicate container while we were waiting for oven use
 # we will just use SFE-M-1S percent organic matter for these
 per_org_matter$percent_organic_matter[2] <- per_org_matter$percent_organic_matter[1]
 per_org_matter$percent_organic_matter[3] <- per_org_matter$percent_organic_matter[1]
+
+# we also had one (TAC 8/28/2023 SFE-M-1S) where somehow the tin without anything
+# weighed more than tin with combustion (percent OM > 100%- miswrite error?)-
+# will replace with % OM of sample from that site the week before
+per_org_matter$percent_organic_matter[197] <- per_org_matter$percent_organic_matter[191]
 
 #### (2) Processing Triplicates in data ####
 
@@ -211,7 +216,7 @@ anatoxins_final <- anatoxins_final %>%
   dplyr::mutate(Chla_ug_g = Chla_ug_mg * 1000,
                 Pheo_ug_g = Pheo_ug_mg * 1000,
                 ATX_all_ug_chla_ug = round((ATX_all_ug_g / (Chla_ug_g)), 7),
-                ATX_all_ug_orgmat_g = round((ATX_all_ug_g * (percent_organic_matter/100)), 7))
+                ATX_all_ug_orgmat_g = round((ATX_all_ug_g / (percent_organic_matter/100)), 7)) # turns % OM into decimal
 
 # create final csv for time series data
 anatoxins_final_timeseries <- anatoxins_final %>% 

@@ -1,6 +1,6 @@
 #### putting all field and lab data together for south fork eel 2023
 ### Jordan Zabrecky
-## last edited: 01.02.2024
+## last edited: 01.11.2024
 
 # This script aggregates all field and lab information for reaches
 # on the South Fork Eel in 2023
