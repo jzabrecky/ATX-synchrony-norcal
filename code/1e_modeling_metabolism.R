@@ -204,7 +204,7 @@ calc_gof_metrics <- function(metab, subfolder, SiteID) {
   data <- na.omit(data) # do not calculate when data missing
   
   #RMSE
-  rmse <- sqrt(sum((data$DO.obs-data$DO.mod)^2)/length(data$DO.mod))
+  rmse <- sqrt(sum((data$DO.mod-data$DO.obs)^2)/length(data$DO.mod))
   
   #NRMSE
   nrmse <- rmse/(max(data$DO.obs)-min(data$DO.obs))

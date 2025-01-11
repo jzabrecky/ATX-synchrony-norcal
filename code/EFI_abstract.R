@@ -242,36 +242,109 @@ pred_M_4 <- sfkeel23_all_final %>%
 pred_SH_1s <- sfkeel23_all_final %>% 
   filter(site_reach != "SFE-SH-1S")
 
+M_1s <- sfkeel23_all_final %>% 
+  filter(site_reach == "SFE-M-1S")
+M_2 <- sfkeel23_all_final %>% 
+  filter(site_reach == "SFE-M-2")
+M_3 <- sfkeel23_all_final %>% 
+  filter(site_reach == "SFE-M-3")
+M_4 <- sfkeel23_all_final %>% 
+  filter(site_reach == "SFE-M-4")
+SH_1s <- sfkeel23_all_final %>% 
+  filter(site_reach == "SFE-SH-1S")
+
+# separate out later using unique?
+
 ## (1) Microcoleus occurence
 
 setwd("./code/misc_code/EFI_prelim_STAN")
 
 # look at joanna's notes
 
-# just with prior occupancy
-model1_M_1S_data <- list(N = nrow(pred_M_1s), cover = pred_M_1s$microcoleus,
-                         prior_cover = pred_M_1s$prior_cover)
+## micro occurrence
+# just with prior occupancy (will list this out later); just for practice for now
+# function to make predictions
+PredOut_model1 <- function(params, prior_cover){
+  n.pred <- (length(prior_cover))
+  Preds <- matrix(NA, length(params$b0), n.pred)
+  
+  for(i in 1:length(params$b0)){
+    for(j in 1:n.pred){ 
+      y <- rnorm(n = 1, mean = params$b0[i] + prior_cover * params$b1[i], sd = params$sigma[i]) #Process error
+      Preds[i,j] <- y
+    }
+  }
+  
+  MeanP <- apply(Preds,2, mean)
+  return(MeanP) 
+}
+
+model1_M_1S_data <- list(N_days = nrow(pred_M_1s), cover = pred_M_1s$microcoleus,
+                         prior_cover = pred_M_1s$prior_microcoleus)
 model1_M_1S <- stan(file = "cover_model1.stan", data = model1_M_1S_data,
                     chains = 3, iter = 2000, warmup = 1000)
+model1_M_2_data <- list(N_days = nrow(pred_M_2), cover = pred_M_2$microcoleus,
+                         prior_cover = pred_M_2$prior_microcoleus)
+model1_M_2 <- stan(file = "cover_model1.stan", data = model1_M_2_data,
+                    chains = 3, iter = 2000, warmup = 1000)
+model1_M_3_data <- list(N_days = nrow(pred_M_3), cover = pred_M_3$microcoleus,
+                         prior_cover = pred_M_3$prior_microcoleus)
+model1_M_3 <- stan(file = "cover_model1.stan", data = model1_M_3_data,
+                    chains = 3, iter = 2000, warmup = 1000)
+model1_M_4_data <- list(N_days = nrow(pred_M_4), cover = pred_M_4$microcoleus,
+                         prior_cover = pred_M_4$prior_microcoleus)
+model1_M_4 <- stan(file = "cover_model1.stan", data = model1_M_4_data,
+                    chains = 3, iter = 2000, warmup = 1000)
+model1_SH_1S_data <- list(N_days = nrow(pred_SH_1s), cover = pred_SH_1s$microcoleus,
+                         prior_cover = pred_SH_1s$prior_microcoleus)
+model1_SH_1S <- stan(file = "cover_model1.stan", data = model1_SH_1S_data,
+                    chains = 3, iter = 2000, warmup = 1000)
 
-# rows of data
-N <- nrow(training)
+# need to get predictions
+params1 <- rstan::extract(model1_M_1S, c("b0", "b1", "sigma"))
+params2 <- rstan::extract(model1_M_2, c("b0", "b1", "sigma"))
+params3 <- rstan::extract(model1_M_3, c("b0", "b1", "sigma"))
+params4 <- rstan::extract(model1_M_4, c("b0", "b1", "sigma"))
+params5 <- rstan::extract(model1_SH_1S, c("b0", "b1", "sigma"))
 
-model1_data <- list(N = N, cover = pred_M_1s$microcoleus, covar1 = pred_M_1s$prior_microcoleus)
+preds1 <- PredOut_model1(params1, M_1s$prior_microcoleus)
+preds2 <- PredOut_model1(params2, M_2$prior_microcoleus)
+preds3 <- PredOut_model1(params3, M_3$prior_microcoleus)
+preds4 <- PredOut_model1(params4, M_4$prior_microcoleus)
+preds5 <- PredOut_model1(params5, SH_1s$prior_microcoleus)
 
-model1 <- stan(file = "20230331_ForecastingChallenge2.stan", data = model1_data, 
-               chains = 3, iter = 2000, warmup = 1000)
+# average RMSE and get range (write it in code comment)
+nrmse1 <- (sqrt(sum((preds1 - M_1s$microcoleus)^2)/length(preds1))) / (max(M_1s$microcoleus - min(M_1s$microcoleus)))
+nrmse2 <- (sqrt(sum((preds2 - M_2$microcoleus)^2)/length(preds2))) / (max(M_2$microcoleus - min(M_2$microcoleus)))
+nrmse3 <- (sqrt(sum((preds3 - M_3$microcoleus)^2)/length(preds3))) / (max(M_3$microcoleus - min(M_3$microcoleus)))
+nrmse4 <- (sqrt(sum((preds4 - M_4$microcoleus)^2)/length(preds4))) / (max(M_4$microcoleus - min(M_4$microcoleus)))
+nrmse5 <- (sqrt(sum((preds5 - SH_1s$microcoleus)^2)/length(preds5))) / (max(SH_1s$microcoleus - min(SH_1s$microcoleus)))
+mean(nrmse1, nrmse2, nrmse3, nrmse4, nrmse5) # 0.409
+min(nrmse1, nrmse2, nrmse3, nrmse4, nrmse5) # 0.261
+max(nrmse1, nrmse2, nrmse3, nrmse4, nrmse5) # 0.500
 
-launch_shinystan(model1)
 
-params1 <- rstan::extract(model1, c("b0", "b1", "b2", "b3", "sigma"))
-par(mfrow=c(2,3))
-hist(params1$b0, ylim = c(0,800))
-hist(params1$b1, ylim = c(0,800))
-hist(params1$b2, ylim = c(0,800))
-hist(params1$b3, ylim = c(0,800))
-hist(params1$sigma, ylim = c(0,800))
+## micro occurence w/ geomorphic
 
-# including water quality parameters
+## micro occurence w/ water quality
 
-# predicting both occurance (as cover for now) and atx separately
+
+## anabaena occurence w/ prior only
+
+## anabaen occurence w/ geomorphic
+
+## anabaena occurence w/ water quality
+
+#### ATX predictions
+
+## micro anatoxin with percent cover
+
+## micro anatoxin with water quality
+
+## micro anatoxin with metabolism
+
+## ana anatoxin with percent cover
+
+## ana anatoxin with water quality
+
+## ana anatoxin with metabolism
