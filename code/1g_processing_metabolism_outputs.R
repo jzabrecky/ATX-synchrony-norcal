@@ -266,7 +266,7 @@ daily_metab_list$sfkeel_mir_2022 <- left_join(daily_metab_list$sfkeel_mir_2022,
 daily_metab_list$sfkeel_mir_2023 <- left_join(daily_metab_list$sfkeel_mir_2023,
                                               USGS_daily_discharge$sfkeel_mir, by = "date")
 daily_metab_list$sfkeel_sth_2023 <- left_join(daily_metab_list$sfkeel_sth_2023,
-                                              USGS_daily_discharge$sfkeel_mir, by = "date")
+                                              USGS_daily_discharge$sfkeel_sth, by = "date")
 
 # note for applying depths after running metabolism model
 # thus, as we are not dividing GPP by anything, our GPP will be in units g O2 m^-3 d^-1
