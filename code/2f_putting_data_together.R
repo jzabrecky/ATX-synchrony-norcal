@@ -58,6 +58,8 @@ all <- (list(all, microcoleus, ana_cyl)) %>%
 sfkeel23 <- all %>% 
   mutate(field_date = ymd(field_date),
          year = year(field_date)) %>% 
+  mutate(TM_Chla_Pheo_ratio = TM_Chla_ug_g / TM_Pheo_ug_g,
+         TAC_Chla_Pheo_ratio = TAC_Chla_ug_g / TAC_Pheo_ug_g) %>% 
   filter(site == "SFE-M" | site == "SFE-SH") %>% 
   filter(year == 2023) %>% 
   select(field_date, site_reach, site, green_algae, microcoleus, anabaena_cylindrospermum,
@@ -65,9 +67,9 @@ sfkeel23 <- all %>%
          proportion_riffle_rapid_transects, average_depth_cm_sampled, median_depth_cm_sampled, 
          pH, temp_C, DO_mg_L, cond_uS_cm, oPhos_ug_P_L, nitrate_mg_N_L, ammonium_mg_N_L,
          TDC_mg_L, DOC_mg_L, TM_ATX_all_ug_g, TM_ATX_all_ug_orgmat_g, TM_ATX_all_ug_chla_ug,
-         TM_Chla_ug_g, TM_Pheo_ug_g, TM_percent_organic_matter, TAC_ATX_all_ug_g,
+         TM_Chla_ug_g, TM_Pheo_ug_g, TM_Chla_Pheo_ratio, TM_percent_organic_matter, TAC_ATX_all_ug_g,
          TAC_ATX_all_ug_orgmat_g, TAC_ATX_all_ug_chla_ug, TAC_Chla_ug_g, TAC_Pheo_ug_g,
-         TAC_percent_organic_matter)
+         TAC_Chla_Pheo_ratio, TAC_percent_organic_matter)
 
 # may fill out all NA's (no ATX sample taken) with 0's but may rethink in future
 # sfkeel23 <- sfkeel23 %>% replace(is.na(.), 0)
@@ -150,10 +152,10 @@ metab_sth <- left_join(metab_sth, avg_sth, by = "visit")
 
 # only keep columns from metab that we care about
 metab_mir <- metab_mir %>% 
-  select(field_date, GPP_mean_fourdaysprior, discharge_m3_s) %>% 
+  select(field_date, GPP_mean_fourdaysprior, GPP_change, discharge_m3_s) %>% 
   mutate(site = "SFE-M")
 metab_sth <- metab_sth %>% 
-  select(field_date, GPP_mean_fourdaysprior, discharge_m3_s) %>% 
+  select(field_date, GPP_mean_fourdaysprior, GPP_change, discharge_m3_s) %>% 
   mutate(site = "SFE-SH")
 
 # keep only columns we care about and merge into south fork eel field dataframes
