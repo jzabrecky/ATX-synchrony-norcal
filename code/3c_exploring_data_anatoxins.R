@@ -254,7 +254,7 @@ time_plot(TAC_data, TAC_data$other_nfixers, TAC_data$TAC_ATX_all_ug_orgmat_g / 2
 corr_plot(TAC_data, TAC_data$other_nfixers, TAC_data$TAC_ATX_all_ug_orgmat_g,
           "N-fixer cover vs. Anabaena/Cylindrospermum ATX")
 cor(TAC_data$TAC_ATX_all_ug_orgmat_g, TAC_data$other_nfixers) # -0.112
-# not a good predictor
+# not a good predictor-- wonder if we normalized this???
 
 # chlorophyll-a of mats
 time_plot(TAC_data, TAC_data$TAC_Chla_ug_g / 18000, TAC_data$TAC_ATX_all_ug_orgmat_g,
