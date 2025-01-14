@@ -1,6 +1,6 @@
 #### getting field and lab data together for the EDI package
 ### Jordan Zabrecky
-## last edited: 12.21.2024
+## last edited: 01.14.2025
 
 # This code puts together raw field and lab data for release in the EDI package
 
@@ -18,7 +18,7 @@ extech_data <- ldply(list.files(path = "./data/field_and_lab/raw_data/", pattern
     mutate(date_time = mdy_hm(paste(field_date, time), tz = "America/Los_Angeles"),
            pressure_mbar_extech = pressure_mmHg * 1.333) %>% 
     na.omit() %>% 
-    select(date_time, site, pressure_mbar_extech)
+    select(date_time, site_reach, pressure_mbar_extech)
 })
 
 # convert date time to character
@@ -292,9 +292,7 @@ sontek <- read.csv("./data/field_and_lab/raw_data/sontek_discharge.csv")
 # make date time column and select what we care about and notes column for SFE-SH
 sontek <- sontek %>% 
   mutate(date_time = mdy_hm(paste(date, time, sep = " "))) %>% 
-  mutate(discharge_flag = case_when(site == "SFE-SH" ~ "Y",
-                           TRUE ~ "N")) %>% 
-  select(site, date_time, discharge_m3_s, discharge_flag)
+  select(site, date_time, discharge_m3_s)
 
 # making a function to change date_time column to character to avoid issue in some
 # versions of R where date_time drops the "00:00:00" / midnight time when saved to csv
@@ -368,6 +366,9 @@ anatoxins_reduced <- anatoxins_reduced %>%
 
 # fill in missing values/non-detects with "ND"
 anatoxins_processed <- replace(anatoxins_reduced, is.na(anatoxins_reduced), "ND")
+
+# we have one sample where the microcystin detection limit was not reported
+anatoxins_processed$MCY_det_limit[which(anatoxins_processed$MCY_det_limit == "ND")] <- "NA"
 
 # match ESF_ID with metadata
 combined <- left_join(metadata, anatoxins_processed, by = "ESF_ID") %>% 

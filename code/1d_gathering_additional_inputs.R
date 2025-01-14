@@ -151,7 +151,10 @@ names(GLDAS_processed) <- site_names # adding names to list
 # reading in extech local barometric pressure data
 extech_data <- read.csv("./data/EDI_data_package/barometric_pressure.csv") %>% 
   mutate(date_time = ymd_hms(date_time, tz = "America/Los_Angeles"),
-         year = year(date_time))
+         site = case_when(grepl("RUS", site_reach) ~ "RUS", # create site codes
+                          grepl("SAL", site_reach) ~ "SAL",
+                          grepl("SFE-M", site_reach) ~ "SFE-M",
+                          grepl("SFE-SH", site_reach) ~ "SFE-SH"))
 
 # to preserve processed data, will make a new list
 GLDAS_adjusted <- GLDAS_processed
