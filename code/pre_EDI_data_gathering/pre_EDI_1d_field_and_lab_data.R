@@ -1,6 +1,6 @@
 #### getting field and lab data together for the EDI package
 ### Jordan Zabrecky
-## last edited: 01.14.2025
+## last edited: 01.16.2025
 
 # This code puts together raw field and lab data for release in the EDI package
 
@@ -264,7 +264,7 @@ pebble_count <- pebble_count %>%
   dplyr::rename(field_date = Date,
                 sample_number = X.,
                 intermediate_axis_mm = Intermediate_axis._mm,
-                habitat_type = Habitat_type,
+                riffle_pool = Riffle_or_pool,
                 transect = Transect) %>% 
   mutate(site = case_when(Site == "SfkEel_Miranda" ~ "SFE-M",
                           Site == "SfkEel_Standish" ~ "SFE-SH")) %>% 
@@ -274,7 +274,7 @@ pebble_count <- pebble_count %>%
                                 Section == "EEL-2UP" ~ "SFE-M-4",
                                 Section == "EEL-STH" ~ "SFE-SH-1S",
                                 Section == "kayak_entry" ~ "SFE-SH-kayak-entry")) %>% 
-  select(field_date, site, site_reach, transect, sample_number, intermediate_axis_mm, habitat_type)
+  select(field_date, site, site_reach, transect, sample_number, intermediate_axis_mm, riffle_pool)
 
 any(is.na(pebble_count))
 
@@ -304,33 +304,33 @@ write.csv(sontek, "./data/EDI_data_package/discharge_measurements.csv", row.name
 #### (6) Target Sample Percent Organic Matter ####
 
 # reading in weights measured at UC-B Angelo Reserve Lab
-dry_mass <- ldply(list.files(path = "./data/field_and_lab/raw_data/", 
-                         pattern = "angelo"), function(filename) {
-                           d <- read.csv(paste("data/field_and_lab/raw_data/", filename, sep = ""))
-                           d$field_date <- mdy(d$field_date)
-                           return(d)
-                         })
+angelo <- ldply(list.files(path = "./data/field_and_lab/raw_data/", 
+                           pattern = "angelo"), function(filename) {
+                             d <- read.csv(paste("data/field_and_lab/raw_data/", filename, sep = ""))
+                             d$field_date <- mdy(d$field_date)
+                             return(d)
+                             })
 
 # calculate dry weight (both organic and inorganic matter) without tin weight
-dry_mass$dry_sample_g <- dry_mass$dry_sample_tin_g - dry_mass$tin_g
+angelo$dry_sample_g <- angelo$dry_sample_tin_g - angelo$tin_g
 
 # calculate AFDM (ash-free dry mass or organic matter)
-dry_mass$afdm_g <- dry_mass$dry_sample_tin_g - dry_mass$combusted_sample_tin_g
+angelo$afdm_g <- angelo$dry_sample_tin_g - angelo$combusted_sample_tin_g
 
 # calculate percent organic matter (percent of matter that is organic/combusted)
-dry_mass$percent_organic_matter <- (dry_mass$afdm_g / dry_mass$dry_sample_g) * 100
+angelo$percent_organic_matter <- (angelo$afdm_g / angelo$dry_sample_g) * 100
 
 # round everything to reasonable decimal places
-dry_mass <- dry_mass %>% 
+angelo <- angelo %>% 
   mutate(dry_sample_g = round(dry_sample_g, digits = 5),
          afdm_g = round(afdm_g, digits = 5),
          percent_organic_matter = round(percent_organic_matter, digits = 5))
 
 # replace missing values with NA (samples that molded) as missing value code for EDI
-dry_mass <- dry_mass %>% replace(is.na(.), "NA")
+angelo <- angelo %>% replace(is.na(.), "NA")
 
 # save csv
-write.csv(dry_mass, "./data/EDI_data_package/target_sample_percent_organic_matter.csv", row.names = FALSE)
+write.csv(angelo, "./data/EDI_data_package/target_sample_percent_organic_matter.csv", row.names = FALSE)
 
 #### (7) Target Sample Anatoxins ####
 
