@@ -288,10 +288,7 @@ metab_processing <- function(df) {
     dplyr::select(site_year, date, GPP.mean, GPP.2.5.pct, GPP.97.5.pct, GPP_Rhat,
                   ER.mean, ER.2.5.pct, ER.97.5.pct, ER_Rhat, NEP.mean, NEP.2.5.pct, 
                   NEP.97.5.pct, K600_daily_mean, K600_daily_Rhat, discharge_m3_s) %>% 
-    dplyr::filter(K600_daily_Rhat < 1.1) %>% # remove values with bad r-hats
-    dplyr::filter(K600_daily_Rhat < 1.1) %>% 
-    dplyr::filter(K600_daily_Rhat < 1.1)
-  
+    dplyr::filter(GPP_Rhat < 1.1) # remove values with bad r-hats (only care about GPP)
   return(new_df)
 }
     
