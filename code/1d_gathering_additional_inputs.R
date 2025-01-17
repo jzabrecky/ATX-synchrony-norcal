@@ -1,6 +1,6 @@
 #### gathering all data to model metabolism
 ### Jordan Zabrecky
-## last edited 12.19.2024
+## last edited 01.14.2025
 
 # This code gathers the necessary components for metabolism modeling
 # including the (1) cleaned miniDOT data from "1a_reading_and_cleaning_miniDOT_data.R"
@@ -173,7 +173,7 @@ cor.test(extech_russian$pressure_mbar_extech, extech_russian$pressure_mbar) # hi
 # linear regression model
 mbar_lm_russian <- lm(pressure_mbar_extech ~ pressure_mbar, data = extech_russian)
 
-# applying regression model to adjusted data list
+# using regression model to obtain more locally adjusted barometric pressure
 GLDAS_adjusted$russian$pressure_mbar <- mbar_lm_russian$coefficients[1] + 
   (GLDAS_processed$russian$pressure_mbar * mbar_lm_russian$coefficients[2])
 
@@ -191,7 +191,7 @@ cor.test(extech_salmon$pressure_mbar_extech, extech_salmon$pressure_mbar) # high
 # linear regression model
 mbar_lm_salmon <- lm(pressure_mbar_extech ~ pressure_mbar, data = extech_salmon)
 
-# applying regression model to adjusted data list
+# using regression model to obtain more locally adjusted barometric pressure
 GLDAS_adjusted$salmon$pressure_mbar <- mbar_lm_salmon$coefficients[1] + 
   (GLDAS_processed$salmon$pressure_mbar * mbar_lm_salmon$coefficients[2]) 
 
@@ -216,7 +216,7 @@ cor.test(extech_sfkeel_mir$pressure_mbar_extech, extech_sfkeel_mir$pressure_mbar
 # linear regression model
 mbar_lm_sfkeel_mir <- lm(pressure_mbar_extech ~ pressure_mbar, data = extech_sfkeel_mir)
 
-# applying regression model to adjusted data list
+# using regression model to obtain more locally adjusted barometric pressure
 GLDAS_adjusted$sfkeel_mir$pressure_mbar <- mbar_lm_sfkeel_mir$coefficients[1] + 
   (GLDAS_processed$sfkeel_mir$pressure_mbar * mbar_lm_sfkeel_mir$coefficients[2])
 
@@ -234,7 +234,7 @@ cor.test(extech_sfkeel_sth$pressure_mbar_extech, extech_sfkeel_sth$pressure_mbar
 # linear regression model
 mbar_lm_sfkeel_sth <- lm(pressure_mbar_extech ~ pressure_mbar, data = extech_sfkeel_sth)
 
-# applying regression model to adjusted data list
+# using regression model to obtain more locally adjusted barometric pressure
 GLDAS_adjusted$sfkeel_sth$pressure_mbar <- mbar_lm_sfkeel_sth$coefficients[1] + 
   (GLDAS_processed$sfkeel_sth$pressure_mbar * mbar_lm_sfkeel_sth$coefficients[2])
 
