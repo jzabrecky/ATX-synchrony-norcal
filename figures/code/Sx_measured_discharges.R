@@ -1,6 +1,6 @@
 #### USGS gage discharge vs. our discharge measurements
 ### Jordan Zabrecky
-## last edited: 01.21.2025
+## last edited: 01.22.2025
 
 # This figure shows that our discharge measurements are in rough accordance 
 # with nearby USGS gage discharge measurements
@@ -54,7 +54,7 @@ USGS_discharge$`SFE-SH` <- USGS_discharge$`SFE-SH` %>%
   dplyr::filter(date_time >= "2023-06-24 00:00:00" & date_time <= "2023-09-28 00:00:00") %>% 
   mutate(site = "SFE-SH")
 
-# combining all into one dataframe
+# combining all into one dataframehttp://127.0.0.1:22675/graphics/plot_zoom_png?width=1168&height=833
 discharge_all <- rbind(USGS_discharge$RUS, USGS_discharge$`SFE-M`, USGS_discharge$`SFE-SH`)
 
 # left joining in our discharge measurements
@@ -71,14 +71,14 @@ figure <- ggplot(data = discharge_all, aes(x = date_time, y = discharge_m3_s.x))
              labeller = as_labeller(c(`RUS` = "Russian River (RUS)", 
                                       `SFE-M` = "South Fork Eel River at Miranda (SFE-M)",
                                       `SFE-SH` = "South Fork Eel River at Standish Hickey (SFE-SH)"))) +
-  scale_fill_manual(values = c("#bdb000", "#416f16", "#8bde43")) +
-  scale_color_manual(values = c("#7d7400", "#32590d", "#61ad1f")) +
-  scale_shape_manual(values = c(21, 22, 23)) +
+  scale_fill_manual(values = c("#bdb000", "#416f16", "#ddf1b0")) +
+  scale_color_manual(values = c("#7d7400", "#32590d", "#afcf69")) +
+  scale_shape_manual(values = c(24, 22, 23)) +
   labs(x = NULL, y = expression("Discharge (m"^3~"s"^-1*")")) +
   theme_bw() +
   theme(strip.background = element_blank()) +
   theme(legend.position = "none",
         panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
-        panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.0),
+        panel.border = element_rect(linewidth = 2), axis.ticks = element_line(linewidth = 2.0),
         text = element_text(size = 24), axis.ticks.length=unit(.25, "cm"))
 figure
