@@ -1,6 +1,6 @@
 #### USGS gage discharge vs. our discharge measurements
 ### Jordan Zabrecky
-## last edited: 01.13.2025
+## last edited: 01.21.2025
 
 # This figure shows that our discharge measurements are in rough accordance 
 # with nearby USGS gage discharge measurements
@@ -62,31 +62,23 @@ discharge_all <- left_join(discharge_all, discharge, by = c("date_time", "site")
 
 #### (3) Making figure ####
 
-# facet wrap? on points and then add lines for discharge
-# will be interesting to add lines for discharge
-# also need individual scale for each plot
-figure <- ggplot(data = discharge, aes(x = date_time, y = discharge_m3_s)) +
-  geom_point(aes(color = site)) +
-  facet_wrap(~site, scales = "free") +
-  scale_color_manual(values = c("#bdb000", "#416f16", "#8bde43")) +
-  theme(strip.background = element_rect(fill = NA),
-        panel.background = element_rect(color = "black", fill=NA, linewidth=1),
-        legend.position = "none",
-        axis.title.x = element_text(size=12), 
-        axis.text.x = element_text(size=10),
-        axis.text.y = element_text(size=10),
-        axis.title.y = element_text(size=12))
-
+# not sure if points need to be indicated that they are measured on plot or text
 figure <- ggplot(data = discharge_all, aes(x = date_time, y = discharge_m3_s.x)) +
-  geom_line(color = "lightblue", linewidth = 1) +
-  geom_point(aes(y = discharge_m3_s.y, color = site, shape = site)) +
-  facet_wrap(~site, ncol = 1, scales = "free") +
+  geom_area(fill = "#d9ecff") +
+  geom_point(aes(y = discharge_m3_s.y, fill = site, shape = site, color = site), 
+             size = 6, alpha = 0.8, stroke = 2) +
+  facet_wrap(~site, ncol = 1, scales = "free", 
+             labeller = as_labeller(c(`RUS` = "Russian River (RUS)", 
+                                      `SFE-M` = "South Fork Eel River at Miranda (SFE-M)",
+                                      `SFE-SH` = "South Fork Eel River at Standish Hickey (SFE-SH)"))) +
+  scale_fill_manual(values = c("#bdb000", "#416f16", "#8bde43")) +
+  scale_color_manual(values = c("#7d7400", "#32590d", "#61ad1f")) +
+  scale_shape_manual(values = c(21, 22, 23)) +
   labs(x = NULL, y = expression("Discharge (m"^3~"s"^-1*")")) +
   theme_bw() +
-  theme(legend.position = NULL,
+  theme(strip.background = element_blank()) +
+  theme(legend.position = "none",
         panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
-        panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
-        text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"))
+        panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.0),
+        text = element_text(size = 24), axis.ticks.length=unit(.25, "cm"))
 figure
-
-## LOOK AT EXAMPLES FROM HEILI!!

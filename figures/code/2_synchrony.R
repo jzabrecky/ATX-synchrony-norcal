@@ -1,0 +1,281 @@
+#### Large synchrony figure
+### Jordan Zabrecky
+## last edited 01.16.2025
+
+# Large synchrony figure of gross primary productivity (GPP), % cover, and
+# anatoxin concentrations for each river and year
+
+# NEEDS TO BE UPDATED WITH SALMON RIVER WHEN YOU FIGURE OUT THOSE ISSUES
+
+#### (1) Loading libraries and data ####
+
+# loading libraries
+lapply(c("tidyverse", "lubridate", "plyr", "dataRetrieval", "cowplot"), 
+       require, character.only = T)
+
+## metabolism
+
+# loading in metabolism data
+metabolism <- ldply(list.files(path = "./data/metab_model_outputs_processed/", 
+                               pattern = "_metab.csv"), function(filename) {
+  d <- read.csv(paste("./data/metab_model_outputs_processed/", filename, sep = ""))
+  d$site_year = filename %>% stringr::str_remove("_metab.csv") # get site & year info
+  d$site = d$site_year %>% str_sub(end=-6) # get site only info
+  d$date = ymd(d$date) # convert date to date object
+  return(d)
+})
+
+# split into a list based on site & year
+metabolism_list <- split(metabolism, metabolism$site_year)
+
+## discharge
+
+# getting daily discharge data
+USGS_gages <- c("11463000", "11522500", "11476500", "11475800") # USGS site numbers
+param <- "00060" # mean daily discharge in cfs
+discharge <- lapply(USGS_gages, function(x) readNWISdv(x, param, "2022-06-15","2023-10-01"))
+site_names <- c("RUS", "SAL", "SFE_M", "SFE_SH") # site names
+names(discharge) <- site_names # adding site names to discharge list
+
+# function to clean discharge data frame
+clean_discharge <- function(df) {
+  new_df <- df %>% 
+    mutate(discharge_m3_s = X_00060_00003 / 35.31) %>% 
+    select(Date, discharge_m3_s)
+  return(new_df)
+}
+
+# apply function to list of discharge dataframes
+discharge <- lapply(discharge, function(x) clean_discharge(x))
+
+## benthic cyanobacteria cover & anatoxins
+
+# loading in data & mutating
+# literally cannot figure out this data transformation atm....
+cover <- read.csv("./data/field_and_lab/percover_bysite.csv") %>% 
+  # calculate upper and lower sd (but lower bounds cannot go below 0)
+  mutate(field_date = ymd(field_date),
+         year = year(field_date),
+         site_year = case_when(site == "RUS" ~ "russian_2022", # create site_year codes
+                               site == "SFE-SH" ~ "sfkeel_sth_2022",
+                               (site == "SFE-M_excl_site2" & year == 2022) ~ "sfkeel_mir_2022",
+                               site == "SFE-M_all_sites" ~ "sfkeel_mir_2023",
+                               (site == "SAL" & year == 2022) ~ "salmon_2022",
+                               (site == "SAL" & year == 2023) ~ "salmon_2023")) %>% 
+  filter(!is.na(site_year)) # will use the SFE-M for 2023 that uses all sites
+anatoxins <- read.csv("./data/field_and_lab/cyano_atx.csv") %>% 
+  mutate(field_date = ymd(field_date),
+         year = year(field_date),
+         site = case_when(grepl("RUS", site_reach) ~ "RUS", # create site codes
+                          grepl("SAL", site_reach) ~ "SAL",
+                          grepl("SFE-M", site_reach) ~ "SFE-M",
+                          grepl("SFE-SH", site_reach) ~ "SFE-SH"),
+         site_year = case_when(site == "RUS" ~ "russian_2022", # create site_year codes
+                               site == "SFE-SH" ~ "sfkeel_sth_2022",
+                               (site == "SFE-M" & year == 2022) ~ "sfkeel_mir_2022",
+                               (site == "SFE-M" & year == 2023) ~ "sfkeel_mir_2023",
+                               (site == "SAL" & year == 2022) ~ "salmon_2022",
+                               (site == "SAL" & year == 2023) ~ "salmon_2023"))
+
+# separating cover into two dataframes and adding group label
+cover_micro <- cover %>% 
+  select(field_date, site_year, microcoleus_mean, microcoleus_sd) %>% 
+  mutate(group = "Microcoleus") %>% 
+  dplyr::rename(mean = microcoleus_mean,
+         sd = microcoleus_sd)
+cover_anacyl <- cover %>% 
+  select(field_date, site_year, anabaena_cylindrospermum_mean, anabaena_cylindrospermum_sd) %>% 
+  mutate(group = "Anabaena/Cylindrospermum") %>% 
+  dplyr::rename(mean = anabaena_cylindrospermum_mean,
+         sd = anabaena_cylindrospermum_sd)
+
+# joining together dataframes and calculating max and min with mean and sd
+cover_final <- rbind(cover_micro, cover_anacyl) %>% 
+  mutate(max = mean + sd,
+         min = case_when(mean - sd > 0 ~ mean - sd,
+                         is.na(sd) ~ NA,
+                          TRUE ~ 0))
+
+# split dataframe into list of dataframes
+cover_list <- split(cover_final, cover_final$site_year)
+
+# treating 9-8-22 sample as if its 9-6-22
+anatoxins$field_date[43] <- ymd("2022-09-06")
+
+# summarize anatoxins by site
+atx_summarized <- anatoxins %>% 
+  dplyr::rename(group = sample_type) %>% 
+  dplyr::group_by(site_year, field_date, group) %>% 
+  dplyr::summarize(mean_ATX_all_ug_orgmat_g = mean(ATX_all_ug_orgmat_g),
+                   sd_ATX_all_ug_orgmat_g = sd(ATX_all_ug_orgmat_g))
+
+# split into list of dataframes
+anatoxins_list <- split(atx_summarized, atx_summarized$site_year)
+
+#### (2) Making metabolism & discharge figures ####
+
+## set theme for all plots
+theme_set(theme_bw() +
+            theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+                  panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
+                  text = element_text(size = 30), plot.margin = unit(c(.5, 0, 0, 0), "cm"),
+                  axis.ticks.length=unit(.25, "cm")))
+
+## south fork eel @ miranda 2022
+
+# add segment column to avoid ribbon being drawn across plot when we weren't taking data
+metabolism_list$sfkeel_mir_2022$segment <- 1
+metabolism_list$sfkeel_mir_2022$segment[14:nrow(metabolism_list$sfkeel_mir_2022)] <- 2
+
+# figure
+sfkmir22_GPP_dis <- ggplot(data = metabolism_list$sfkeel_mir_2022, aes(x = date)) +
+  geom_area(data = discharge$SFE_M, aes(y = discharge_m3_s * 2.5, x = Date), fill = "#d9ecff") +
+  geom_ribbon(aes(ymin = GPP.2.5.pct, ymax = GPP.97.5.pct, group = segment),
+              fill = "#9ced66", alpha = 0.8) +
+  geom_point(aes(y = GPP.mean), color = "#397014", size = 2.5, alpha = 1) +
+  labs(y = NULL, x = NULL) +
+  scale_x_date(limits = as.Date(c("2022-06-29", "2022-09-20"))) +
+  scale_y_continuous(sec.axis = sec_axis(~ . / 2.5)) +
+  coord_cartesian(ylim = c(0, 12))
+sfkmir22_GPP_dis
+
+## south fork eel @ miranda 2023
+
+# figure
+sfkmir23_GPP_dis <- ggplot(data = metabolism_list$sfkeel_mir_2023, aes(x = date)) +
+  geom_area(data = discharge$SFE_M, aes(y = discharge_m3_s * 2.5, x = Date), fill = "#d9ecff") +
+  geom_ribbon(aes(ymin = GPP.2.5.pct, ymax = GPP.97.5.pct), fill = "#9ced66", alpha = 0.8) +
+  geom_point(aes(y = GPP.mean), color = "#397014", size = 2.5, alpha = 1) +
+  scale_x_date(limits = as.Date(c("2023-06-18", "2023-09-27"))) +
+  scale_y_continuous(sec.axis = sec_axis(~ . / 2.5)) +
+  coord_cartesian(ylim = c(0, 12)) +
+  labs(y = NULL, x = NULL)
+sfkmir23_GPP_dis
+
+## south fork eel @ standish hickey 2023
+
+# error bar for single points
+error_bar <- metabolism_list$sfkeel_sth_2023[4:5,]
+metabolism_list$sfkeel_sth_2023[4:5,4:5] <- NA
+
+# add segment column to avoid ribbon being drawn across plot when we weren't taking data
+metabolism_list$sfkeel_sth_2023$segment <- 1
+metabolism_list$sfkeel_sth_2023$segment[6:9] <- 2
+metabolism_list$sfkeel_sth_2023$segment[10:11] <- 3
+metabolism_list$sfkeel_sth_2023$segment[12:nrow(metabolism_list$sfkeel_sth_2023)] <- 4
+
+# figure
+sfksth23_GPP_dis <- ggplot(data = metabolism_list$sfkeel_sth_2023, aes(x = date)) +
+  geom_area(data = discharge$SFE_SH, aes(y = discharge_m3_s * 2.5, x = Date), fill = "#d9ecff") +
+  geom_ribbon(aes(ymin = GPP.2.5.pct, ymax = GPP.97.5.pct, group = segment),
+              fill = "#9ced66", alpha = 0.8) +
+  geom_linerange(data = error_bar, aes(ymin = GPP.2.5.pct, ymax = GPP.97.5.pct),
+                  alpha = 0.8, color = "#9ced66", linewidth = 1.5) +
+  geom_point(aes(y = GPP.mean), color = "#397014", size = 2.5, alpha = 1) +
+  scale_x_date(limits = as.Date(c("2023-06-20", "2023-09-27"))) +
+  scale_y_continuous(sec.axis = sec_axis(~ . / 2.5)) +
+  coord_cartesian(ylim = c(0, 12)) +
+  labs(y = NULL, x = NULL)
+sfksth23_GPP_dis
+
+## russian river 2022
+
+# figure
+rus22_GPP_dis <- ggplot(data = metabolism_list$russian_2022_USGS, aes(x = date)) +
+  geom_area(data = discharge$RUS, aes(y = discharge_m3_s * 2.5, x = Date), fill = "#d9ecff") +
+  geom_ribbon(aes(ymin = GPP.2.5.pct, ymax = GPP.97.5.pct), fill = "#9ced66", alpha = 0.8) +
+  geom_point(aes(y = GPP.mean), color = "#397014", size = 2.5, alpha = 1) +
+  scale_x_date(limits = as.Date(c("2022-06-24 00:00:00", "2022-09-16 00:00:00"))) +
+  scale_y_continuous(sec.axis = sec_axis(~ . / 2.5)) +
+  coord_cartesian(ylim = c(0, 12)) +
+  labs(y = NULL, x = NULL)
+rus22_GPP_dis
+
+## salmon river 2022
+
+# figure- NEED TO SEE IF I CAN IMPROVE THIS DATA
+sal22_GPP_dis <- ggplot(data = metabolism_list$salmon_2022_karuk, aes(x = date)) +
+  geom_area(data = discharge$SAL, aes(y = discharge_m3_s * 0.63, x = Date), fill = "#d9ecff") +
+  geom_ribbon(aes(ymin = GPP.2.5.pct, ymax = GPP.97.5.pct), fill = "#9ced66", alpha = 0.8) +
+  geom_point(aes(y = GPP.mean), color = "#397014", size = 2.5, alpha = 1) +
+  scale_x_date(limits = as.Date(c("2022-06-26", "2022-09-23"))) +
+  scale_y_continuous(sec.axis = sec_axis(~ . / 0.63)) +
+  coord_cartesian(ylim = c(0, 19)) +
+  labs(y = NULL, x = NULL)
+sal22_GPP_dis
+
+## salmon river 2023
+
+# figure- again need to figure out problematic GPP here
+sal23_GPP_dis <- ggplot(data = metabolism_list$salmon_2023_karuk, aes(x = date)) +
+  geom_area(data = discharge$SAL, aes(y = discharge_m3_s * 0.63, x = Date), fill = "#d9ecff") +
+  geom_ribbon(aes(ymin = GPP.2.5.pct, ymax = GPP.97.5.pct), fill = "#9ced66", alpha = 0.8) +
+  geom_point(aes(y = GPP.mean), color = "#397014", size = 2.5, alpha = 1) +
+  scale_x_date(limits = as.Date(c("2023-06-25", "2023-09-25"))) +
+  scale_y_continuous(sec.axis = sec_axis(~ . / 0.63)) +
+  coord_cartesian(ylim = c(0, 19)) +
+  labs(y = NULL, x = NULL)
+sal23_GPP_dis
+
+# need to get legend-- will have to clip from plots above
+# and edit in 
+
+#### (3) Making cover & anatoxin figures ####
+
+## south fork eel @ miranda
+
+# figure
+sfkmir22_acc_atx <- ggplot(data = cover_list$sfkeel_mir_2022, aes(x = field_date)) +
+  geom_bar(data = anatoxins_list$sfkeel_mir_2022, position = "dodge", stat = "identity", 
+           aes(y = mean_ATX_all_ug_afdm_g, fill = group), width = 6, color = "black") +
+  geom_line(data = cover_list$sfkeel_mir_2022, aes(y = 110 - (mean * 4), color = group, linetype = group),
+            linewidth = 2) +
+  geom_linerange(data = cover_list$sfkeel_mir_2022, aes(ymin = 110 - ((min) * 4),
+                                                        ymax = 110 - ((max) * 4),
+                                                        color = group), 
+                 size = 1.5, alpha = 0.7) +
+  geom_point(data = cover_list$sfkeel_mir_2022, aes(y = 110 - (mean * 4), color = group ,shape = group),
+             size = 5.5) +
+  scale_color_manual("Group", values = c("#8f8504","#2871c7"),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_linetype_manual("Group", values = c("dotted", "dashed"),
+                        labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_shape_manual("Group", values = c(16, 15),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
+                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  labs(y = NULL, x = NULL) +
+  ylim(0, 110) +
+  scale_x_date(limits = as.Date(c("2022-06-29", "2022-09-20"))) +
+  scale_y_reverse(sec.axis = sec_axis(~ ((. - 110)/4) * -1)) +
+  theme(legend.position = "none") # will move over legend via illustrator
+sfkmir22_acc_atx
+
+## south fork eel @ miranda 2023
+
+# figure
+sfkmir23_acc_atx <- ggplot(data = cover_list$sfkeel_mir_2023, aes(x = field_date, y = percent)) +
+  geom_bar(data = cover_list$sfkeel_mir_2023, position = "dodge", stat = "identity", 
+           aes(y = mean_ATX_all_ug_afdm_g, fill = group), width = 5.5, color = "black") +
+  geom_line(data = cover_list$sfkeel_mir_2023, aes(y = 110 - (percent * 4), color = group, linetype = group),
+            linewidth = 2) +
+  geom_point(data = cover_list$sfkeel_mir_2023, aes(y = 110 - (percent * 4), color = group,shape = group),
+             size = 5) +
+  scale_color_manual("Group", values = c("#8f8504","#2871c7"),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_linetype_manual("Group", values = c("dotted", "dashed"),
+                        labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_shape_manual("Group", values = c(16, 18),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
+                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  labs(y = NULL, x = NULL) +
+  ylim(0, 110) +
+  scale_x_date(limits = as.Date(c("2023-06-18", "2023-09-27"))) +
+  scale_y_reverse(sec.axis = sec_axis(~ ((. - 110)/4) * -1)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
+        text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), plot.margin = unit(c(.3,0,0,0), "cm")) +
+  theme(legend.position = "none") # will move over legend via illustrator
+sfkmir23_acc_atx
