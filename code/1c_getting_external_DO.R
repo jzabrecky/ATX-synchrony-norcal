@@ -1,6 +1,6 @@
 #### gathering DO from external sources to compare to our miniDOT values
 ### Jordan Zabrecky
-## last edited 12.19.2024
+## last edited 01.31.2024
 
 # This code gathers dissolved oxygen data from the USGS gage at Cloverdale
 # to use to model metabolism estimates and compare with our estimates
@@ -53,7 +53,6 @@ clean_USGS_df <- function(df) {
   # return data frame
   return(new_df)
 }
-df <- karuk_DO_salmon
 
 # function to apply to interpolate and clean karuk dataframe
 clean_karuk_df <- function(df) {
@@ -62,8 +61,13 @@ clean_karuk_df <- function(df) {
   colnames(df) <- c("date_time", "DO_mg_L", "Temp_C")
   
   # change time zone to PST & remove any NAs (which this dataset has)
+  # note: despite column header saying UTC -8, it's not accounting for daylight savings
+  # so it is actually -7, so we need to add an hour
+  # (discovered this bc of awful model performance & subsequently plotting our miniDOT data
+  # over their sonde data)
   df <- df %>% mutate(date_time = as_datetime(date_time, tz = "America/Los_Angeles")) %>% 
-    na.omit() # this removes those NAs that failed to parse
+    na.omit() %>%  # this removes those NAs that failed to parse
+    mutate(date_time = date_time + hours(1))
   
   # fill time series with dissolved oxygen every 5 minutes
   new_df <- create_filled_TS(df, "5M", "DO_mg_L") %>% 
@@ -90,9 +94,9 @@ USGS_russian <- USGS_russian %>%
   dplyr::filter(date_time <= "2022-08-30 10:50:00" | date_time >= "2022-08-31 09:40:00")
 
 # remove weird midday drop on 7/5/2022 in Salmon River (does not make sense and model does not like it)
-karuk_salmon$DO_mg_L[which(karuk_salmon$date_time == ymd_hms("2022-07-05 12:00:00", tz = "America/Los_Angeles")):
-                       which(karuk_salmon$date_time == ymd_hms("2022-07-05 18:15:00", tz = "America/Los_Angeles"))] <- NA
-karuk_salmon$DO_mg_L <- na.approx(karuk_salmon$DO_mg_L)
+# attempting to linearly interpolate it does not seem worth it, so just not modeling GPP for that day
+karuk_salmon$DO_mg_L[which(karuk_salmon$date_time == ymd_hms("2022-07-05 15:45:00", tz = "America/Los_Angeles")):
+                       which(karuk_salmon$date_time == ymd_hms("2022-07-05 19:55:00", tz = "America/Los_Angeles"))] <- NA
   
 #### (4) Saving external data ####
 

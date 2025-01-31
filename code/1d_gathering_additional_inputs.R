@@ -1,6 +1,6 @@
 #### gathering all data to model metabolism
 ### Jordan Zabrecky
-## last edited 01.14.2025
+## last edited 01.31.2025
 
 # This code gathers the necessary components for metabolism modeling
 # including the (1) cleaned miniDOT data from "1a_reading_and_cleaning_miniDOT_data.R"
@@ -85,6 +85,10 @@ external_DO$date_time <- as_datetime(external_DO$date_time, tz = "America/Los_An
 
 # separate large dataframe into a list of dataframes (ideally will have other external sources later so doing it group-ways)
 external_DO_list <- split(external_DO, external_DO$site_year)
+
+# removing rows with NA from  2022 weird day of DO
+external_DO_list$salmon_2022_karuk <- external_DO_list$salmon_2022_karuk %>% 
+  na.omit()
 
 #### (2) Retreiving USGS discharge data ####
 
