@@ -89,7 +89,7 @@ view_temp_2023(cleantemp_list$sfkeel_sth_2023) # looks good! (07.15.24)
 view_temp_2023(cleantemp_list$salmon_2023) # looks good! (05.16.24)
 
 # external data from script "1d_getting_external_DO.R"
-view_DO_2022(USGS_russian) # needed to remove one period but that's it!
+view_DO_2022(USGS_russian) # removed one day; fuzzy in early summer
 view_temp_2022(USGS_russian) # looks great!
 view_DO_2022(karuk_salmon) # removed one day with double-peak, looks good
 view_temp_2022(karuk_salmon) # looks great!

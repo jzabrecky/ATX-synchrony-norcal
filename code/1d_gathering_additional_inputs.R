@@ -1,6 +1,6 @@
 #### gathering all data to model metabolism
 ### Jordan Zabrecky
-## last edited 01.31.2025
+## last edited 02.04.2025
 
 # This code gathers the necessary components for metabolism modeling
 # including the (1) cleaned miniDOT data from "1a_reading_and_cleaning_miniDOT_data.R"
@@ -14,7 +14,7 @@
 
 ## Loading necessary packages
 lapply(c("dataRetrieval", "lubridate", "plyr", "tidyverse", "StreamLightUtils",
-         "zoo"), require, character.only = T)
+         "zoo", "streamMetabolizer"), require, character.only = T)
 
 # get rid of any dplyr masking!
 filter <- dplyr::filter
@@ -85,10 +85,6 @@ external_DO$date_time <- as_datetime(external_DO$date_time, tz = "America/Los_An
 
 # separate large dataframe into a list of dataframes (ideally will have other external sources later so doing it group-ways)
 external_DO_list <- split(external_DO, external_DO$site_year)
-
-# removing rows with NA from  2022 weird day of DO
-external_DO_list$salmon_2022_karuk <- external_DO_list$salmon_2022_karuk %>% 
-  na.omit()
 
 #### (2) Retreiving USGS discharge data ####
 
@@ -292,10 +288,7 @@ discharge <- lapply(discharge, function(x) add_depth(x))
 
 #### (6) Putting it all together ####
 
-# set working directory
-setwd("../metab_model_inputs")
-
-## saving miniDOT dataframes
+## putting together miniDOT dataframes
 
 # create empty vector for all sites
 combined <- data.frame()
@@ -308,21 +301,7 @@ for(i in 1:length(miniDOT_list)) {
   combined <- rbind(combined, single_site)
 }
 
-# checking for weirdness
-anyNA(combined) # no NAs!
-eval(nrow(combined) == nrow(miniDOT_data)) # we have all our original DO data!
-
-# changing date_time to character to avoid any saving issues like before
-combined$date_time <- as.character(format(combined$date_time))
-
-# making a list for each site_year
-final <- split(combined, combined$site_year)
-
-# saving csvs for metabolism model input
-lapply(names(final), function(x) write.csv(final[[x]], file = paste(x, "_modelinputs", ".csv", sep = ""), 
-                                           row.names = FALSE))
-
-## saving external dataframes
+## putting together external data frames
 
 # left join data together separately as indexes won't line up
 russian_2022_USGS <- (list(external_DO_list$russian_2022_USGS, discharge$russian, GLDAS_adjusted$russian, 
@@ -335,18 +314,60 @@ salmon_2023_karuk <- (list(external_DO_list$salmon_2023_karuk, discharge$salmon,
                            NLDAS_formatted$salmon)) %>% 
   join_all(by = "date_time", type = "left")
 
-# combine into a list to save
-final_external <- list(russian_2022_USGS, salmon_2022_karuk, salmon_2023_karuk)
-names(final_external) <- c("russian_2022_USGS", "salmon_2022_karuk", "salmon_2023_karuk")
+# combine into one dataframe
+combined <- rbind(combined, russian_2022_USGS, salmon_2022_karuk, salmon_2023_karuk) %>% 
+  na.omit() # weird NAs got added to end of salmon_2022_karuk and salmon_2023_karuk?
 
-# check for issues
-lapply(final_external, anyNA) # none!
+# checking for weirdness
+anyNA(combined) # no NAs!
+eval(nrow(combined) == (nrow(miniDOT_data) + nrow(na.omit(external_DO)))) # we have all our original DO data!
+# note the na.omit() on external_DO data as we removed NAs later while it was in list form
 
-# changing date_time to character to avoid any saving issues like before
-for(i in 1:length(final_external)) {
-  final_external[[i]]$date_time <- as.character(format(final_external[[i]]$date_time))
+#### (7) Final processing for streamMetabolizer use and saving ####
+
+# check specific input requirements from streamMetabolizer
+metab_inputs('bayes', 'data')
+
+# function to modify data frames to match the above requirements
+metab_prep <- function(df) {
+  new_df <- df %>% 
+    # calculate solar time function from streamMetabolizer
+    # will account for our data being in PST
+    mutate(solar.time = calc_solar_time(date_time, longitude),
+           DO.obs = DO_mg_L,
+           # calculate DO saturation using function from streamMetabolizer
+           DO.sat = calc_DO_sat(Temp_C, pressure_mbar, salinity.water = 0, 
+                                model = "garcia-benson"),
+           depth = depth_m, 
+           temp.water = Temp_C,
+           # StreamLight gives us PAR in the appropriate units
+           light = convert_SW_to_PAR(SW_W_m_2),
+           discharge = discharge_m3_s) %>% 
+    dplyr::select(site_year, solar.time, DO.obs, DO.sat, depth, temp.water, light, discharge)
+  return(new_df)
 }
 
+# need to add longitude for each site to later calculate solar time
+combined <- combined %>% 
+  mutate(
+    longitude = case_when(site == "russian" ~ -123.007017,
+                          site == "salmon" ~ -123.4770326,
+                          site == "sfkeel_mir" ~ -123.775930,
+                          site == "sfkeel_sth" ~ -123.727924)
+  )
+
+# apply function to dataframes
+final <- metab_prep(combined)
+
+# set working directory for saving
+setwd("../metab_model_inputs")
+
+# changing POSIXct to character to avoid any saving issues like before
+final$solar.time <- as.character(format(final$solar.time))
+
+# making a list for each site_year to save separately
+final_list <- split(final, final$site_year)
+
 # saving csvs for metabolism model input
-lapply(names(final_external), function(x) write.csv(final_external[[x]], file = paste(x, "_modelinputs", ".csv", sep = ""), 
+lapply(names(final_list), function(x) write.csv(final_list[[x]], file = paste(x, "_modelinputs", ".csv", sep = ""), 
                                            row.names = FALSE))

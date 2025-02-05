@@ -1,10 +1,10 @@
 #### gathering DO from external sources to compare to our miniDOT values
 ### Jordan Zabrecky
-## last edited 01.31.2024
+## last edited 02.04.2024
 
 # This code gathers dissolved oxygen data from the USGS gage at Cloverdale
-# to use to model metabolism estimates and compare with our estimates
-# using our (likely somewhat biofouled) miniDOTs
+# and data from the Karuk Tribe (with permission) to use to model metabolism 
+# estimates and compare with our estimates with our (likely somewhat biofouled) miniDOTs
 
 #### (1) Loading packages and reading in data #### 
 
@@ -22,82 +22,43 @@ USGS_temp_russian <- readNWISuv("11463000", param_temp, "2022-06-20", "2022-09-2
 # reading in data from karuk tribe (data is not publicly shared)
 karuk_DO_salmon <- read.csv("./data/karuk_tribe_data/karuk_DO_data.csv", skip = 4)
 karuk_temp_salmon <- read.csv("./data/karuk_tribe_data/karuk_temp_data.csv", skip = 4)
-# need to set timezone to PST and change header titles
 
-# left join them together
-USGS_DO_russian <- left_join(USGS_DO_russian, USGS_temp_russian, by = "dateTime")
-karuk_DO_salmon <- left_join(karuk_DO_salmon, karuk_temp_salmon, by = "Timestamp..UTC.08.00.")
+#### (2) Processing & cleaning final data ####
 
-#### (2) Processing external data ####
+# left join them together & rename columns & select what we care about
+USGS_russian <- left_join(USGS_DO_russian, USGS_temp_russian, by = "dateTime") %>% 
+  dplyr::rename(DO_mg_L = X_00300_00000,
+                Temp_C = X_00010_00000) %>% 
+  mutate(date_time = as_datetime(dateTime, tz = "America/Los_Angeles")) %>% 
+  dplyr::select(date_time, DO_mg_L, Temp_C)
 
-## need to get DO data in 5-minute intervals and fix timezone from UTC to PST
-
-# use "create_filled_TS" function from other script
-source("code/supplemental_code/S1a_split_interpolate_data.R")
-
-# function to apply to interpolate and clean USGS dataframe
-clean_USGS_df <- function(df) {
-  
-  # change time zone to PST
-  df <- df %>% mutate(date_time = as_datetime(dateTime, tz = "America/Los_Angeles"))
-  
-  # fill time series with dissolved oxygen every 5 minutes
-  new_df <- create_filled_TS(df, "5M", "X_00300_00000") %>% 
-    mutate(DO_mg_L = Filled_Var) %>% 
-    dplyr::rename(Temp_C = X_00010_00000) %>% 
-    dplyr::select(date_time, DO_mg_L, Temp_C)
-  
-  # finish interpolation for temperature
-  new_df$Temp_C <- na.approx(new_df$Temp_C)
-  
-  # return data frame
-  return(new_df)
-}
-
-# function to apply to interpolate and clean karuk dataframe
-clean_karuk_df <- function(df) {
-  
-  # change column names now so they are easier to work with
-  colnames(df) <- c("date_time", "DO_mg_L", "Temp_C")
-  
-  # change time zone to PST & remove any NAs (which this dataset has)
-  # note: despite column header saying UTC -8, it's not accounting for daylight savings
-  # so it is actually -7, so we need to add an hour
-  # (discovered this bc of awful model performance & subsequently plotting our miniDOT data
-  # over their sonde data)
-  df <- df %>% mutate(date_time = as_datetime(date_time, tz = "America/Los_Angeles")) %>% 
-    na.omit() %>%  # this removes those NAs that failed to parse
-    mutate(date_time = date_time + hours(1))
-  
-  # fill time series with dissolved oxygen every 5 minutes
-  new_df <- create_filled_TS(df, "5M", "DO_mg_L") %>% 
-    mutate(DO_mg_L = Filled_Var) %>% 
-    dplyr::select(date_time, DO_mg_L, Temp_C)
-  
-  # finish interpolation for temperature
-  new_df$Temp_C <- na.approx(new_df$Temp_C)
-  
-  # return data frame
-  return(new_df)
-}
-
-# apply function to df
-USGS_russian <- clean_USGS_df(USGS_DO_russian)
-karuk_salmon <- clean_karuk_df(karuk_DO_salmon)
-
-#### (3) Checking/cleaning final data ####
+karuk_salmon <- left_join(karuk_DO_salmon, karuk_temp_salmon, by = "Timestamp..UTC.08.00.") %>% 
+  dplyr::rename(DO_mg_L = Value..mg.l.,
+                Temp_C = Value..degC.) %>% 
+  # time says UTC -8, but it's actually -7 because of summer time
+  # so add an hour (discovered this by plotting against our DO data)
+  mutate(date_time = force_tz(as_datetime(Timestamp..UTC.08.00.) + hours(1), 
+                              tz = "America/Los_Angeles")) %>% 
+  dplyr::select(date_time, DO_mg_L, Temp_C)
 
 ## (Using script 1b to visualize data cleaning)
 
-# seems like there was no data for a period on 8/30/2022 so need to remove linear interpolation
+# remove day on 7/5 that looks awful
 USGS_russian <- USGS_russian %>% 
-  dplyr::filter(date_time <= "2022-08-30 10:50:00" | date_time >= "2022-08-31 09:40:00")
+  dplyr::filter(date_time <= "2022-07-05 05:50:00" | date_time >= "2022-07-06 04:40:00")
+
+# have one day of NA that can be filled for Russian temperature
+USGS_russian$Temp_C <- na.approx(USGS_russian$Temp_C)
 
 # remove weird midday drop on 7/5/2022 in Salmon River (does not make sense and model does not like it)
 # attempting to linearly interpolate it does not seem worth it, so just not modeling GPP for that day
-karuk_salmon$DO_mg_L[which(karuk_salmon$date_time == ymd_hms("2022-07-05 15:45:00", tz = "America/Los_Angeles")):
-                       which(karuk_salmon$date_time == ymd_hms("2022-07-05 19:55:00", tz = "America/Los_Angeles"))] <- NA
+karuk_salmon <- karuk_salmon %>% 
+  dplyr::filter(date_time <= "2022-07-05 15:45:00" | date_time >= "2022-07-05 19:55:00")
   
+# have some NAs here and there to interpolate
+karuk_salmon$DO_mg_L <- na.approx(karuk_salmon$DO_mg_L)
+karuk_salmon$Temp_C <- na.approx(karuk_salmon$Temp_C)
+
 #### (4) Saving external data ####
 
 # convert date time to character to avoid issues

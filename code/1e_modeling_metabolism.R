@@ -23,48 +23,11 @@ model_inputs <- ldply(list.files(path = "./data/metab_model_inputs/", pattern = 
   return(d)
 })
 
-# convert date_time to POSIXct class
-model_inputs$date_time <- as.POSIXct(model_inputs$date_time, format = "%Y-%m-%d %H:%M:%S", 
-                                     tz= "America/Los_Angeles")
-
-# need to add longitude for each site to later calculate solar time
-model_inputs <- model_inputs %>% 
-  mutate(
-    longitude = case_when(site == "russian" ~ -123.007017,
-                          site == "salmon" ~ -123.4770326,
-                          site == "sfkeel_mir" ~ -123.775930,
-                          site == "sfkeel_sth" ~ -123.727924)
-  )
+# convert solar.time to POSIXct class
+model_inputs$solar.time <- as.POSIXct(model_inputs$solar.time, format = "%Y-%m-%d %H:%M:%S")
 
 # separating into a list based on site/year
-inputs_list <- split(model_inputs, model_inputs$site_year)
-
-#### (2) Final prepping of data inputs for use in streamMetabolizer ####
-
-# check specific input requirements from streamMetabolizer
-metab_inputs('bayes', 'data')
-
-# function to modify data frames to match the above requirements
-metab_prep <- function(df) {
-  new_df <- df %>% 
-    # calculate solar time function from streamMetabolizer
-    # will account for our data being in PST
-    mutate(solar.time = calc_solar_time(date_time, longitude),
-           DO.obs = DO_mg_L,
-           # calculate DO saturation using function from streamMetabolizer
-           DO.sat = calc_DO_sat(Temp_C, pressure_mbar, salinity.water = 0, 
-                                model = "garcia-benson"),
-           depth = depth_m, 
-           temp.water = Temp_C,
-           # StreamLight gives us PAR in the appropriate units
-           light = convert_SW_to_PAR(SW_W_m_2),
-           discharge = discharge_m3_s) %>% 
-    dplyr::select(solar.time, DO.obs, DO.sat, depth, temp.water, light, discharge)
-  return(new_df)
-}
-
-# apply function to dataframes
-inputs_prepped <- lapply(inputs_list, function(x) metab_prep(x))
+inputs_prepped <- split(model_inputs, model_inputs$site_year)
 
 #### (3) Functions to visualize outputs ####
 
@@ -311,6 +274,7 @@ write_files(russian_2022_USGS_fit, russian_2022_USGS, "/russian_2022_USGS/", "ru
 
 # plot metab estimates (note: these are w/o correct depths and will change)
 plot_metab_preds(russian_2022_USGS)
+russian_2022_USGS <- readRDS("./russian_2022_USGS/russian_2022_USGSmetab_obj.rds")
 
 # plot GPP estimates w/ sensor cleaning dates-- of course no relationship with our cleaning here!
 ggplot(russian_2022_USGS_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
@@ -437,6 +401,7 @@ visualize_inputs_zoomed(inputs_prepped$salmon_2022_karuk, "2022-07-04 00:00:00",
 
 # running model
 salmon_2022_karuk <- metab(salmon_2022_specs, data = inputs_prepped$salmon_2022_karuk)
+salmon_2022_karuk <- readRDS("./data/metab_model_outputs/salmon_2022_karuk/salmon_2022_karukmetab_obj.rds")
 
 # get fit and save files
 salmon_2022_karuk_fit <- get_fit(salmon_2022_karuk)
@@ -457,7 +422,7 @@ ggplot(salmon_2022_karuk_fit$daily, aes(x = date, y = GPP_mean)) + # plot with s
   theme_bw()
 
 # look at DO predictions vs. data on a 7-day interval to look closely
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-06-27", date_end = "2022-07-03")
+plot_DO_preds(salmon_2022_karuk, date_start = "2022-06-27", date_end = "2022-07-03") # looks great
 plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-03", date_end = "2022-07-10")
 plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-10", date_end = "2022-07-17")
 plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-17", date_end = "2022-07-24")
@@ -474,7 +439,7 @@ plot_DO_preds(salmon_2022_karuk, date_start = "2022-09-18", date_end = "2022-09-
 # plot binning, ER vs. K600, correlation test for ER and K600, and K600
 plot_binning(salmon_2022_karuk_fit, salmon_2022_karuk, "Salmon 2022 Karuk") # points all within bins
 plot_ER_K600(salmon_2022_karuk_fit, "Salmon 2022 Karuk")
-cor.test(salmon_2022_karuk_fit$daily$ER_mean, salmon_2022_karuk_fit$daily$K600_daily_mean) # correlated -0.626; p << 0.001
+cor.test(salmon_2022_karuk_fit$daily$ER_mean, salmon_2022_karuk_fit$daily$K600_daily_mean) # correlated -0.332; p << 0.002
 plot_K600(salmon_2022_karuk_fit, "Salmon 2022 Karuk")
 
 # convergence assessment
@@ -483,7 +448,7 @@ rstan::traceplot(get_mcmc(salmon_2022_karuk), pars='ER_daily', nrow=10)
 rstan::traceplot(get_mcmc(salmon_2022_karuk), pars='K600_daily', nrow=10) # look decent
 
 # goodness of fit metrics
-calc_gof_metrics(salmon_2022_karuk, "/salmon_2022_karuk/", "salmon_2022_karuk") # rmse 0.06, nrsme 0.020
+calc_gof_metrics(salmon_2022_karuk, "/salmon_2022_karuk/", "salmon_2022_karuk") # rmse 0.04, nrsme 0.015
 
 # remove large model object before starting next run
 rm(salmon_2022_karuk, salmon_2022_karuk_fit)
