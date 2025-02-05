@@ -1,6 +1,6 @@
 #### USGS gage discharge vs. our discharge measurements
 ### Jordan Zabrecky
-## last edited: 01.22.2025
+## last edited: 02.04.2025
 
 # This figure shows that our discharge measurements are in rough accordance 
 # with nearby USGS gage discharge measurements
@@ -66,7 +66,7 @@ discharge_all <- left_join(discharge_all, discharge, by = c("date_time", "site")
 figure <- ggplot(data = discharge_all, aes(x = date_time, y = discharge_m3_s.x)) +
   geom_area(fill = "#d9ecff") +
   geom_point(aes(y = discharge_m3_s.y, fill = site, shape = site, color = site), 
-             size = 6, alpha = 0.8, stroke = 2) +
+             size = 6, alpha = 0.95, stroke = 2) +
   facet_wrap(~site, ncol = 1, scales = "free", 
              labeller = as_labeller(c(`RUS` = "Russian River (RUS)", 
                                       `SFE-M` = "South Fork Eel River at Miranda (SFE-M)",

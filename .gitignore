@@ -8,6 +8,7 @@
 data/GLDAS/
 data/NLDAS/
 data/metab_model_outputs/
+data/EDI_data_package/site_reach_locations.csv
 # cannot publicly release data collected by karuk tribe
 data/karuk_tribe_data
 data/external_DO/salmon_2022_karuk.csv
