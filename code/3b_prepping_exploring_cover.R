@@ -1,14 +1,15 @@
 #### pre-modeling data exploration for BC cover based on surveys
 ### Jordan Zabrecky
-## last edited: 01.11.2025
+## last edited: 02.05.2025
 
 # This script explores the available data in the South Fork Eel 2023
 # weekly dataframe before building models to predict presence 
 # based on percent cover of given benthic cyanobacteria as obtained
 # via quadrats in benthic surveys following the California SWAMP protocol
 
-# normalizing per site? maybe would show more relationship
-# emphasizes importance of site specific variables more so????
+# need to redo w/ normalization per site
+# also consider logging discharge?
+# and want median GPP after redoing metab models
 
 #### (1) Loading data and libraries ####
 
@@ -21,6 +22,45 @@ source("code/supplemental_code/S3a_exploration_plot_functions.R")
 # all data
 data <- read.csv("./data/field_and_lab/sfkeel23_combined.csv") %>%
   mutate(field_date = ymd(field_date))
+
+#### (2) Prepping data for modeling ####
+
+## (a) normalize response variable (microcoleus and anabaena) to max of reach
+
+# get max for each reach
+max <- data %>% 
+  group_by(site_reach) %>% 
+  summarize(max_microcoleus = max(microcoleus),
+            max_anacyl = max(anabaena_cylindrospermum))
+
+# calculate percentage of maximum for each to use as response variable
+data <- data %>% 
+  mutate(max_microcoleus = case_when(site_reach == "SFE-M-1S" ~ max$max_microcoleus[1],
+                                     site_reach == "SFE-M-2" ~ max$max_microcoleus[2],
+                                     site_reach == "SFE-M-3" ~ max$max_microcoleus[3],
+                                     site_reach == "SFE-M-4" ~ max$max_microcoleus[4],
+                                     site_reach == "SFE-SH-1S" ~ max$max_microcoleus[5],),
+         max_anacyl = case_when(site_reach == "SFE-M-1S" ~ max$max_anacyl[1],
+                                site_reach == "SFE-M-2" ~ max$max_anacyl[2],
+                                site_reach == "SFE-M-3" ~ max$max_anacyl[3],
+                                site_reach == "SFE-M-4" ~ max$max_anacyl[4],
+                                site_reach == "SFE-SH-1S" ~ max$max_anacyl[5]),
+         resp_micro = round(microcoleus / max_microcoleus * 100),
+         resp_anacyl = round(anabaena_cylindrospermum / max_anacyl * 100))
+
+## (b) normalize covariates
+
+# remove columns we don't need (i.e. toxins won't be used to predict occurrence!)
+data_std <- data %>% 
+  select(!(TM_ATX_all_ug_g:TAC_percent_organic_matter))
+
+# standardize all covariates by reach
+data_std[,c(4:25)] <- apply(data_std[,c(4:25)], MARGIN = 2, function(x) ave(x, data_std$site_reach, FUN = scale))
+
+# save csv
+write.csv(data_std, "./data/predictive_model_inputs/cover_inputs.csv", row.names = FALSE)
+
+#### OLD CODE BELOW :) will reanalyze with normalizations
 
 # NA.omits for more limited data
 GPP_data <- data[-c(which(is.na(data$GPP_mean_fourdaysprior))),]
