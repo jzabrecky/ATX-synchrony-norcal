@@ -82,12 +82,21 @@ sth_vel <- as.numeric(exp(sth_velocity_model$coefficients[1] + log(sth_dis) * st
 #### (3) Use equation 1 from Raymond et al. (2012) for k600 estimate ####
 
 # function for equation: velocity in m/s, slope is unitless, depth in m
-raymond_eq <- function(velocity, slope, depth, site_name) {
-  # equation (not bothering with lower or upper bounds!)
-  middle <- (velocity * slope)^0.89 * (depth)^0.54 * 5037
-  return(middle)
+raymond_eq <- function(velocity, slope, depth) {
+  # equation 1 (not bothering with upper or lower bounds)
+  k600_est <- (velocity * slope)^0.89 * (depth)^0.54 * 5037
+  return(k600_est)
 }
 
 # make empty dataframe
-data.frame <- data.frame(site, k600_prior)
-raymond_eq(mir_vel, mir_slope, mir_depth)
+k600_estimates <- data.frame(site = character(), 
+                             k600_prior = numeric())
+
+# add calculations to dataframe
+k600_estimates[1,] <- c("russian", raymond_eq(rus_vel, rus_slope, rus_depth))
+k600_estimates[2,] <- c("salmon", raymond_eq(sal_vel, sal_slope, sal_depth))
+k600_estimates[3,] <- c("sfkeel_mir", raymond_eq(mir_vel, mir_slope, mir_depth))
+k600_estimates[4,] <- c("sfkeel_sth", raymond_eq(sth_vel, sth_slope, sth_depth))
+
+# saving dataframe
+write.csv(k600_estimates, "./data/metab_model_inputs/k600_estimates.csv", row.names = FALSE)
