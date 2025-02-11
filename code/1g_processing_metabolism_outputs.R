@@ -79,7 +79,8 @@ geomorph_data <- function(site_num) {
     mutate(mean_z = chan_area/chan_width) %>% 
     # convert from ft to meters
     mutate(discharge_m3_s = chan_discharge / 35.31,
-           depth_m = mean_z * 0.3048)
+           depth_m = mean_z * 0.3048,
+           velocity_m_s = chan_velocity * 0.3048)
   return(df)
 }
 
