@@ -1,10 +1,48 @@
 #### pre-modeling TM_data exploration for mat anatoxin concentrations
 ### Jordan Zabrecky
-## last edited: 01.12.2025
+## last edited: 02.11.2025
 
 # This script explores the available TM_data in the South Fork Eel 2023
 # weekly TM_dataframe before building models to predict mat anatoxin concentrations
 # of mats (total anatoxins normalized by percent organic matter of sample)
+
+#### (1) Loading data and libraries ####
+
+# loading libaries
+lapply(c("tidyverse", "lubridate", "ggplot2"), require, character.only = T)
+
+# get plotting functions from supplemental code
+source("code/supplemental_code/S3a_exploration_plot_functions.R")
+
+# all data
+data <- read.csv("./data/field_and_lab/sfkeel23_combined.csv") %>%
+  mutate(field_date = ymd(field_date))
+
+#### (2) Prepping data for modeling ####
+
+### NEED TO DECIDE IF WE USE COVER AS % OF MAX OR STANDARD Z-SCORE
+
+## (a) normalize covariates
+
+# remove columns we don't need
+data_std <- data %>% 
+  mutate(resp_TM_ATX = TM_ATX_all_ug_orgmat_g,
+         resp_TAC_ATX = TAC_ATX_all_ug_orgmat_g) %>% 
+  select(!(TM_ATX_all_ug_g:TAC_percent_organic_matter))
+
+# standardize all covariates by reach
+data_std[,c(4:25)] <- apply(data_std[,c(4:25)], MARGIN = 2, function(x) ave(x, data_std$site_reach, FUN = scale))
+
+# fill in zero's for when we had no TM or TAC samples
+data_std$resp_TM_ATX <- replace_na(data_std$resp_TM_ATX, 0)
+data_std$resp_TAC_ATX <- replace_na(data_std$resp_TAC_ATX, 0)
+
+# save csv
+write.csv(data_std, "./data/predictive_model_inputs/atx_inputs.csv", row.names = FALSE)
+
+
+
+### OLD CODE BELOW -------------------------------
 
 #### (1) Microcoleus Anatoxins ####
 

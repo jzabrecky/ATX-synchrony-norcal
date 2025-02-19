@@ -21,7 +21,8 @@ source("code/supplemental_code/S3a_exploration_plot_functions.R")
 
 # all data
 data <- read.csv("./data/field_and_lab/sfkeel23_combined.csv") %>%
-  mutate(field_date = ymd(field_date))
+  mutate(field_date = ymd(field_date)) %>% 
+  mutate(log_discharge = log(discharge_m3_s))
 
 #### (2) Prepping data for modeling ####
 
@@ -29,9 +30,9 @@ data <- read.csv("./data/field_and_lab/sfkeel23_combined.csv") %>%
 
 # get max for each reach
 max <- data %>% 
-  group_by(site_reach) %>% 
-  summarize(max_microcoleus = max(microcoleus),
-            max_anacyl = max(anabaena_cylindrospermum))
+  dplyr::group_by(site_reach) %>% 
+  dplyr::summarize(max_microcoleus = max(microcoleus),
+                   max_anacyl = max(anabaena_cylindrospermum))
 
 # calculate percentage of maximum for each to use as response variable
 data <- data %>% 
@@ -45,8 +46,8 @@ data <- data %>%
                                 site_reach == "SFE-M-3" ~ max$max_anacyl[3],
                                 site_reach == "SFE-M-4" ~ max$max_anacyl[4],
                                 site_reach == "SFE-SH-1S" ~ max$max_anacyl[5]),
-         resp_micro = round(microcoleus / max_microcoleus * 100),
-         resp_anacyl = round(anabaena_cylindrospermum / max_anacyl * 100))
+         resp_micro = microcoleus / max_microcoleus * 100,
+         resp_anacyl = anabaena_cylindrospermum / max_anacyl * 100)
 
 ## (b) normalize covariates
 
@@ -55,10 +56,134 @@ data_std <- data %>%
   select(!(TM_ATX_all_ug_g:TAC_percent_organic_matter))
 
 # standardize all covariates by reach
-data_std[,c(4:25)] <- apply(data_std[,c(4:25)], MARGIN = 2, function(x) ave(x, data_std$site_reach, FUN = scale))
+data_std[,c(4:26)] <- apply(data_std[,c(4:26)], MARGIN = 2, function(x) ave(x, data_std$site_reach, FUN = scale))
 
 # save csv
 write.csv(data_std, "./data/predictive_model_inputs/cover_inputs.csv", row.names = FALSE)
+
+#### (2) Microcoleus Cover ####
+
+## 2a. Geomorphic & Hydraulic Predictors
+
+# discharge
+time_plot(data, data$discharge_m3_s / 5, data$microcoleus / 25,
+          "Discharge (cms) vs. Microcoleus Quadrat Cover")
+corr_plot(data_std, data_std$discharge_m3_s, data_std$resp_micro,
+          "Discharge (cms) vs. Microcoleus Quadrat Cover")
+cor(data_std$resp_micro, data_std$discharge_m3_s) # -.512
+# negative exponential relationship rather than linear!?
+
+# log(discharge)
+time_plot(data, log(data$discharge_m3_s) / 2, data$microcoleus / 25,
+          "Discharge (cms) vs. Microcoleus Quadrat Cover")
+corr_plot(data_std, data_std$log_discharge, data_std$resp_micro,
+          "Discharge (cms) vs. Microcoleus Quadrat Cover")
+cor(data_std$resp_micro, data_std$log_discharge) # -.636
+# better, but maybe not worth the confusion?
+
+# proportion of transects rapid or riffle
+time_plot(data, data$proportion_riffle_rapid_transects, data$microcoleus,
+          "Proportion Riffle/Rapid Transects vs. Microcoleus Quadrat Cover")
+corr_plot(data_std, data_std$proportion_riffle_rapid_transects, data_std$resp_micro,
+          "Proportion Riffle/Rapid Transects vs. Microcoleus Quadrat Cover")
+cor(data_std$resp_micro, data_std$proportion_riffle_rapid_transects) # -0.174
+# not useful information as riffle/rapids exist prior to accrual
+
+## 2b. Water Quality predictors ##
+
+# temperature
+time_plot(data, data$temp_C / 35, data$microcoleus / 25,
+          "Temperature vs. Microcoleus Quadrat Cover")
+corr_plot(data_std, data_std$temp_C, data_std$resp_micro,
+          "Temperature vs. Microcoleus Quadrat Cover")
+cor(data_std$resp_micro, data_std$temp_C) # -0.243
+# not really a relationship; may also be reflective of time of day
+# could also maybe explore an aggregate with continuous data
+
+# pH
+time_plot(data, data$pH / 10, data$microcoleus / 25,
+          "pH vs. Microcoleus Quadrat Cover")
+corr_plot(data_std, data_std$pH, data$resp_micro,
+          "pH vs. Microcoleus Quadrat Cover")
+cor(data_std$resp_micro, data_std$pH) # -0.357
+# decent negative relationship; but, pH isn't really changing much
+# and could reflect slight changes in timing of sampling
+
+# dissolved oxygen
+time_plot(data, data$DO_mg_L / 12, data$microcoleus / 25,
+          "Dissolved Oxygen vs. Microcoleus Quadrat Cover")
+corr_plot(data_std, data_std$DO_mg_L, data_std$resp_micro,
+          "Dissolved Oxygen vs. Microcoleus Quadrat Cover")
+cor(data_std$resp_micro, data_std$DO_mg_L) # -0.150
+# slight negative relationship; I wouldn't guess is important though
+
+# conductivity
+time_plot(data, data$cond_uS_cm / 270, data$microcoleus / 25,
+          "Conductivity vs. Microcoleus Quadrat Cover")
+corr_plot(data_std, data_std$cond_uS_cm, data_std$resp_micro,
+          "Conductivity vs. Microcoleus Quadrat Cover")
+cor(data_std$resp_micro, data_std$cond_uS_cm) # 0.553
+# slight increase in conductivity across the field season
+# positive linear relationship with presence
+cor(data_std$discharge_m3_s, data_std$cond_uS_cm) # -0.737 collinearity?
+
+# orthophosphate
+time_plot(data, data$oPhos_ug_P_L / 7, data$microcoleus / 25,
+          "Orthophosphate vs. Microcoleus Quadrat Cover")
+corr_plot(data_std, data$oPhos_ug_P_L, data_std$resp_micro,
+          "Orthophosphate vs. Microcoleus Quadrat Cover")
+cor(data_std$resp_micro, data_std$oPhos_ug_P_L) # 0.373
+# small positive linear relationship
+# seems to be a slight increase in orthophoshate across the season
+cor(data_std$discharge_m3_s, data_std$oPhos_ug_P_L) # -0.286
+cor(data_std$cond_uS_cm, data_std$oPhos_ug_P_L) # 0.602
+
+# nitrate
+time_plot(data, data$nitrate_mg_N_L * 8, data$microcoleus / 25,
+          "Nitrate vs. Microcoleus Quadrat Cover")
+corr_plot(data_std, data_std$nitrate_mg_N_L, data_std$resp_micro,
+          "Nitrate vs. Microcoleus Quadrat Cover")
+cor(data_std$resp_micro, data_std$nitrate_mg_N_L) # 0.221
+# also seems to be a slight increase in nitrate across the season
+
+# ammonium
+time_plot(data, data$ammonium_mg_N_L * 13, data$microcoleus / 25,
+          "Ammonium vs. Microcoleus Quadrat Cover")
+corr_plot(data_std, data_std$ammonium_mg_N_L, data_std$resp_micro,
+          "Ammonium vs. Microcoleus Quadrat Cover")
+cor(data_std$resp_micro, data_std$ammonium_mg_N_L) # 0.274
+# also seems to be a slight increase in ammonium across the season
+cor(data_std$nitrate_mg_N_L, data_std$ammonium_mg_N_L) # 0.511
+
+# dissolved organic carbon
+time_plot(data, data$DOC_mg_L / 1.5, data$microcoleus / 25,
+          "DOC vs. Microcoleus Quadrat Cover")
+corr_plot(data_std, data_std$DOC_mg_L, data_std$resp_micro,
+          "DOC vs. Microcoleus Quadrat Cover")
+cor(data_std$resp_micro, data_std$DOC_mg_L) # -0.305
+# slight negative relationship
+
+# total dissolved carbon
+time_plot(data, data$TDC_mg_L / 18, data$microcoleus / 25,
+          "TDC vs. Microcoleus Quadrat Cover")
+corr_plot(data_std, data_std$TDC_mg_L, data_std$resp_micro,
+          "TDC vs. Microcoleus Quadrat Cover")
+cor(data_std$resp_micro, data_std$TDC_mg_L) # 0.326
+# unsurprising- not really a relationship here
+
+## 3c. Biotic predictors (GPP, Other Species) ##
+
+# median GPP from four days prior?
+# percent cover n-fixers?
+
+
+
+
+
+
+
+
+
 
 #### OLD CODE BELOW :) will reanalyze with normalizations
 

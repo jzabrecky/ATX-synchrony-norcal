@@ -1,6 +1,7 @@
 data {
   int<lower=0> N; // number of visits to site reach
-  array[N] int<lower=0> y; //relative % cover of cyano (response)
+  real L; // lower-bound for truncated normal (aka anatoxins cannot be less than 0)
+  array[N] real<lower=L> y; // anatoxins (response; currently not normalized per site)
 }
 
 
@@ -8,13 +9,11 @@ parameters {
   real b0;
   real b1;
   real<lower=0> sigma;
-  real<lower=0> mu;
 }
 
 model {
   for(i in 2:N) {
-    // exp to prevent negatives; note this is cover predicting log-cover
-    y[i] ~ poisson(exp(b0+b1*(log(y[i-1]))));
+    y[i] ~ normal((b0+b1*y[i-1]), sigma);
   }
   
   //need to think about priors at some point later...

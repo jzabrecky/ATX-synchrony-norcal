@@ -1,9 +1,9 @@
-#### models to predict cover
+#### models to anatoxin concentrations
 ### Jordan Zabrecky
-## last edited: 02.04.2025
+## last edited: 02.11.2025
 
-# This script builds models to predict cover of benthic Microcoleus
-# and Anabaena (separately) as determined by benthic cover surveys
+# This script builds models to predict anatoxin concentrations (sum of all 
+# congeners) of benthic Microcoleus and Anabaena mats (separately)
 
 #### (1) Loading data and libraries ####
 
@@ -11,11 +11,7 @@
 lapply(c("tidyverse", "rstan", "StanHeaders"), require, character.only = T)
 
 # loading in data- see note above
-data <- read.csv("./data/predictive_model_inputs/cover_inputs.csv")
-
-# mutating data to avoid 0's (fill with 0.5)
-data$resp_micro[which(data$resp_micro == 0)] <- 1
-data$resp_anacyl[which(data$resp_anacyl == 0)] <- 1
+data <- read.csv("./data/predictive_model_inputs/atx_inputs.csv")
 
 #### (2) Separating out data for modeling ####
 
@@ -32,11 +28,7 @@ names(training_sites) <- names(test_sites) # name of training site, means it exc
 
 #### (3) Functions for predictions and starting RMSE table ####
 
-# need a way to easily add RMSE; include vector and name in function
-
-# for prediction function use vars as a vector/matrix?
-# would compare against one where it is written out
-# but doing null model only first!
+## to be done after figuring out RSTAN stuff for truncated normal
 
 #### (4) Running predictive models ####
 
@@ -50,8 +42,8 @@ setwd("./code/model_STAN_files")
 # initial test run
 i <- 1
 mod_data <- list(N = nrow(training_sites[[i]]), 
-                 y = as.integer(training_sites[[i]]$resp_micro))
-model <- stan(file = "cover_null.stan", data = mod_data,
-              chains = 3, iter = 5000, warmup = 2000)
-
-# maybe can just do truncated normal?
+                 L = 0,
+                 y = training_sites[[i]]$resp_TM_ATX)
+model <- stan(file = "atx_null.stan", data = mod_data,
+              chains = 3, iter = 2000, warmup = 1000)
+# yay success with truncated normal!

@@ -1,6 +1,6 @@
 data {
   int<lower=0> N; //number of visits to site reach
-  vector[N] cover; //% cover of cyano
+  vector[N] cover;  //relative % cover of cyano (response)
 }
 
 
@@ -12,7 +12,7 @@ parameters {
 
 model {
   for(i in 2:N) {
-    cover[i] ~ normal((b0+b1*cover[i-1]), sigma);
+   cover[i] ~ normal((b0+b1*cover[i-1]), sigma);
   }
   
   //Priors ex. from where this came
