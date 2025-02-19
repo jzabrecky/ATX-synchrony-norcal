@@ -320,8 +320,7 @@ combined <- rbind(combined, russian_2022_USGS, salmon_2022_karuk, salmon_2023_ka
 
 # checking for weirdness
 anyNA(combined) # no NAs!
-eval(nrow(combined) == (nrow(miniDOT_data) + nrow(na.omit(external_DO)))) # we have all our original DO data!
-# note the na.omit() on external_DO data as we removed NAs later while it was in list form
+eval(nrow(combined) == (nrow(miniDOT_data) + nrow(external_DO))) # we have all our original DO data!
 
 #### (7) Final processing for streamMetabolizer use and saving ####
 

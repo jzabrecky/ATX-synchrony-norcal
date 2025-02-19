@@ -1,6 +1,6 @@
 #### modeling metabolism and functions to assess model outputs
 ### Jordan Zabrecky
-## last edited 01.31.2025
+## last edited 02.18.2025
 
 # This code models metabolism using the "streamMetabolizer" package and also
 # provides functions for visualizing inputs & outputs, and saving outputs
@@ -24,12 +24,26 @@ model_inputs <- ldply(list.files(path = "./data/metab_model_inputs/", pattern = 
 })
 
 # convert solar.time to POSIXct class
-model_inputs$solar.time <- as.POSIXct(model_inputs$solar.time, format = "%Y-%m-%d %H:%M:%S")
+model_inputs$solar.time <- as.POSIXct(model_inputs$solar.time, format = "%Y-%m-%d %H:%M:%S",
+                                      tz = "UTC")
 
 # separating into a list based on site/year
 inputs_prepped <- split(model_inputs, model_inputs$site_year)
 
-#### (3) Functions to visualize outputs ####
+# function to remove site year column
+remove_siteyear <- function(df) {
+  new_df <- df %>% 
+    dplyr::select(!site_year)
+  return(new_df)
+}
+
+# apply function to list of inputs
+inputs_prepped <- lapply(inputs_prepped, function(x) remove_siteyear(x))
+
+# loading k600 prior estimates
+k600_priors <- read.csv("./data/metab_model_inputs/k600_estimates.csv")
+
+#### (3) Functions to visualize outputs and calculate gof and bins ####
 
 # function to visualize all inputs on separate plots
 visualize_inputs_full <- function(df){
@@ -45,7 +59,7 @@ visualize_inputs_full <- function(df){
     ggplot(aes(x = solar.time, y = DO.value, color = type)) + geom_line() +
     # facet wrap based on units
     facet_grid(units ~ ., scale = "free_y") + theme_bw() + scale_color_discrete("variable")
-
+  
   
   # creating labels for next plot
   labels <- c(depth = "depth\n(m)", temp.water = "water temp\n(deg C)", light = "Par\n(umol m^-2 s^-1)")
@@ -179,105 +193,79 @@ calc_gof_metrics <- function(metab, subfolder, SiteID) {
   return(metrics)
 }
 
+# function from Alice Carter to set bins based on discharge range (edited)
+set_Q_nodes <- function(specs_poolBinned, discharge, k600_prior, 
+                        log_k600_sd, min_bins) {
+  
+  # get range of discharges
+  Qrange = quantile(log(discharge),
+                    probs = c(0.1, 0.9), na.rm = T)
+  
+  # separate into minimum # of bins
+  n = min_bins
+  
+  # this code will create more bins if needed based on discharge range
+  delta = (Qrange[2]-Qrange[1])/n
+  while(delta > 1){
+    n = n + 1
+    delta <- (Qrange[2]-Qrange[1])/n
+  }
+  
+  # set number of nodes
+  nodes <- seq(Qrange[1], Qrange[2], length.out = n)
+  specs_poolBinned$K600_lnQ_nodes_centers <- nodes
+  # from github: adjust to be 1/5 of distance between nodes
+  specs_poolBinned$K600_lnQ_nodediffs_sdlog <- (nodes[2] - nodes[1]) / 5
+  # set k600 prior mean for log-normal (so log k600 prior estimate)
+  specs_poolBinned$K600_lnQ_nodes_meanlog <- rep(round(log(k600_prior), 2), n)
+  specs_poolBinned$K600_lnQ_nodes_sdlog <- rep(log_k600_sd, n)
+  return(specs_poolBinned)
+}
+
+# function to plot binning after using function above
+plot_Q_bins <- function(discharge, specs_poolBinned) {
+  plot(density(log(discharge), na.rm = T))
+  abline(v = specs_poolBinned$K600_lnQ_nodes_centers)
+}
+
 #### (4) Running streamMetabolizer for all sites and visualizing outputs ####
 
 # set working directory
 setwd("data/metab_model_outputs")
 
-# our base model name
-bayesian_mm <- mm_name(type = "bayes", pool_K600 = "binned", err_obs_iid = TRUE, 
-                       err_proc_iid = TRUE, ode_method = "trapezoid", deficit_src = "DO_mod",
-                       engine = "stan")
+# our base model name (note: trapezoid ode method is default)
+bayesian_mm <- mm_name(type = "bayes", pool_K600 = "binned", 
+                       err_obs_iid = TRUE, err_proc_iid = TRUE,
+                       ode_method = "trapezoid", deficit_src = 'DO_mod', 
+                       engine = 'stan')
 
-## russian river 2022 -- sensor likely has biofouling issue but running it to compare with USGS DO data
+#### RUSSIAN RIVER- our miniDOT data ####
 
 # visualize inputs
 visualize_inputs_full(inputs_prepped$russian_2022)
 visualize_inputs_zoomed(inputs_prepped$russian_2022, "2022-07-01 00:00:00", "2022-07-03 00:00:00")
 
-# model specs
-russian_2022_specs <- specs(bayesian_mm, burnin_steps = 5000, saved_steps = 5000,
-                               thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)
+# set model specs
+specs_russian <- specs(bayesian_mm, burnin_steps = 1000, saved_steps = 1000)
 
-# changing range of log(Q) to better match site
-russian_2022_specs$K600_lnQ_nodes_centers <- c(-0.25, 0, 0.25, 0.5, 0.75, 1.0, 1.25)
-# guidelines from github: use 0.5 for centers 1 apart and 0.5 / 5 for centers 0.2 apart
-# so sd half of distance each center is apart
-russian_2022_specs$K600_lnQ_nodediffs_sdlog <- 0.25 / 2
+# change binning (using USGS data since it has longer range)
+specs_russian <- set_Q_nodes(specs_russian, inputs_prepped$russian_2022_USGS$discharge, 
+                             # using default sd; doesn't change k600 & best convergence
+                             k600_priors[1,2], log_k600_sd = 0.5, min_bins = 6)
+plot_Q_bins(inputs_prepped$russian_2022_USGS$discharge, specs_russian)
 
 # running model
-russian_2022 <- metab(russian_2022_specs, data = inputs_prepped$russian_2022)
+russian_metab <- metab(specs_russian, data = inputs_prepped$russian_2022)
 
 # get fit and save files
-russian_2022_fit <- get_fit(russian_2022)
-write_files(russian_2022_fit, russian_2022, "/russian_2022/", "russian_2022")
+russian_fit <- get_fit(russian_metab)
+write_files(russian_fit, russian_metab, "/russian/", "russian")
 
 # plot metab estimates (note: these are w/o correct depths and will change)
-plot_metab_preds(russian_2022)
-
-# plot GPP estimates w/ sensor cleaning dates-- potential biofouling issues here
-ggplot(russian_2022_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
-  geom_point(color = "darkgreen", size = 3) +
-  geom_line(color = "darkgreen") +
-  geom_vline(xintercept = as_date(c("2022-07-06")), 
-             color = "darkgray", linetype = 2, size = 1.5) +
-  geom_vline(xintercept = as_date(c("2022-07-20")), 
-             color = "darkgray", linetype = 2, size = 1.5) +
-  geom_vline(xintercept = as_date(c("2022-08-02")), 
-             color = "darkgray", linetype = 2, size = 1.5) +
-  geom_vline(xintercept = as_date(c("2022-08-17")), 
-             color = "darkgray", linetype = 2, size = 1.5) +
-  theme_bw()
-
-# look at DO predictions vs. data on a 7-day interval to look closely
-# having a little bit of issues on the early morning (night to light) / trough
-# but otherwise not bad
-plot_DO_preds(russian_2022, date_start = "2022-06-24", date_end = "2022-07-01")
-plot_DO_preds(russian_2022, date_start = "2022-07-01", date_end = "2022-07-08")
-plot_DO_preds(russian_2022, date_start = "2022-07-08", date_end = "2022-07-15")
-plot_DO_preds(russian_2022, date_start = "2022-07-15", date_end = "2022-07-22")
-plot_DO_preds(russian_2022, date_start = "2022-07-22", date_end = "2022-07-29")
-plot_DO_preds(russian_2022, date_start = "2022-07-29", date_end = "2022-08-05")
-plot_DO_preds(russian_2022, date_start = "2022-08-05", date_end = "2022-08-12")
-plot_DO_preds(russian_2022, date_start = "2022-08-12", date_end = "2022-08-19") # not a good week; gets good again after cleaning on 8/17
-plot_DO_preds(russian_2022, date_start = "2022-08-19", date_end = "2022-08-26")
-plot_DO_preds(russian_2022, date_start = "2022-08-26", date_end = "2022-09-03") # again bad before cleaning- biofouling issue
-
-# plot binning, ER vs. K600, correlation test for ER and K600, and K600
-plot_binning(russian_2022_fit, russian_2022, "Russian 2022") # points all within bins
-plot_ER_K600(russian_2022_fit, "Russian 2022")
-cor.test(russian_2022_fit$daily$ER_mean, russian_2022_fit$daily$K600_daily_mean) # correlated -.609; p << 0.003
-plot_K600(russian_2022_fit, "Russian 2022")
-
-# convergence assessment
-rstan::traceplot(get_mcmc(russian_2022), pars='GPP_daily', nrow=10) # looks good!
-rstan::traceplot(get_mcmc(russian_2022), pars='ER_daily', nrow=10)
-rstan::traceplot(get_mcmc(russian_2022), pars='K600_daily', nrow=10)
-
-# goodness of fit metrics
-calc_gof_metrics(russian_2022, "/russian_2022/", "russian_2022") # RMSE 0.31, nRMSE 0.072
-
-# remove large model object before starting next run
-rm(russian_2022, russian_2022_fit)
-
-## russian river 2022 (USGS DO data ver.)
-
-# visualize inputs
-visualize_inputs_full(inputs_prepped$russian_2022_USGS)
-visualize_inputs_zoomed(inputs_prepped$russian_2022_USGS, "2022-07-01 00:00:00", "2022-07-03 00:00:00")
-
-# using same specs and binning
-
-# get fit and save files
-russian_2022_USGS_fit <- get_fit(russian_2022_USGS)
-write_files(russian_2022_USGS_fit, russian_2022_USGS, "/russian_2022_USGS/", "russian_2022_USGS")
-
-# plot metab estimates (note: these are w/o correct depths and will change)
-plot_metab_preds(russian_2022_USGS)
-russian_2022_USGS <- readRDS("./russian_2022_USGS/russian_2022_USGSmetab_obj.rds")
+plot_metab_preds(russian_metab)
 
 # plot GPP estimates w/ sensor cleaning dates-- of course no relationship with our cleaning here!
-ggplot(russian_2022_USGS_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
+ggplot(russian_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
   geom_point(color = "darkgreen", size = 3) +
   geom_line(color = "darkgreen") +
   geom_vline(xintercept = as_date(c("2022-07-06")), 
@@ -292,198 +280,142 @@ ggplot(russian_2022_USGS_fit$daily, aes(x = date, y = GPP_mean)) + # plot with s
 
 # look at DO predictions vs. data on a 7-day interval to look closely
 # having a little bit of issues on the early morning (night to light) / trough
-# but otherwise not bad
-plot_DO_preds(russian_2022_USGS, date_start = "2022-06-24", date_end = "2022-07-01") # some weirdness here w/ measured DO
-plot_DO_preds(russian_2022_USGS, date_start = "2022-07-01", date_end = "2022-07-08") # also weirdness here w/ measured DO
-plot_DO_preds(russian_2022_USGS, date_start = "2022-07-08", date_end = "2022-07-15")
-plot_DO_preds(russian_2022_USGS, date_start = "2022-07-15", date_end = "2022-07-22") # looks great!
-plot_DO_preds(russian_2022_USGS, date_start = "2022-07-22", date_end = "2022-07-29")
-plot_DO_preds(russian_2022_USGS, date_start = "2022-07-29", date_end = "2022-08-05")
-plot_DO_preds(russian_2022_USGS, date_start = "2022-08-05", date_end = "2022-08-12")
-plot_DO_preds(russian_2022_USGS, date_start = "2022-08-12", date_end = "2022-08-19")
-plot_DO_preds(russian_2022_USGS, date_start = "2022-08-19", date_end = "2022-08-26")
-plot_DO_preds(russian_2022_USGS, date_start = "2022-08-26", date_end = "2022-09-03")
+# but otherwise not awful
+plot_DO_preds(russian_metab, date_start = "2022-06-24", date_end = "2022-07-01")
+plot_DO_preds(russian_metab, date_start = "2022-07-01", date_end = "2022-07-08")
+plot_DO_preds(russian_metab, date_start = "2022-07-08", date_end = "2022-07-15")
+plot_DO_preds(russian_metab, date_start = "2022-07-15", date_end = "2022-07-22")
+plot_DO_preds(russian_metab, date_start = "2022-07-22", date_end = "2022-07-29")
+plot_DO_preds(russian_metab, date_start = "2022-07-29", date_end = "2022-08-05") # gets worse in aug
+plot_DO_preds(russian_metab, date_start = "2022-08-05", date_end = "2022-08-12")
+plot_DO_preds(russian_metab, date_start = "2022-08-12", date_end = "2022-08-19") # not a good week; gets good again after cleaning on 8/17
+plot_DO_preds(russian_metab, date_start = "2022-08-19", date_end = "2022-08-26")
+plot_DO_preds(russian_metab, date_start = "2022-08-26", date_end = "2022-09-03") # again bad before cleaning- biofouling issue
 
 # plot binning, ER vs. K600, correlation test for ER and K600, and K600
-plot_binning(russian_2022_USGS_fit, russian_2022_USGS, "Russian 2022 USGS") # points all within bins
-plot_ER_K600(russian_2022_USGS_fit, "Russian 2022 USGS")
-cor.test(russian_2022_USGS_fit$daily$ER_mean, russian_2022_USGS_fit$daily$K600_daily_mean) # correlated -.393; p << 0.008
-plot_K600(russian_2022_USGS_fit, "Russian 2022 USGS")
+plot_binning(russian_fit, russian_metab, "Russian 2022")
+plot_ER_K600(russian_fit, "Russian 2022")
+cor.test(russian_fit$daily$ER_mean, russian_fit$daily$K600_daily_mean) # correlated -.550; p << 0.001
+plot_K600(russian_fit, "Russian 2022")
 
-# convergence assessment
-rstan::traceplot(get_mcmc(russian_2022_USGS), pars='GPP_daily', nrow=10) # looks good!
-rstan::traceplot(get_mcmc(russian_2022_USGS), pars='ER_daily', nrow=10)
-rstan::traceplot(get_mcmc(russian_2022_USGS), pars='K600_daily', nrow=10) # look decent
+# convergence assessments
+rstan::traceplot(get_mcmc(russian_metab), pars='GPP_daily', nrow=10) # good
+rstan::traceplot(get_mcmc(russian_metab), pars='ER_daily', nrow=10) # good
+rstan::traceplot(get_mcmc(russian_metab), pars='K600_daily', nrow=10) # decent
+mean(na.omit(russian_fit$daily$GPP_Rhat))
+mean(na.omit(russian_fit$daily$ER_daily_Rhat))
+mean(na.omit(russian_fit$daily$K600_daily_Rhat))
 
 # goodness of fit metrics
-calc_gof_metrics(russian_2022_USGS, "/russian_2022_USGS/", "russian_2022_USGS") # RMSE 0.32, nRMSE 0.048
+calc_gof_metrics(russian_metab, "/russian/", "russian") # RMSE 0.319, nRMSE 0.0737
 
 # remove large model object before starting next run
-rm(russian_2022_USGS, russian_2022_USGS_fit)
+rm(russian_metab, russian_fit)
 
-## salmon river 2022-- sensor also likely has biofouling issue; redo with karuk tribe data below
+#### RUSSIAN RIVER- USGS data ####
+
+# running model (using specs set above)
+russian_USGS_metab <- metab(specs_russian, data = inputs_prepped$russian_2022_USGS)
+
+# get fit and save files
+russian_USGS_fit <- get_fit(russian_USGS_metab)
+write_files(russian_USGS_fit, russian_USGS_metab, "/russian_USGS/", "russian_USGS")
+
+# plot metab estimates (note: these are w/o correct depths and will change)
+plot_metab_preds(russian_USGS_metab)
+
+# plot GPP estimates w/ sensor cleaning dates-- of course no relationship with our cleaning here!
+ggplot(russian_USGS_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
+  geom_point(color = "darkgreen", size = 3) +
+  geom_line(color = "darkgreen") +
+  geom_vline(xintercept = as_date(c("2022-07-06")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2022-07-20")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2022-08-02")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2022-08-17")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  theme_bw()
+
+# look at DO predictions vs. data on a 7-day interval to look closely
+plot_DO_preds(russian_USGS_metab, date_start = "2022-06-24", date_end = "2022-07-01") # looks pretty good!
+plot_DO_preds(russian_USGS_metab, date_start = "2022-07-01", date_end = "2022-07-08")
+plot_DO_preds(russian_USGS_metab, date_start = "2022-07-08", date_end = "2022-07-15")
+plot_DO_preds(russian_USGS_metab, date_start = "2022-07-15", date_end = "2022-07-22")
+plot_DO_preds(russian_USGS_metab, date_start = "2022-07-22", date_end = "2022-07-29")
+plot_DO_preds(russian_USGS_metab, date_start = "2022-07-29", date_end = "2022-08-05") # one day that is off
+plot_DO_preds(russian_USGS_metab, date_start = "2022-08-05", date_end = "2022-08-12")
+plot_DO_preds(russian_USGS_metab, date_start = "2022-08-12", date_end = "2022-08-19")
+plot_DO_preds(russian_USGS_metab, date_start = "2022-08-19", date_end = "2022-08-26")
+plot_DO_preds(russian_USGS_metab, date_start = "2022-08-26", date_end = "2022-09-03")
+
+# plot binning, ER vs. K600, correlation test for ER and K600, and K600
+plot_binning(russian_USGS_fit, russian_USGS_metab, "Russian USGS 2022")
+plot_ER_K600(russian_USGS_fit, "Russian USGS 2022")
+cor.test(russian_USGS_fit$daily$ER_mean, russian_USGS_fit$daily$K600_daily_mean) # -0.040; not correlated p > 0.7
+plot_K600(russian_USGS_fit, "Russian USGS 2022")
+
+# convergence assessments
+rstan::traceplot(get_mcmc(russian_USGS_metab), pars='GPP_daily', nrow=10) # great
+rstan::traceplot(get_mcmc(russian_USGS_metab), pars='ER_daily', nrow=10) # great
+rstan::traceplot(get_mcmc(russian_USGS_metab), pars='K600_daily', nrow=10) # great
+mean(na.omit(russian_USGS_fit$daily$GPP_Rhat)) # great
+mean(na.omit(russian_USGS_fit$daily$ER_daily_Rhat)) # great
+mean(na.omit(russian_USGS_fit$daily$K600_daily_Rhat)) # great
+
+# goodness of fit metrics
+calc_gof_metrics(russian_USGS_metab, "/russian_USGS/", "russian_USGS") # RMSE 0.345, nRMSE 0.0514
+
+# remove large model object before starting next run
+rm(russian_USGS_metab, russian_USGS_fit)
+
+#### SALMON RIVER- our miniDOT data ####
+
+# model years together
+inputs_prepped$salmon <- rbind(inputs_prepped$salmon_2022, inputs_prepped$salmon_2023)
 
 # visualize inputs
+visualize_inputs_full(inputs_prepped$salmon)
 visualize_inputs_full(inputs_prepped$salmon_2022)
-visualize_inputs_zoomed(inputs_prepped$salmon_2022, "2022-08-10 00:00:00", "2022-08-12 00:00:00")
-
-# model specs
-salmon_2022_specs <- specs(bayesian_mm, burnin_steps = 5000, saved_steps = 5000,
-                           thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)
-
-# changing range of log(Q) to better match site max 2.97, min is 1.49
-salmon_2022_specs$K600_lnQ_nodes_centers <- c(1.50, 1.75, 2.0, 2.25, 2.50, 2.75, 3.0)
-# guidelines from github: use 0.5 for centers 1 apart and 0.5 / 5 for centers 0.2 apart
-# so sd half of distance each center is apart
-salmon_2022_specs$K600_lnQ_nodediffs_sdlog <- 0.5 / 2
-
-# running model
-salmon_2022 <- metab(salmon_2022_specs, data = inputs_prepped$salmon_2022)
-
-# get fit and save files
-salmon_2022_fit <- get_fit(salmon_2022)
-write_files(salmon_2022_fit, salmon_2022, "/salmon_2022/",
-            "salmon_2022")
-
-# plot metab estimates (note: these are w/o correct depths and will change)
-plot_metab_preds(salmon_2022) # ER estimation issues; some 95% into positive; likely due to high Q?
-# also GPP drop late August by fire to the south; overestimates drop as 95% interval into negative
-
-# plot GPP estimates w/ sensor cleaning dates
-ggplot(salmon_2022_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
-  geom_point(color = "darkgreen", size = 3) +
-  geom_line(color = "darkgreen") +
-  geom_vline(xintercept = as_date(c("2022-07-12")), 
-             color = "darkgray", linetype = 2, size = 1.5) +
-  geom_vline(xintercept = as_date(c("2022-07-26")), 
-             color = "darkgray", linetype = 2, size = 1.5) +
-  theme_bw()
-
-# look at DO predictions vs. data on a 7-day interval to look closely
-plot_DO_preds(salmon_2022, date_start = "2022-06-27", date_end = "2022-07-03")
-plot_DO_preds(salmon_2022, date_start = "2022-07-03", date_end = "2022-07-10")
-plot_DO_preds(salmon_2022, date_start = "2022-07-10", date_end = "2022-07-17") # interesting flat bottoms
-plot_DO_preds(salmon_2022, date_start = "2022-07-17", date_end = "2022-07-24")
-plot_DO_preds(salmon_2022, date_start = "2022-07-24", date_end = "2022-07-31")
-plot_DO_preds(salmon_2022, date_start = "2022-07-31", date_end = "2022-08-06")
-plot_DO_preds(salmon_2022, date_start = "2022-08-06", date_end = "2022-08-13")
-plot_DO_preds(salmon_2022, date_start = "2022-08-13", date_end = "2022-08-20")
-plot_DO_preds(salmon_2022, date_start = "2022-08-20", date_end = "2022-08-27")
-plot_DO_preds(salmon_2022, date_start = "2022-08-27", date_end = "2022-09-04") # not great
-plot_DO_preds(salmon_2022, date_start = "2022-09-04", date_end = "2022-09-11") # weird breakage; flat bottoms again
-plot_DO_preds(salmon_2022, date_start = "2022-09-11", date_end = "2022-09-18")
-plot_DO_preds(salmon_2022, date_start = "2022-09-18", date_end = "2022-09-22") 
-
-# plot binning, ER vs. K600, correlation test for ER and K600, and K600
-plot_binning(salmon_2022_fit, salmon_2022, "Salmon 2022") # points all within bins
-plot_ER_K600(salmon_2022_fit, "Salmon 2022")
-cor.test(salmon_2022_fit$daily$ER_mean, salmon_2022_fit$daily$K600_daily_mean) # correlated .479; p << 0.001
-plot_K600(salmon_2022_fit, "Salmon 2022")
-
-# convergence assessment
-rstan::traceplot(get_mcmc(salmon_2022), pars='GPP_daily', nrow=10) # looks great
-rstan::traceplot(get_mcmc(salmon_2022), pars='ER_daily', nrow=10)
-rstan::traceplot(get_mcmc(salmon_2022), pars='K600_daily', nrow=10) # look decent
-
-# goodness of fit metrics
-calc_gof_metrics(salmon_2022, "/salmon_2022/", "salmon_2022") # rmse 0.51, nrsme 0.052
-
-# remove large model object before starting next run
-rm(salmon_2022, salmon_2022_fit)
-
-## salmon river 2022 (Karuk Tribe data)
-
-# visualize inputs
-visualize_inputs_full(inputs_prepped$salmon_2022_karuk)
-visualize_inputs_zoomed(inputs_prepped$salmon_2022_karuk, "2022-07-04 00:00:00", "2022-07-06 00:00:00")
-
-# using same specs and binning
-
-# running model
-salmon_2022_karuk <- metab(salmon_2022_specs, data = inputs_prepped$salmon_2022_karuk)
-salmon_2022_karuk <- readRDS("./data/metab_model_outputs/salmon_2022_karuk/salmon_2022_karukmetab_obj.rds")
-
-# get fit and save files
-salmon_2022_karuk_fit <- get_fit(salmon_2022_karuk)
-write_files(salmon_2022_karuk_fit, salmon_2022_karuk, "/salmon_2022_karuk/",
-            "salmon_2022_karuk")
-
-# plot metab estimates (note: these are w/o correct depths and will change)
-plot_metab_preds(salmon_2022_karuk) # GPP still increasing across the summer but not as drastically
-
-# plot GPP estimates w/ sensor cleaning dates-- of course no relation with our cleaning here!
-ggplot(salmon_2022_karuk_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
-  geom_point(color = "darkgreen", size = 3) +
-  geom_line(color = "darkgreen") +
-  geom_vline(xintercept = as_date(c("2022-07-12")), 
-             color = "darkgray", linetype = 2, size = 1.5) +
-  geom_vline(xintercept = as_date(c("2022-07-26")), 
-             color = "darkgray", linetype = 2, size = 1.5) +
-  theme_bw()
-
-# look at DO predictions vs. data on a 7-day interval to look closely
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-06-27", date_end = "2022-07-03") # looks great
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-03", date_end = "2022-07-10")
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-10", date_end = "2022-07-17")
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-17", date_end = "2022-07-24")
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-24", date_end = "2022-07-31")
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-07-31", date_end = "2022-08-06")
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-08-06", date_end = "2022-08-13")
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-08-13", date_end = "2022-08-20")
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-08-20", date_end = "2022-08-27")
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-08-27", date_end = "2022-09-04")
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-09-04", date_end = "2022-09-11")
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-09-11", date_end = "2022-09-18")
-plot_DO_preds(salmon_2022_karuk, date_start = "2022-09-18", date_end = "2022-09-22") 
-
-# plot binning, ER vs. K600, correlation test for ER and K600, and K600
-plot_binning(salmon_2022_karuk_fit, salmon_2022_karuk, "Salmon 2022 Karuk") # points all within bins
-plot_ER_K600(salmon_2022_karuk_fit, "Salmon 2022 Karuk")
-cor.test(salmon_2022_karuk_fit$daily$ER_mean, salmon_2022_karuk_fit$daily$K600_daily_mean) # correlated -0.332; p << 0.002
-plot_K600(salmon_2022_karuk_fit, "Salmon 2022 Karuk")
-
-# convergence assessment
-rstan::traceplot(get_mcmc(salmon_2022_karuk), pars='GPP_daily', nrow=10) # pretty bad
-rstan::traceplot(get_mcmc(salmon_2022_karuk), pars='ER_daily', nrow=10)
-rstan::traceplot(get_mcmc(salmon_2022_karuk), pars='K600_daily', nrow=10) # look decent
-
-# goodness of fit metrics
-calc_gof_metrics(salmon_2022_karuk, "/salmon_2022_karuk/", "salmon_2022_karuk") # rmse 0.04, nrsme 0.015
-
-# remove large model object before starting next run
-rm(salmon_2022_karuk, salmon_2022_karuk_fit)
-
-## salmon river 2023-- sensor likely had biofouling issues, redo w/ Karuk tribe data below
-
-# visualize inputs
 visualize_inputs_full(inputs_prepped$salmon_2023)
-visualize_inputs_zoomed(inputs_prepped$salmon_2023, "2023-08-10 00:00:00", "2023-08-12 00:00:00")
+visualize_inputs_zoomed(inputs_prepped$salmon, "2022-07-01 00:00:00", "2022-07-03 00:00:00")
+visualize_inputs_zoomed(inputs_prepped$salmon, "2023-07-01 00:00:00", "2023-07-03 00:00:00")
 
-# model specs
-salmon_2023_specs <- specs(bayesian_mm, burnin_steps = 5000, saved_steps = 5000,
-                           thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)
+# set model specs
+specs_salmon <- specs(bayesian_mm, burnin_steps = 1000, saved_steps = 1000)
 
-# changing range of log(Q) to better match site max 2.97, min is 1.49
-salmon_2023_specs$K600_lnQ_nodes_centers <- c(1.6, 1.9, 2.2, 2.5, 2.8, 3.1, 3.4)
-# guidelines from github: use 0.5 for centers 1 apart and 0.5 / 5 for centers 0.2 apart
-# so sd half of distance each center is apart
-salmon_2023_specs$K600_lnQ_nodediffs_sdlog <- 0.3 / 2
+# change binning
+specs_salmon <- set_Q_nodes(specs_salmon, inputs_prepped$salmon_karuk$discharge, 
+                            # using default sd; doesn't change k600 & best convergence
+                            k600_priors[2,2], log_k600_sd = 0.5, min_bins = 3)
+plot_Q_bins(inputs_prepped$salmon$discharge, specs_salmon)
 
 # running model
-salmon_2023 <- metab(salmon_2023_specs, data = inputs_prepped$salmon_2023)
+salmon_metab <- metab(specs_salmon, data = inputs_prepped$salmon)
 
 # get fit and save files
-salmon_2023_fit <- get_fit(salmon_2023)
-write_files(salmon_2023_fit, salmon_2023, "/salmon_2023/",
-            "salmon_2023")
+salmon_fit <- get_fit(salmon_metab)
+write_files(salmon_fit, salmon_metab, "/salmon/", "salmon")
 
 # plot metab estimates (note: these are w/o correct depths and will change)
-plot_metab_preds(salmon_2023) # maybe one day of ER interval above 0?
+plot_metab_preds(salmon_metab)
 
-# plot GPP estimates w/ sensor cleaning dates-- no obvious biofouling
-ggplot(salmon_2023_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
+# plot GPP estimates w/ sensor cleaning dates;
+# removed the worst of the biofouling prior to long time period already I guess
+ggplot(salmon_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
+  geom_point(color = "darkgreen", size = 3) +
+  scale_x_date(limits = as.Date(c("2022-06-15", "2022-09-30"))) +
+  geom_line(color = "darkgreen") +
+  geom_vline(xintercept = as_date(c("2022-07-12")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2022-07-26")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  theme_bw()
+ggplot(salmon_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
   geom_point(color = "darkgreen", size = 3) +
   geom_line(color = "darkgreen") +
+  scale_x_date(limits = as.Date(c("2023-06-15", "2023-09-30"))) +
   geom_vline(xintercept = as_date(c("2023-07-13")), 
              color = "darkgray", linetype = 2, size = 1.5) +
   geom_vline(xintercept = as_date(c("2023-07-27")), 
@@ -493,58 +425,94 @@ ggplot(salmon_2023_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor 
   theme_bw()
 
 # look at DO predictions vs. data on a 7-day interval to look closely
-plot_DO_preds(salmon_2023, date_start = "2023-06-28", date_end = "2023-07-05") # connected but weird flat bottom
-plot_DO_preds(salmon_2023, date_start = "2023-07-05", date_end = "2023-07-12") # some disconnections but in realm of DO observe
-plot_DO_preds(salmon_2023, date_start = "2023-07-12", date_end = "2023-07-19")
-plot_DO_preds(salmon_2023, date_start = "2023-07-19", date_end = "2023-07-26")
-plot_DO_preds(salmon_2023, date_start = "2023-07-26", date_end = "2023-07-31")
-plot_DO_preds(salmon_2023, date_start = "2023-07-31", date_end = "2023-08-07")
-plot_DO_preds(salmon_2023, date_start = "2023-08-07", date_end = "2023-08-15")
-plot_DO_preds(salmon_2023, date_start = "2023-08-15", date_end = "2023-08-22") # one day of weirdness here!
-plot_DO_preds(salmon_2023, date_start = "2023-08-22", date_end = "2023-08-29")
-plot_DO_preds(salmon_2023, date_start = "2023-08-29", date_end = "2023-09-06")
-plot_DO_preds(salmon_2023, date_start = "2023-09-06", date_end = "2023-09-13")
-plot_DO_preds(salmon_2023, date_start = "2023-09-13", date_end = "2023-09-20")
-plot_DO_preds(salmon_2023, date_start = "2023-09-20", date_end = "2023-09-28")
+plot_DO_preds(salmon_metab, date_start = "2022-06-27", date_end = "2022-07-03")
+plot_DO_preds(salmon_metab, date_start = "2022-07-03", date_end = "2022-07-10")
+plot_DO_preds(salmon_metab, date_start = "2022-07-10", date_end = "2022-07-17") # interesting flat bottoms
+plot_DO_preds(salmon_metab, date_start = "2022-07-17", date_end = "2022-07-24")
+plot_DO_preds(salmon_metab, date_start = "2022-07-24", date_end = "2022-07-31")
+plot_DO_preds(salmon_metab, date_start = "2022-07-31", date_end = "2022-08-06")
+plot_DO_preds(salmon_metab, date_start = "2022-08-06", date_end = "2022-08-13")
+plot_DO_preds(salmon_metab, date_start = "2022-08-13", date_end = "2022-08-20")
+plot_DO_preds(salmon_metab, date_start = "2022-08-20", date_end = "2022-08-27")
+plot_DO_preds(salmon_metab, date_start = "2022-08-27", date_end = "2022-09-04")
+plot_DO_preds(salmon_metab, date_start = "2022-09-04", date_end = "2022-09-11")
+plot_DO_preds(salmon_metab, date_start = "2022-09-11", date_end = "2022-09-18")
+plot_DO_preds(salmon_metab, date_start = "2022-09-18", date_end = "2022-09-22") 
+plot_DO_preds(salmon_metab, date_start = "2023-06-28", date_end = "2023-07-05") # connected but weird flat bottom
+plot_DO_preds(salmon_metab, date_start = "2023-07-05", date_end = "2023-07-12")
+plot_DO_preds(salmon_metab, date_start = "2023-07-12", date_end = "2023-07-19")
+plot_DO_preds(salmon_metab, date_start = "2023-07-19", date_end = "2023-07-26")
+plot_DO_preds(salmon_metab, date_start = "2023-07-26", date_end = "2023-07-31")
+plot_DO_preds(salmon_metab, date_start = "2023-07-31", date_end = "2023-08-07")
+plot_DO_preds(salmon_metab, date_start = "2023-08-07", date_end = "2023-08-15")
+plot_DO_preds(salmon_metab, date_start = "2023-08-15", date_end = "2023-08-22")
+plot_DO_preds(salmon_metab, date_start = "2023-08-22", date_end = "2023-08-29")
+plot_DO_preds(salmon_metab, date_start = "2023-08-29", date_end = "2023-09-06")
+plot_DO_preds(salmon_metab, date_start = "2023-09-06", date_end = "2023-09-13")
+plot_DO_preds(salmon_metab, date_start = "2023-09-13", date_end = "2023-09-20")
+plot_DO_preds(salmon_metab, date_start = "2023-09-20", date_end = "2023-09-28")
 
 # plot binning, ER vs. K600, correlation test for ER and K600, and K600
-plot_binning(salmon_2023_fit, salmon_2023, "Salmon 2023") # points all within bins
-plot_ER_K600(salmon_2023_fit, "Salmon 2023")
-cor.test(salmon_2023_fit$daily$ER_mean, salmon_2023_fit$daily$K600_daily_mean) # correlated -.569; p << 0.001
-plot_K600(salmon_2023_fit, "Salmon 2023")
+plot_binning(salmon_fit, salmon_metab, "Salmon 2022-2023")
+plot_ER_K600(salmon_fit, "Salmon 2022-2023")
+cor.test(salmon_fit$daily$ER_mean, salmon_fit$daily$K600_daily_mean) # 0.311; correlated p << 0.006
+plot_K600(salmon_fit, "Salmon 2022-2023")
 
-# convergence assessment
-rstan::traceplot(get_mcmc(salmon_2023), pars='GPP_daily', nrow=10) # looks great
-rstan::traceplot(get_mcmc(salmon_2023), pars='ER_daily', nrow=10)
-rstan::traceplot(get_mcmc(salmon_2023), pars='K600_daily', nrow=10) # looks good
+# convergence assessments
+rstan::traceplot(get_mcmc(salmon_metab), pars='GPP_daily', nrow=10) # great
+rstan::traceplot(get_mcmc(salmon_metab), pars='ER_daily', nrow=10) # great
+rstan::traceplot(get_mcmc(salmon_metab), pars='K600_daily', nrow=10) # great
+mean(na.omit(salmon_fit$daily$GPP_Rhat)) # great
+mean(na.omit(salmon_fit$daily$ER_daily_Rhat)) # great
+mean(na.omit(salmon_fit$daily$K600_daily_Rhat)) # good
 
 # goodness of fit metrics
-calc_gof_metrics(salmon_2023, "/salmon_2023/", "salmon_2023") # rmse 0.55, nrsme 0.016
+calc_gof_metrics(salmon_metab, "/salmon/", "salmon") # RMSE 0.349, nRMSE 0.0355
 
 # remove large model object before starting next run
-rm(salmon_2023, salmon_2023_fit)
+rm(salmon_metab, salmon_fit)
 
-## salmon river 2023 (Karuk Tribe data)
+#### SALMON RIVER- Karuk data ####
+
+# model years together
+inputs_prepped$salmon_karuk <- rbind(inputs_prepped$salmon_2022_karuk, 
+                                     inputs_prepped$salmon_2023_karuk)
 
 # visualize inputs
+visualize_inputs_full(inputs_prepped$salmon_karuk)
+visualize_inputs_full(inputs_prepped$salmon_2022_karuk)
 visualize_inputs_full(inputs_prepped$salmon_2023_karuk)
-visualize_inputs_zoomed(inputs_prepped$salmon_2023_karuk, "2023-08-10 00:00:00", "2023-08-12 00:00:00")
+visualize_inputs_zoomed(inputs_prepped$salmon_karuk, "2022-07-01 00:00:00", "2022-07-03 00:00:00")
+visualize_inputs_zoomed(inputs_prepped$salmon_karuk, "2023-07-01 00:00:00", "2023-07-03 00:00:00")
+
+# look at binning
+plot_Q_bins(inputs_prepped$salmon_karuk$discharge, specs_salmon)
 
 # running model
-salmon_2023_karuk <- metab(salmon_2023_specs, data = inputs_prepped$salmon_2023_karuk)
+salmon_karuk_metab <- metab(specs_salmon, data = inputs_prepped$salmon_2023_karuk)
 
 # get fit and save files
-salmon_2023_karuk_fit <- get_fit(salmon_2023_karuk)
-write_files(salmon_2023_karuk_fit, salmon_2023_karuk, "/salmon_2023_karuk/",
-            "salmon_2023_karuk")
+salmon_karuk_fit <- get_fit(salmon_karuk_metab)
+write_files(salmon_karuk_fit, salmon_karuk_metab, "/salmon_karuk/", "salmon_karuk")
 
 # plot metab estimates (note: these are w/o correct depths and will change)
-plot_metab_preds(salmon_2023_karuk) # maybe one day of ER interval above 0?
+plot_metab_preds(salmon_karuk_metab)
 
-# plot GPP estimates w/ sensor cleaning dates-- no obvious biofouling
-ggplot(salmon_2023_karuk_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
+# plot GPP estimates w/ sensor cleaning dates;
+# removed the worst of the biofouling prior to long time period already I guess
+ggplot(salmon_karuk_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
+  geom_point(color = "darkgreen", size = 3) +
+  scale_x_date(limits = as.Date(c("2022-06-15", "2022-09-30"))) +
+  geom_line(color = "darkgreen") +
+  geom_vline(xintercept = as_date(c("2022-07-12")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  geom_vline(xintercept = as_date(c("2022-07-26")), 
+             color = "darkgray", linetype = 2, size = 1.5) +
+  theme_bw()
+ggplot(salmon_karuk_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
   geom_point(color = "darkgreen", size = 3) +
   geom_line(color = "darkgreen") +
+  scale_x_date(limits = as.Date(c("2023-06-15", "2023-09-30"))) +
   geom_vline(xintercept = as_date(c("2023-07-13")), 
              color = "darkgray", linetype = 2, size = 1.5) +
   geom_vline(xintercept = as_date(c("2023-07-27")), 
@@ -554,68 +522,89 @@ ggplot(salmon_2023_karuk_fit$daily, aes(x = date, y = GPP_mean)) + # plot with s
   theme_bw()
 
 # look at DO predictions vs. data on a 7-day interval to look closely
-plot_DO_preds(salmon_2023_karuk, date_start = "2023-06-28", date_end = "2023-07-05") # connected but weird flat bottom
-plot_DO_preds(salmon_2023_karuk, date_start = "2023-07-05", date_end = "2023-07-12") # some disconnections but in realm of DO observe
-plot_DO_preds(salmon_2023_karuk, date_start = "2023-07-12", date_end = "2023-07-19")
-plot_DO_preds(salmon_2023_karuk, date_start = "2023-07-19", date_end = "2023-07-26")
-plot_DO_preds(salmon_2023_karuk, date_start = "2023-07-26", date_end = "2023-07-31")
-plot_DO_preds(salmon_2023_karuk, date_start = "2023-07-31", date_end = "2023-08-07")
-plot_DO_preds(salmon_2023_karuk, date_start = "2023-08-07", date_end = "2023-08-15")
-plot_DO_preds(salmon_2023_karuk, date_start = "2023-08-15", date_end = "2023-08-22") # really weird here
-plot_DO_preds(salmon_2023_karuk, date_start = "2023-08-22", date_end = "2023-08-29")
-plot_DO_preds(salmon_2023_karuk, date_start = "2023-08-29", date_end = "2023-09-06") # again weirdness
-plot_DO_preds(salmon_2023_karuk, date_start = "2023-09-06", date_end = "2023-09-13")
-plot_DO_preds(salmon_2023_karuk, date_start = "2023-09-13", date_end = "2023-09-20")
-plot_DO_preds(salmon_2023_karuk, date_start = "2023-09-20", date_end = "2023-09-28")
+plot_DO_preds(salmon_karuk_metab, date_start = "2022-06-27", date_end = "2022-07-03") # all look great sans one weird day below
+plot_DO_preds(salmon_karuk_metab, date_start = "2022-07-03", date_end = "2022-07-10")
+plot_DO_preds(salmon_karuk_metab, date_start = "2022-07-10", date_end = "2022-07-17")
+plot_DO_preds(salmon_karuk_metab, date_start = "2022-07-17", date_end = "2022-07-24")
+plot_DO_preds(salmon_karuk_metab, date_start = "2022-07-24", date_end = "2022-07-31")
+plot_DO_preds(salmon_karuk_metab, date_start = "2022-07-31", date_end = "2022-08-06")
+plot_DO_preds(salmon_karuk_metab, date_start = "2022-08-06", date_end = "2022-08-13")
+plot_DO_preds(salmon_karuk_metab, date_start = "2022-08-13", date_end = "2022-08-20")
+plot_DO_preds(salmon_karuk_metab, date_start = "2022-08-20", date_end = "2022-08-27")
+plot_DO_preds(salmon_karuk_metab, date_start = "2022-08-27", date_end = "2022-09-04")
+plot_DO_preds(salmon_karuk_metab, date_start = "2022-09-04", date_end = "2022-09-11")
+plot_DO_preds(salmon_karuk_metab, date_start = "2022-09-11", date_end = "2022-09-18")
+plot_DO_preds(salmon_karuk_metab, date_start = "2022-09-18", date_end = "2022-09-22") 
+plot_DO_preds(salmon_karuk_metab, date_start = "2023-06-28", date_end = "2023-07-05") # connected but weird flat bottom
+plot_DO_preds(salmon_karuk_metab, date_start = "2023-07-05", date_end = "2023-07-12")
+plot_DO_preds(salmon_karuk_metab, date_start = "2023-07-12", date_end = "2023-07-19")
+plot_DO_preds(salmon_karuk_metab, date_start = "2023-07-19", date_end = "2023-07-26")
+plot_DO_preds(salmon_karuk_metab, date_start = "2023-07-26", date_end = "2023-07-31")
+plot_DO_preds(salmon_karuk_metab, date_start = "2023-07-31", date_end = "2023-08-07")
+plot_DO_preds(salmon_karuk_metab, date_start = "2023-08-07", date_end = "2023-08-15")
+plot_DO_preds(salmon_karuk_metab, date_start = "2023-08-15", date_end = "2023-08-22") # one weird day
+plot_DO_preds(salmon_karuk_metab, date_start = "2023-08-22", date_end = "2023-08-29")
+plot_DO_preds(salmon_karuk_metab, date_start = "2023-08-29", date_end = "2023-09-06")
+plot_DO_preds(salmon_karuk_metab, date_start = "2023-09-06", date_end = "2023-09-13")
+plot_DO_preds(salmon_karuk_metab, date_start = "2023-09-13", date_end = "2023-09-20")
+plot_DO_preds(salmon_karuk_metab, date_start = "2023-09-20", date_end = "2023-09-28")
 
 # plot binning, ER vs. K600, correlation test for ER and K600, and K600
-plot_binning(salmon_2023_karuk_fit, salmon_2023_karuk, "Salmon 2023") # points all within bins
-plot_ER_K600(salmon_2023_karuk_fit, "Salmon 2023 (Karuk)")
-cor.test(salmon_2023_karuk_fit$daily$ER_mean, salmon_2023_karuk_fit$daily$K600_daily_mean) # correlated -.879; p << 0.001
-plot_K600(salmon_2023_karuk_fit, "Salmon 2023")
+plot_binning(salmon_karuk_fit, salmon_karuk_metab, "Salmon (Karuk Data) 2022-2023")
+plot_ER_K600(salmon_karuk_fit,  "Salmon (Karuk Data) 2022-2023")
+cor.test(salmon_karuk_fit$daily$ER_mean, salmon_karuk_fit$daily$K600_daily_mean) # -0.608; correlated p << 0.002
+plot_K600(salmon_karuk_fit,  "Salmon (Karuk Data) 2022-2023")
 
-# convergence assessment
-rstan::traceplot(get_mcmc(salmon_2023_karuk), pars='GPP_daily', nrow=10) # terrible
-rstan::traceplot(get_mcmc(salmon_2023_karuk), pars='ER_daily', nrow=10)
-rstan::traceplot(get_mcmc(salmon_2023_karuk), pars='K600_daily', nrow=10) # terrible
+# convergence assessments
+rstan::traceplot(get_mcmc(salmon_karuk_metab), pars='GPP_daily', nrow=10) # decent
+rstan::traceplot(get_mcmc(salmon_karuk_metab), pars='ER_daily', nrow=10) # great
+rstan::traceplot(get_mcmc(salmon_karuk_metab), pars='K600_daily', nrow=10) # great
+mean(na.omit(salmon_karuk_fit$daily$GPP_Rhat)) # decent
+mean(na.omit(salmon_karuk_fit$daily$ER_daily_Rhat)) # decent
+mean(na.omit(salmon_karuk_fit$daily$K600_daily_Rhat)) # decent
 
 # goodness of fit metrics
-calc_gof_metrics(salmon_2023_karuk, "/salmon_2023_karuk/", "salmon_2023_karuk") # rmse 0.079, nrsme 0.030
+calc_gof_metrics(salmon_karuk_metab, "/salmon_karuk/", "salmon_karuk") # RMSE 0.349, nRMSE 0.0355
 
 # remove large model object before starting next run
-rm(salmon_2023_karuk, salmon_2023_karuk_fit)
+rm(salmon_karuk_metab, salmon_karuk_fit)
 
-## south fork eel @ miranda 2022
+#### SOUTH FORK EEL RIVER @ MIRANDA ####
+
+# model years together
+inputs_prepped$sfkeel_mir <- rbind(inputs_prepped$sfkeel_mir_2022, 
+                                   inputs_prepped$sfkeel_mir_2023)
 
 # visualize inputs
+visualize_inputs_full(inputs_prepped$sfkeel_mir)
 visualize_inputs_full(inputs_prepped$sfkeel_mir_2022)
-visualize_inputs_zoomed(inputs_prepped$sfkeel_mir_2022, "2022-08-10 00:00:00", "2022-08-12 00:00:00")
+visualize_inputs_full(inputs_prepped$sfkeel_mir_2023)
+visualize_inputs_zoomed(inputs_prepped$sfkeel_mir_2022, "2022-08-01 00:00:00", "2022-08-03 00:00:00")
+visualize_inputs_zoomed(inputs_prepped$sfkeel_mir_2023, "2023-08-15 00:00:00", "2023-08-17 00:00:00")
 
-# model specs
-sfkeel_mir_2022_specs <- specs(bayesian_mm, burnin_steps = 5000, saved_steps = 5000,
-                           thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)
+# set model specs
+specs_sfkeel_mir <- specs(bayesian_mm, burnin_steps = 1000, saved_steps = 1000)
 
-# changing range of log(Q) to better match site max 2.97, min is 1.49
-sfkeel_mir_2022_specs$K600_lnQ_nodes_centers <- c(-1.2, -0.75, -0.30, 0.15, 0.60, 1.05, 1.5)
-# guidelines from github: use 0.5 for centers 1 apart and 0.5 / 5 for centers 0.2 apart
-# so sd half of distance each center is apart
-sfkeel_mir_2022_specs$K600_lnQ_nodediffs_sdlog <- 0.45 / 2
+# change binning
+specs_sfkeel_mir <- set_Q_nodes(specs_sfkeel_mir, inputs_prepped$sfkeel_mir$discharge, 
+                                k600_priors[3,2], log_k600_sd = 0.5, min_bins = 6)
+plot_Q_bins(inputs_prepped$sfkeel_mir$discharge, specs_sfkeel_mir)
 
 # running model
-sfkeel_mir_2022 <- metab(sfkeel_mir_2022_specs, data = inputs_prepped$sfkeel_mir_2022)
+sfkeel_mir_metab <- metab(specs_sfkeel_mir, data = inputs_prepped$sfkeel_mir)
 
 # get fit and save files
-sfkeel_mir_2022_fit <- get_fit(sfkeel_mir_2022)
-write_files(sfkeel_mir_2022_fit, sfkeel_mir_2022, "/sfkeel_mir_2022/",
-            "sfkeel_mir_2022")
+sfkeel_mir_fit <- get_fit(sfkeel_mir_metab)
+write_files(sfkeel_mir_fit, sfkeel_mir_metab, "/sfkeel_mir/", "sfkeel_mir")
 
 # plot metab estimates (note: these are w/o correct depths and will change)
-plot_metab_preds(sfkeel_mir_2022) # seems so much higher without depth applied!
+plot_metab_preds(sfkeel_mir_metab) # seems so much higher without depth applied!
 
 # plot GPP estimates w/ sensor cleaning dates -- no obvious biofouling
-ggplot(sfkeel_mir_2022_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
+ggplot(sfkeel_mir_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
   geom_point(color = "darkgreen", size = 3) +
   geom_line(color = "darkgreen") +
+  scale_x_date(limits = as.Date(c("2022-06-15", "2022-09-30"))) +
   geom_vline(xintercept = as_date(c("2022-07-14")), 
              color = "darkgray", linetype = 2, size = 1.5) +
   geom_vline(xintercept = as_date(c("2022-07-28")), 
@@ -627,68 +616,10 @@ ggplot(sfkeel_mir_2022_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sen
   geom_vline(xintercept = as_date(c("2022-09-06")), 
              color = "darkgray", linetype = 2, size = 1.5) +
   theme_bw()
-
-# look at DO predictions vs. data on a 7-day interval to look closely
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-06-28", date_end = "2022-07-05")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-07-05", date_end = "2022-07-12") # some disconnections but mostly good
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-07-12", date_end = "2022-07-19") # missing data from sensor weirdness week
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-07-19", date_end = "2022-07-30") # again missing data from sensor weirdness
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-07-30", date_end = "2022-08-06")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-08-06", date_end = "2022-08-13")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-08-13", date_end = "2022-08-20")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-08-20", date_end = "2022-08-27")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-08-27", date_end = "2022-09-04")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-09-04", date_end = "2022-09-11")
-plot_DO_preds(sfkeel_mir_2022, date_start = "2022-09-11", date_end = "2022-09-18")
-
-# plot binning, ER vs. K600, correlation test for ER and K600, and K600
-plot_binning(sfkeel_mir_2022_fit, sfkeel_mir_2022, "South fork eel @ miranda 2022") # points all within bins
-plot_ER_K600(sfkeel_mir_2022_fit, "South fork eel @ miranda 2022")
-cor.test(sfkeel_mir_2022_fit$daily$ER_mean, sfkeel_mir_2022_fit$daily$K600_daily_mean) # correlated 0.867; p << 0.002
-plot_K600(sfkeel_mir_2022_fit, "South fork eel @ miranda 2022")
-
-# convergence assessment
-rstan::traceplot(get_mcmc(sfkeel_mir_2022), pars='GPP_daily', nrow=10) # looks great
-rstan::traceplot(get_mcmc(sfkeel_mir_2022), pars='ER_daily', nrow=10)
-rstan::traceplot(get_mcmc(sfkeel_mir_2022), pars='K600_daily', nrow=10) # looks good
-
-# goodness of fit metrics
-calc_gof_metrics(sfkeel_mir_2022, "/sfkeel_mir_2022/", "sfkeel_mir_2022") # rmse 0.28, nrsme 0.044
-
-# remove large model object before starting next run
-rm(sfkeel_mir_2022, sfkeel_mir_2022_fit)
-
-## south fork eel @ miranda 2023
-
-# visualize inputs
-visualize_inputs_full(inputs_prepped$sfkeel_mir_2023)
-visualize_inputs_zoomed(inputs_prepped$sfkeel_mir_2023, "2023-09-10 00:00:00", "2023-09-12 00:00:00")
-
-# model specs
-sfkeel_mir_2023_specs <- specs(bayesian_mm, burnin_steps = 5000, saved_steps = 5000,
-                               thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)
-
-# changing range of log(Q) to better match site max 2.97, min is 1.49
-sfkeel_mir_2023_specs$K600_lnQ_nodes_centers <- c(-1.4, -0.9, -0.4, 0.1, 0.6, 1.1, 1.6)
-# guidelines from github: use 0.5 for centers 1 apart and 0.5 / 5 for centers 0.2 apart
-# so sd half of distance each center is apart
-sfkeel_mir_2023_specs$K600_lnQ_nodediffs_sdlog <- 0.5 / 2
-
-# running model
-sfkeel_mir_2023 <- metab(sfkeel_mir_2023_specs, data = inputs_prepped$sfkeel_mir_2023)
-
-# get fit and save files
-sfkeel_mir_2023_fit <- get_fit(sfkeel_mir_2023)
-write_files(sfkeel_mir_2023_fit, sfkeel_mir_2023, "/sfkeel_mir_2023/",
-            "sfkeel_mir_2023")
-
-# plot metab estimates (note: these are w/o correct depths and will change)
-plot_metab_preds(sfkeel_mir_2023) # seems so much higher without depth applied!
-
-# plot GPP estimates w/ sensor cleaning dates -- no obvious biofouling
-ggplot(sfkeel_mir_2023_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
+ggplot(sfkeel_mir_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
   geom_point(color = "darkgreen", size = 3) +
   geom_line(color = "darkgreen") +
+  scale_x_date(limits = as.Date(c("2023-06-15", "2023-09-30"))) +
   geom_vline(xintercept = as_date(c("2023-06-25")), 
              color = "darkgray", linetype = 2, size = 1.5) +
   geom_vline(xintercept = as_date(c("2023-07-03")), 
@@ -720,70 +651,91 @@ ggplot(sfkeel_mir_2023_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sen
   theme_bw()
 
 # look at DO predictions vs. data on a 7-day interval to look closely
-plot_DO_preds(sfkeel_mir_2023, date_start = "2023-06-18", date_end = "2023-06-25") # look good!
-plot_DO_preds(sfkeel_mir_2023, date_start = "2023-06-25", date_end = "2023-07-01")
-plot_DO_preds(sfkeel_mir_2023, date_start = "2023-07-01", date_end = "2023-07-08")
-plot_DO_preds(sfkeel_mir_2023, date_start = "2023-07-08", date_end = "2023-07-15")
-plot_DO_preds(sfkeel_mir_2023, date_start = "2023-07-15", date_end = "2023-07-22")
-plot_DO_preds(sfkeel_mir_2023, date_start = "2023-07-22", date_end = "2023-07-29")
-plot_DO_preds(sfkeel_mir_2023, date_start = "2023-07-29", date_end = "2023-08-05")
-plot_DO_preds(sfkeel_mir_2023, date_start = "2023-08-05", date_end = "2023-08-12")
-plot_DO_preds(sfkeel_mir_2023, date_start = "2023-08-12", date_end = "2023-08-19")
-plot_DO_preds(sfkeel_mir_2023, date_start = "2023-08-19", date_end = "2023-08-26")
-plot_DO_preds(sfkeel_mir_2023, date_start = "2023-08-26", date_end = "2023-09-03")
-plot_DO_preds(sfkeel_mir_2023, date_start = "2023-09-03", date_end = "2023-09-10")
-plot_DO_preds(sfkeel_mir_2023, date_start = "2023-09-10", date_end = "2023-09-17")
-plot_DO_preds(sfkeel_mir_2023, date_start = "2023-09-17", date_end = "2023-09-24")
-plot_DO_preds(sfkeel_mir_2023, date_start = "2023-09-24", date_end = "2023-09-30")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2022-06-28", date_end = "2022-07-05")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2022-07-05", date_end = "2022-07-12") # some disconnections but mostly good
+plot_DO_preds(sfkeel_mir_metab, date_start = "2022-07-12", date_end = "2022-07-19") # missing data from sensor weirdness week
+plot_DO_preds(sfkeel_mir_metab, date_start = "2022-07-19", date_end = "2022-07-30") # again missing data from sensor weirdness
+plot_DO_preds(sfkeel_mir_metab, date_start = "2022-07-30", date_end = "2022-08-06")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2022-08-06", date_end = "2022-08-13")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2022-08-13", date_end = "2022-08-20")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2022-08-20", date_end = "2022-08-27")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2022-08-27", date_end = "2022-09-04")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2022-09-04", date_end = "2022-09-11")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2022-09-11", date_end = "2022-09-18")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2023-06-18", date_end = "2023-06-25") # look good!
+plot_DO_preds(sfkeel_mir_metab, date_start = "2023-06-25", date_end = "2023-07-01")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2023-07-01", date_end = "2023-07-08")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2023-07-08", date_end = "2023-07-15")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2023-07-15", date_end = "2023-07-22")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2023-07-22", date_end = "2023-07-29")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2023-07-29", date_end = "2023-08-05") # gets worse again here
+plot_DO_preds(sfkeel_mir_metab, date_start = "2023-08-05", date_end = "2023-08-12")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2023-08-12", date_end = "2023-08-19")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2023-08-19", date_end = "2023-08-26")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2023-08-26", date_end = "2023-09-03")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2023-09-03", date_end = "2023-09-10")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2023-09-10", date_end = "2023-09-17")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2023-09-17", date_end = "2023-09-24")
+plot_DO_preds(sfkeel_mir_metab, date_start = "2023-09-24", date_end = "2023-09-30")
 
 # plot binning, ER vs. K600, correlation test for ER and K600, and K600
-plot_binning(sfkeel_mir_2023_fit, sfkeel_mir_2023, "South fork eel @ miranda 2023") # points all within bins
-plot_ER_K600(sfkeel_mir_2023_fit, "South fork eel @ miranda 2023")
-cor.test(sfkeel_mir_2023_fit$daily$ER_mean, sfkeel_mir_2023_fit$daily$K600_daily_mean) # not correlated -.119; p = 0.2372
-plot_K600(sfkeel_mir_2023_fit, "South fork eel @ miranda 2023")
+plot_binning(sfkeel_mir_fit, sfkeel_mir_metab, "South Fork Eel @ Miranda 2022-2023") # points all within bins
+plot_ER_K600(sfkeel_mir_fit, "South Fork Eel @ Miranda 2022-2023")
+cor.test(sfkeel_mir_fit$daily$ER_mean, sfkeel_mir_fit$daily$K600_daily_mean) # correlated 0.315; p << 0.004
+plot_K600(sfkeel_mir_fit, "South Fork Eel @ Miranda 2022-2023")
 
 # convergence assessment
-rstan::traceplot(get_mcmc(sfkeel_mir_2023), pars='GPP_daily', nrow=10) # looks good
-rstan::traceplot(get_mcmc(sfkeel_mir_2023), pars='ER_daily', nrow=10)
-rstan::traceplot(get_mcmc(sfkeel_mir_2023), pars='K600_daily', nrow=10) # looks good
+rstan::traceplot(get_mcmc(sfkeel_mir_metab), pars='GPP_daily', nrow=10) # great
+rstan::traceplot(get_mcmc(sfkeel_mir_metab), pars='ER_daily', nrow=10) # great
+rstan::traceplot(get_mcmc(sfkeel_mir_metab), pars='K600_daily', nrow=10) # looks good
+mean(na.omit(sfkeel_mir_fit$daily$GPP_Rhat)) # great
+mean(na.omit(sfkeel_mir_fit$daily$ER_daily_Rhat)) # great
+mean(na.omit(sfkeel_mir_fit$daily$K600_daily_Rhat)) # great
 
 # goodness of fit metrics
-calc_gof_metrics(sfkeel_mir_2023, "/sfkeel_mir_2023/", "sfkeel_mir_2023") # rmse 0.25, nrsme 0.048
+calc_gof_metrics(sfkeel_mir_metab, "/sfkeel_mir/", "sfkeel_mir") # rmse 0.273, nrsme 0.0421
 
 # remove large model object before starting next run
-rm(sfkeel_mir_2023, sfkeel_mir_2023_fit)
+rm(sfkeel_mir_metab, sfkeel_mir_fit)
 
-## south fork eel @ standish hickey 2023
+#### SOUTH FORK EEL RIVER @ STANDISH HICKEY ####
 
 # visualize inputs
-visualize_inputs_full(inputs_prepped$sfkeel_sth_2023)
-visualize_inputs_zoomed(inputs_prepped$sfkeel_sth_2023, "2023-09-10 00:00:00", "2023-09-12 00:00:00")
+visualize_inputs_full(inputs_prepped$sfkeel_sth)
+visualize_inputs_zoomed(inputs_prepped$sfkeel_sth, "2023-08-15 00:00:00", "2023-08-17 00:00:00")
 
-# model specs
-sfkeel_sth_2023_specs <- specs(bayesian_mm, burnin_steps = 5000, saved_steps = 5000,
-                               thin_steps = 1, GPP_daily_mu = 10, ER_daily_mu = -10)
+# set model specs
+test_mm <- mm_name(type = "bayes", pool_K600 = "normal", 
+        err_obs_iid = TRUE, err_proc_iid = TRUE,
+        ode_method = "trapezoid", deficit_src = 'DO_mod', 
+        engine = 'stan')
+specs_sfkeel_sth <- specs(bayesian_mm, burnin_steps = 1000, saved_steps = 1000)
 
-# changing range of log(Q) to better match site max 2.97, min is 1.49
-sfkeel_sth_2023_specs$K600_lnQ_nodes_centers <- c(-0.9, -0.6, -0.3, 0.0, 0.3, 0.6, 0.9)
-# guidelines from github: use 0.5 for centers 1 apart and 0.5 / 5 for centers 0.2 apart
-# so sd half of distance each center is apart
-sfkeel_sth_2023_specs$K600_lnQ_nodediffs_sdlog <- 0.3 / 2
+# change binning
+specs_sfkeel_sth <- set_Q_nodes(specs_sfkeel_sth, inputs_prepped$sfkeel_sth$discharge, 
+                                # making binning lower <- INSERT REASONING IF THIS WORKS!
+                                k600_priors[4,2], log_k600_sd = 0.5, min_bins = 2)
+plot_Q_bins(inputs_prepped$sfkeel_sth$discharge, specs_sfkeel_sth)
+# looks weird but that's because of time periods removed!
+specs_sfkeel_sth$K600_daily_meanlog_meanlog <- log(k600_priors[4,2])
+specs_sfkeel_sth$K600_daily_meanlog_sdlog <- 0.5
 
 # running model
-sfkeel_sth_2023 <- metab(sfkeel_sth_2023_specs, data = inputs_prepped$sfkeel_sth_2023)
+sfkeel_sth_metab <- metab(specs_sfkeel_sth, data = inputs_prepped$sfkeel_sth_2023) #%>% 
+                            #select(!discharge))
 
 # get fit and save files
-sfkeel_sth_2023_fit <- get_fit(sfkeel_sth_2023)
-write_files(sfkeel_sth_2023_fit, sfkeel_sth_2023, "/sfkeel_sth_2023/",
-            "sfkeel_sth_2023")
+sfkeel_sth_fit <- get_fit(sfkeel_sth_metab)
+write_files(sfkeel_sth_fit, sfkeel_sth_metab, "/sfkeel_sth/",
+            "sfkeel_sth")
 
 # plot metab estimates (note: these are w/o correct depths and will change)
-plot_metab_preds(sfkeel_sth_2023) # seems so much higher without depth applied!-- need to figure out why there is only one day for early july..
+plot_metab_preds(sfkeel_sth_metab) # seems so much higher without depth applied!-- need to figure out why there is only one day for early july..
 
 # plot GPP estimates w/ sensor cleaning dates --
 # increases in july after cleaning but want to keep at least two days after cleaning
 # all other biofouling that would have been obvious was removed
-ggplot(sfkeel_sth_2023_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
+ggplot(sfkeel_sth_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor cleaning dates
   geom_point(color = "darkgreen", size = 3) +
   geom_line(color = "darkgreen") +
   geom_vline(xintercept = as_date(c("2023-07-03")), 
@@ -815,33 +767,36 @@ ggplot(sfkeel_sth_2023_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sen
   theme_bw()
 
 # look at DO predictions vs. data on a 7-day interval to look closely
-plot_DO_preds(sfkeel_sth_2023, date_start = "2023-06-24", date_end = "2023-07-01") # look fine
-plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-01", date_end = "2023-07-08")
-plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-08", date_end = "2023-07-15")
-plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-23", date_end = "2023-07-30") # skipping time because forgot to turn sensor on; looks good!
-plot_DO_preds(sfkeel_sth_2023, date_start = "2023-07-30", date_end = "2023-08-06")
-plot_DO_preds(sfkeel_sth_2023, date_start = "2023-08-06", date_end = "2023-08-13")
-plot_DO_preds(sfkeel_sth_2023, date_start = "2023-08-13", date_end = "2023-08-20")
-plot_DO_preds(sfkeel_sth_2023, date_start = "2023-08-20", date_end = "2023-08-27")
-plot_DO_preds(sfkeel_sth_2023, date_start = "2023-08-27", date_end = "2023-09-03")
-plot_DO_preds(sfkeel_sth_2023, date_start = "2023-09-03", date_end = "2023-09-10")
-plot_DO_preds(sfkeel_sth_2023, date_start = "2023-09-10", date_end = "2023-09-17")
-plot_DO_preds(sfkeel_sth_2023, date_start = "2023-09-17", date_end = "2023-09-24")
-plot_DO_preds(sfkeel_sth_2023, date_start = "2023-09-24", date_end = "2023-09-30")
+plot_DO_preds(sfkeel_sth_metab, date_start = "2023-06-24", date_end = "2023-07-01") # looks way better without pooling
+plot_DO_preds(sfkeel_sth_metab, date_start = "2023-07-01", date_end = "2023-07-08")
+plot_DO_preds(sfkeel_sth_metab, date_start = "2023-07-08", date_end = "2023-07-15")
+plot_DO_preds(sfkeel_sth_metab, date_start = "2023-07-23", date_end = "2023-07-30") # skipping time because forgot to turn sensor on; looks good!
+plot_DO_preds(sfkeel_sth_metab, date_start = "2023-07-30", date_end = "2023-08-06")
+plot_DO_preds(sfkeel_sth_metab, date_start = "2023-08-06", date_end = "2023-08-13")
+plot_DO_preds(sfkeel_sth_metab, date_start = "2023-08-13", date_end = "2023-08-20")
+plot_DO_preds(sfkeel_sth_metab, date_start = "2023-08-20", date_end = "2023-08-27")
+plot_DO_preds(sfkeel_sth_metab, date_start = "2023-08-27", date_end = "2023-09-03")
+plot_DO_preds(sfkeel_sth_metab, date_start = "2023-09-03", date_end = "2023-09-10")
+plot_DO_preds(sfkeel_sth_metab, date_start = "2023-09-10", date_end = "2023-09-17")
+plot_DO_preds(sfkeel_sth_metab, date_start = "2023-09-17", date_end = "2023-09-24")
+plot_DO_preds(sfkeel_sth_metab, date_start = "2023-09-24", date_end = "2023-09-30")
 
 # plot binning, ER vs. K600, correlation test for ER and K600, and K600
-plot_binning(sfkeel_sth_2023_fit, sfkeel_sth_2023, "South fork eel @ standish hickey 2023") # points all within bins
-plot_ER_K600(sfkeel_sth_2023_fit, "South fork eel @ standish hickey 2023")
-cor.test(sfkeel_sth_2023_fit$daily$ER_mean, sfkeel_sth_2023_fit$daily$K600_daily_mean) # not correlated .139; p = 0.2469
-plot_K600(sfkeel_sth_2023_fit, "South fork eel @ standish hickey 2023")
+plot_binning(sfkeel_sth_fit, sfkeel_sth_metab, "South fork eel @ standish hickey 2023") # points all within bins
+plot_ER_K600(sfkeel_sth_fit, "South fork eel @ standish hickey 2023")
+cor.test(sfkeel_sth_fit$daily$ER_mean, sfkeel_sth_fit$daily$K600_daily_mean) # not correlated .138; p = 0.2506
+plot_K600(sfkeel_sth_fit, "South fork eel @ standish hickey 2023")
 
 # convergence assessment
-rstan::traceplot(get_mcmc(sfkeel_sth_2023), pars='GPP_daily', nrow=10) # looks decent
-rstan::traceplot(get_mcmc(sfkeel_sth_2023), pars='ER_daily', nrow=10)
-rstan::traceplot(get_mcmc(sfkeel_sth_2023), pars='K600_daily', nrow=10) # not horrible
+rstan::traceplot(get_mcmc(sfkeel_sth_metab), pars='GPP_daily', nrow=10) # good
+rstan::traceplot(get_mcmc(sfkeel_sth_metab), pars='ER_daily', nrow=10)
+rstan::traceplot(get_mcmc(sfkeel_sth_metab), pars='K600_daily', nrow=10) # goo
+mean(na.omit(sfkeel_sth_fit$daily$GPP_Rhat)) # great
+mean(na.omit(sfkeel_sth_fit$daily$ER_daily_Rhat)) # great
+mean(na.omit(sfkeel_sth_fit$daily$K600_daily_Rhat)) # great
 
 # goodness of fit metrics
-calc_gof_metrics(sfkeel_sth_2023, "/sfkeel_sth_2023/", "sfkeel_sth_2023") # rmse 0.20, nrsme 0.032
+calc_gof_metrics(sfkeel_sth_metab, "/sfkeel_sth/", "sfkeel_sth") # rmse 0.202, nrsme 0.0324
 
 # remove large model object though this is the last run :)
-rm(sfkeel_sth_2023, sfkeel_sth_2023_fit)
+rm(sfkeel_sth_metab, sfkeel_sth_fit)
