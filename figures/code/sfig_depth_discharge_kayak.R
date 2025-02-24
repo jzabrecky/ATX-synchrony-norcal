@@ -8,7 +8,7 @@
 #### (1) Loading libraries and data ####
 
 # use work from script that builds depth discharge relationships
-source("code/1g_processing_metabolism_outputs.R")
+source("code/1f_processing_metabolism_outputs.R")
 
 # adding site_name column for discharge
 site_names <- c("russian", "salmon", "sfkeel_mir", "sfkeel_sth")
@@ -18,15 +18,15 @@ for(i in 1:length(USGS_daily_discharge)) {
 
 # filtering out dates for discharge
 USGS_daily_discharge$sfkeel_mir <- USGS_daily_discharge$sfkeel_mir %>% 
-  filter(date >= "2023-06-15" & date <= "2023-09-27")
+  dplyr::filter(date >= "2023-06-15" & date <= "2023-09-27")
 USGS_daily_discharge$sfkeel_sth <- USGS_daily_discharge$sfkeel_sth %>% 
-  filter(date >= "2023-06-15" & date <= "2023-09-27")
+  dplyr::filter(date >= "2023-06-15" & date <= "2023-09-27")
 USGS_daily_discharge$russian <- USGS_daily_discharge$russian %>% 
-  filter(discharge_m3_s < 6) %>% # have a kayak measurement at discharge higher
-  filter(date >= "2023-01-01") # than the given dates
+  dplyr::filter(discharge_m3_s < 6) %>% # have a kayak measurement at discharge higher
+  dplyr::filter(date >= "2023-01-01") # than the given dates
 # may debate leaving at range of sampling discharge
 USGS_daily_discharge$salmon <- USGS_daily_discharge$salmon %>% 
-  filter(date >= "2023-06-15" & date <= "2023-09-27")
+  dplyr::filter(date >= "2023-06-15" & date <= "2023-09-27")
 
 # combining discharge to one data frame to use facet wrap in ggplot
 discharge_all <- rbind(USGS_daily_discharge$russian, USGS_daily_discharge$salmon,
@@ -55,7 +55,7 @@ figure <- ggplot() +
                                       `salmon`= "Salmon River (SAL)",
                                       `sfkeel_mir` = "South Fork Eel River at Miranda (SFE-M)",
                                       `sfkeel_sth` = "South Fork Eel River at Standish Hickey (SFE-SH)"))) +
-  scale_fill_manual(values = c("#bdb000", "blue", "#416f16", "#a8ff82")) +
+  scale_fill_manual(values = c("#bdb000", "#2871c7", "#416f16", "#a8ff82")) +
   #scale_color_manual(values = c("#7d7400", "darkblue", "#32590d", "#71d446")) +
   scale_shape_manual(values = c(24, 21, 22, 23)) +
   labs(x = expression("Discharge (m"^3~"s"^-1*")"), y = "Depth (m)") +
