@@ -1,9 +1,9 @@
 #### processing metabolism outputs
 ### Jordan Zabrecky
-## last edited 01.03.2024
+## last edited 02.24.2024
 
 # This code processes metabolism outputs from the "streamMetabolizer" package
-# from script "1g_processing_metabolism_outputs.csv" and saves a csv
+# from script "1e_processing_metabolism_outputs.csv" and saves a csv
 
 #### (1) Loading packages and reading in data #### 
 
@@ -23,7 +23,7 @@ read_metab_data <- function(path, pattern) {
   for(i in 1:length(folders)) {
     temp <- ldply(list.files(paste(path, folders[i], sep = ""), pattern = pattern), function(filename) {
       d <- read.csv(paste(path, folders[i], "/", filename, sep = ""), header = TRUE) 
-      d$site_year <- folders[i] # add name of site and year
+      d$site <- folders[i] # add name of site
       return(d)
     })
     final <- rbind(final, temp)
@@ -39,7 +39,7 @@ daily_metab <- read_metab_data(path = "./data/metab_model_outputs/", pattern = "
 daily_metab$date <- ymd(daily_metab$date)
 
 # split into a list based on site_year
-daily_metab_list <- split(daily_metab, daily_metab$site_year)
+daily_metab_list <- split(daily_metab, daily_metab$site)
 
 # read in metrics data
 metrics <- read_metab_data(path = "./data/metab_model_outputs/", pattern = "metrics.csv")
@@ -250,24 +250,18 @@ Q_depth_final_plot(USGS_daily_discharge$sfkeel_sth, kayak_standish, c(0,3), c(0,
 
 # joining daily discharge with metabolism data
 # (doing it by individual because there is a lot of site matching regardless)
-daily_metab_list$russian_2022 <- left_join(daily_metab_list$russian_2022, 
+daily_metab_list$russian <- left_join(daily_metab_list$russian, 
+                                      USGS_daily_discharge$russian, by = "date")
+daily_metab_list$russian_USGS <- left_join(daily_metab_list$russian_USGS, 
                                            USGS_daily_discharge$russian, by = "date")
-daily_metab_list$russian_2022_USGS <- left_join(daily_metab_list$russian_2022_USGS, 
-                                                USGS_daily_discharge$russian, by = "date")
-daily_metab_list$salmon_2022 <- left_join(daily_metab_list$salmon_2022,
-                                          USGS_daily_discharge$salmon, by = "date")
-daily_metab_list$salmon_2023 <- left_join(daily_metab_list$salmon_2023,
-                                          USGS_daily_discharge$salmon, by = "date")
-daily_metab_list$salmon_2022_karuk <- left_join(daily_metab_list$salmon_2022_karuk,
+daily_metab_list$salmon <- left_join(daily_metab_list$salmon,
+                                     USGS_daily_discharge$salmon, by = "date")
+daily_metab_list$salmon_karuk <- left_join(daily_metab_list$salmon_karuk,
                                                 USGS_daily_discharge$salmon, by = "date")
-daily_metab_list$salmon_2023_karuk <- left_join(daily_metab_list$salmon_2023_karuk,
-                                                USGS_daily_discharge$salmon, by = "date")
-daily_metab_list$sfkeel_mir_2022 <- left_join(daily_metab_list$sfkeel_mir_2022,
-                                              USGS_daily_discharge$sfkeel_mir, by = "date")
-daily_metab_list$sfkeel_mir_2023 <- left_join(daily_metab_list$sfkeel_mir_2023,
-                                              USGS_daily_discharge$sfkeel_mir, by = "date")
-daily_metab_list$sfkeel_sth_2023 <- left_join(daily_metab_list$sfkeel_sth_2023,
-                                              USGS_daily_discharge$sfkeel_sth, by = "date")
+daily_metab_list$sfkeel_mir <- left_join(daily_metab_list$sfkeel_mir,
+                                         USGS_daily_discharge$sfkeel_mir, by = "date")
+daily_metab_list$sfkeel_sth <- left_join(daily_metab_list$sfkeel_sth,
+                                         USGS_daily_discharge$sfkeel_sth, by = "date")
 
 # note for applying depths after running metabolism model
 # thus, as we are not dividing GPP by anything, our GPP will be in units g O2 m^-3 d^-1
@@ -276,24 +270,40 @@ daily_metab_list$sfkeel_sth_2023 <- left_join(daily_metab_list$sfkeel_sth_2023,
 # function to finish processing metabolism dataframes
 metab_processing <- function(df) {
   new_df <- df %>%
+    # multiply GPP and ER by depth
     dplyr::mutate(GPP.mean = GPP_mean * depth_m,
            GPP.2.5.pct = GPP_2.5pct * depth_m,
            GPP.97.5.pct = GPP_97.5pct * depth_m,
            ER.mean = ER_mean * depth_m,
            ER.2.5.pct = ER_2.5pct * depth_m,
            ER.97.5.pct = ER_97.5pct * depth_m) %>% 
+    # filter out unrealistic GPP and ER values
     dplyr::filter(GPP.mean > 0 & ER.mean < 0) %>%
+    # calculate NEP
     dplyr::mutate(NEP.mean = GPP.mean + ER.mean,
            NEP.2.5.pct = GPP.2.5.pct + ER.2.5.pct,
            NEP.97.5.pct = GPP.97.5.pct + ER.97.5.pct) %>% 
+    # add site_year tag
+    dplyr::mutate(year = year(date),
+                  site_year = paste(site, "_", year, sep = "")) %>% 
+    # select only columns we care about
     dplyr::select(site_year, date, GPP.mean, GPP.2.5.pct, GPP.97.5.pct, GPP_Rhat,
                   ER.mean, ER.2.5.pct, ER.97.5.pct, ER_Rhat, NEP.mean, NEP.2.5.pct, 
                   NEP.97.5.pct, K600_daily_mean, K600_daily_Rhat, discharge_m3_s) %>% 
-    dplyr::filter(GPP_Rhat < 1.1) # remove values with bad r-hats (only care about GPP)
   return(new_df)
 }
+
+# function to double-check that r-hats are below 1.05 for all estimated parameters
+# (just checking max value rather than any)
+check_rhat <- function(df) {
+  GPP_any <- any(df$GPP_Rhat > 1.05, na.rm = TRUE)
+  ER_any <- any(df$ER_Rhat > 1.05, na.rm = TRUE)
+  K600_any <- any(df$K600 > 1.05, na.rm = TRUE)
+  print(c(GPP_any, ER_any, K600_any))
+}
     
-# apply function to list of metabolism outputs
+# apply functions to list of metabolism outputs
+lapply(daily_metab_list, function(x) check_rhat(x)) # no r-hats above 1.05!
 daily_metab_final <- lapply(daily_metab_list, function(x) metab_processing(x))
 
 # plot original versus processed GPP
@@ -312,11 +322,18 @@ for(i in 1:length(daily_metab_list)) {
   print(plot_GPP(daily_metab_list[[i]], daily_metab_final[[i]]))
 }
 
-# thoughts 12/23/2024:
-# like everything but the salmon data lol
+# join dataframes in list together to re-separate out by site_year
+all_metab_final <- data.frame()
+for(i in 1:length(daily_metab_list)) {
+  all_metab_final <- rbind(all_metab_final, daily_metab_final[[i]])
+}
+daily_metab_final_site_year <- split(all_metab_final, all_metab_final$site_year)
 
 # save processed metabolism estimates as csv's
-lapply(names(daily_metab_final), function(x) write.csv(daily_metab_final[[x]], 
-                                                       file = paste("./data/metab_model_outputs_processed/", 
-                                                                    x, "_metab", ".csv", sep = ""), 
-                                                       row.names = FALSE))
+lapply(names(daily_metab_final_site_year), function(x) write.csv(daily_metab_final_site_year[[x]], 
+                                                                 file = paste("./data/metab_model_outputs_processed/", 
+                                                                              x, "_metab", ".csv", sep = ""), 
+                                                                 row.names = FALSE))
+
+# save metrics
+write.csv(metrics, "./data/metab_model_outputs_processed/metrics.csv", row.names = FALSE)

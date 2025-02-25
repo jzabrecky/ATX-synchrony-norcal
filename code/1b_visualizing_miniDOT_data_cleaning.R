@@ -1,7 +1,6 @@
 #### data visualization for miniDOT data cleaning
 ### Jordan Zabrecky
-## last edited: 01.31.2024
-## (note that dygraphs does not seem to display graph with 4.4.0 version of R)
+## last edited: 02.18.2025
 
 # This supporting code helped visualize the data cleaning process with
 # the code from "1a_reading_and_cleaning_DO_data.R" using the 'dygraphs' package
@@ -65,7 +64,6 @@ view_temp_2023 <- function(x) {
   
 }
 
-
 #### (2) Visualizations (dygraphs) ####
 
 # DO cleaning
@@ -93,5 +91,5 @@ view_DO_2022(USGS_russian) # removed one day; fuzzy in early summer
 view_temp_2022(USGS_russian) # looks great!
 view_DO_2022(karuk_salmon) # removed one day with double-peak, looks good
 view_temp_2022(karuk_salmon) # looks great!
-view_DO_2023(karuk_salmon) # looks great!
+view_DO_2023(karuk_salmon) # removed some days but looks better
 view_temp_2023(karuk_salmon) # looks great!

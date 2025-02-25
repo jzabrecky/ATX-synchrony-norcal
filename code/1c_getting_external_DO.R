@@ -1,6 +1,6 @@
 #### gathering DO from external sources to compare to our miniDOT values
 ### Jordan Zabrecky
-## last edited 02.04.2024
+## last edited 02.18.2025
 
 # This code gathers dissolved oxygen data from the USGS gage at Cloverdale
 # and data from the Karuk Tribe (with permission) to use to model metabolism 
@@ -40,9 +40,9 @@ source("./code/supplemental_code/S1a_split_interpolate_data.R")
 
 # interpolating DO data frames for 15-minutes
 USGS_russian <- create_filled_TS(USGS_DO_russian, "15M", "X_00300_00000") %>% 
-  rename(DO_mg_L = Filled_Var)
+  dplyr::rename(DO_mg_L = Filled_Var)
 karuk_salmon <- create_filled_TS(karuk_DO_salmon, "15M", "Value..mg.l.") %>% 
-  rename(DO_mg_L = Filled_Var)
+  dplyr::rename(DO_mg_L = Filled_Var)
 
 # left join in temperature data
 USGS_russian <- left_join(USGS_russian, USGS_temp_russian, by = "date_time") %>% 
@@ -67,15 +67,33 @@ USGS_russian <- USGS_russian %>%
   dplyr::filter(date_time <= "2022-07-05 05:50:00" | date_time >= "2022-07-06 04:40:00") %>% 
   dplyr::filter(date_time <= "2022-08-30 10:50:00" | date_time >= "2022-08-31 09:40:00")
 
+# removing small double DO peaks & blimps in 2023
+karuk_salmon$DO_mg_L[which(karuk_salmon$date_time == ymd_hms("2023-06-25 04:15:00", tz = "America/Los_Angeles")):
+                       which(karuk_salmon$date_time == ymd_hms("2023-06-25 06:00:00", tz = "America/Los_Angeles"))] <- NA
+karuk_salmon$DO_mg_L[which(karuk_salmon$date_time == ymd_hms("2023-07-30 15:30:00", tz = "America/Los_Angeles")):
+                       which(karuk_salmon$date_time == ymd_hms("2023-07-30 15:45:00", tz = "America/Los_Angeles"))] <- NA
+karuk_salmon$DO_mg_L <- na.approx(karuk_salmon$DO_mg_L)
+
 # remove weird midday drop on 7/5/2022 in Salmon River (does not make sense and model does not like it)
 # attempting to linearly interpolate it does not seem worth it, so just not modeling GPP for that day
 karuk_salmon <- karuk_salmon %>% 
-  dplyr::filter(date_time <= "2022-07-05 15:45:00" | date_time >= "2022-07-05 19:55:00")
+  dplyr::filter(date_time <= "2022-07-05 08:45:00" | date_time >= "2022-07-05 19:55:00")
 
 # remove temperature anomaly from 2022 and interpolate
 karuk_salmon$Temp_C[which(karuk_salmon$date_time == ymd_hms("2022-06-28 15:30:00", tz = "America/Los_Angeles")):
                       which(karuk_salmon$date_time == ymd_hms("2022-06-28 15:45:00", tz = "America/Los_Angeles"))] <- NA
 karuk_salmon$Temp_C <- na.approx(karuk_salmon$Temp_C)
+
+# removing a couple of weird looking days with double peaks that cannot be interpolated
+karuk_salmon <- karuk_salmon %>% 
+  dplyr::filter(date_time <= "2023-08-27 10:30:00" | date_time >= "2023-08-27 18:30:00") %>% 
+  dplyr::filter(date_time <= "2023-09-01 09:15:00" | date_time >= "2023-09-01 20:00:00") %>% 
+  dplyr::filter(date_time <= "2023-09-03 10:30:00" | date_time >= "2023-09-03 17:00:00")
+
+# just getting rid of days after 9-24-2023 because they look weird and also 8-7-2023
+karuk_salmon <- karuk_salmon %>% 
+  dplyr::filter(date_time <= "2023-09-24 09:00:00") %>% 
+  dplyr::filter(date_time <= "2023-08-17 08:00:00" | date_time >= "2023-08-17 20:00:00")
 
 #### (4) Saving external data ####
 

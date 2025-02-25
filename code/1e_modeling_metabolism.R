@@ -1,6 +1,6 @@
 #### modeling metabolism and functions to assess model outputs
 ### Jordan Zabrecky
-## last edited 02.18.2025
+## last edited 02.24.2025
 
 # This code models metabolism using the "streamMetabolizer" package and also
 # provides functions for visualizing inputs & outputs, and saving outputs
@@ -246,12 +246,12 @@ visualize_inputs_full(inputs_prepped$russian_2022)
 visualize_inputs_zoomed(inputs_prepped$russian_2022, "2022-07-01 00:00:00", "2022-07-03 00:00:00")
 
 # set model specs
-specs_russian <- specs(bayesian_mm, burnin_steps = 1000, saved_steps = 1000)
+specs_russian <- specs(bayesian_mm, burnin_steps = 2000, saved_steps = 1000)
 
 # change binning (using USGS data since it has longer range)
 specs_russian <- set_Q_nodes(specs_russian, inputs_prepped$russian_2022_USGS$discharge, 
                              # using default sd; doesn't change k600 & best convergence
-                             k600_priors[1,2], log_k600_sd = 0.5, min_bins = 6)
+                             k600_priors[1,2], log_k600_sd = 0.5, min_bins = 3)
 plot_Q_bins(inputs_prepped$russian_2022_USGS$discharge, specs_russian)
 
 # running model
@@ -295,16 +295,16 @@ plot_DO_preds(russian_metab, date_start = "2022-08-26", date_end = "2022-09-03")
 # plot binning, ER vs. K600, correlation test for ER and K600, and K600
 plot_binning(russian_fit, russian_metab, "Russian 2022")
 plot_ER_K600(russian_fit, "Russian 2022")
-cor.test(russian_fit$daily$ER_mean, russian_fit$daily$K600_daily_mean) # correlated -.550; p << 0.001
+cor.test(russian_fit$daily$ER_mean, russian_fit$daily$K600_daily_mean) # correlated -.596; p << 0.008
 plot_K600(russian_fit, "Russian 2022")
 
 # convergence assessments
 rstan::traceplot(get_mcmc(russian_metab), pars='GPP_daily', nrow=10) # good
 rstan::traceplot(get_mcmc(russian_metab), pars='ER_daily', nrow=10) # good
-rstan::traceplot(get_mcmc(russian_metab), pars='K600_daily', nrow=10) # decent
-mean(na.omit(russian_fit$daily$GPP_Rhat))
-mean(na.omit(russian_fit$daily$ER_daily_Rhat))
-mean(na.omit(russian_fit$daily$K600_daily_Rhat))
+rstan::traceplot(get_mcmc(russian_metab), pars='K600_daily', nrow=10) # good
+mean(na.omit(russian_fit$daily$GPP_Rhat)) # good
+mean(na.omit(russian_fit$daily$ER_daily_Rhat)) # good
+mean(na.omit(russian_fit$daily$K600_daily_Rhat)) # good
 
 # goodness of fit metrics
 calc_gof_metrics(russian_metab, "/russian/", "russian") # RMSE 0.319, nRMSE 0.0737
@@ -314,8 +314,17 @@ rm(russian_metab, russian_fit)
 
 #### RUSSIAN RIVER- USGS data ####
 
+# set model specs- USGS data is needing more chains perhaps because of 15-m interval?
+specs_russian_USGS <- specs(bayesian_mm, burnin_steps = 4000, saved_steps = 2000)
+
+# change binning
+specs_russian_USGS <- set_Q_nodes(specs_russian_USGS, inputs_prepped$russian_2022_USGS$discharge, 
+                                  # using default sd; doesn't change k600 & best convergence
+                                  k600_priors[1,2], log_k600_sd = 0.5, min_bins = 3)
+plot_Q_bins(inputs_prepped$russian_2022_USGS$discharge, specs_russian_USGS)
+
 # running model (using specs set above)
-russian_USGS_metab <- metab(specs_russian, data = inputs_prepped$russian_2022_USGS)
+russian_USGS_metab <- metab(specs_russian_USGS, data = inputs_prepped$russian_2022_USGS)
 
 # get fit and save files
 russian_USGS_fit <- get_fit(russian_USGS_metab)
@@ -353,19 +362,19 @@ plot_DO_preds(russian_USGS_metab, date_start = "2022-08-26", date_end = "2022-09
 # plot binning, ER vs. K600, correlation test for ER and K600, and K600
 plot_binning(russian_USGS_fit, russian_USGS_metab, "Russian USGS 2022")
 plot_ER_K600(russian_USGS_fit, "Russian USGS 2022")
-cor.test(russian_USGS_fit$daily$ER_mean, russian_USGS_fit$daily$K600_daily_mean) # -0.040; not correlated p > 0.7
+cor.test(russian_USGS_fit$daily$ER_mean, russian_USGS_fit$daily$K600_daily_mean) # -0.057; not correlated p > 0.5768
 plot_K600(russian_USGS_fit, "Russian USGS 2022")
 
 # convergence assessments
 rstan::traceplot(get_mcmc(russian_USGS_metab), pars='GPP_daily', nrow=10) # great
 rstan::traceplot(get_mcmc(russian_USGS_metab), pars='ER_daily', nrow=10) # great
-rstan::traceplot(get_mcmc(russian_USGS_metab), pars='K600_daily', nrow=10) # great
-mean(na.omit(russian_USGS_fit$daily$GPP_Rhat)) # great
-mean(na.omit(russian_USGS_fit$daily$ER_daily_Rhat)) # great
-mean(na.omit(russian_USGS_fit$daily$K600_daily_Rhat)) # great
+rstan::traceplot(get_mcmc(russian_USGS_metab), pars='K600_daily', nrow=10) # decent
+mean(na.omit(russian_USGS_fit$daily$GPP_Rhat)) # good
+mean(na.omit(russian_USGS_fit$daily$ER_daily_Rhat)) # good
+mean(na.omit(russian_USGS_fit$daily$K600_daily_Rhat)) # good
 
 # goodness of fit metrics
-calc_gof_metrics(russian_USGS_metab, "/russian_USGS/", "russian_USGS") # RMSE 0.345, nRMSE 0.0514
+calc_gof_metrics(russian_USGS_metab, "/russian_USGS/", "russian_USGS") # RMSE 0.344, nRMSE 0.0514
 
 # remove large model object before starting next run
 rm(russian_USGS_metab, russian_USGS_fit)
@@ -383,12 +392,12 @@ visualize_inputs_zoomed(inputs_prepped$salmon, "2022-07-01 00:00:00", "2022-07-0
 visualize_inputs_zoomed(inputs_prepped$salmon, "2023-07-01 00:00:00", "2023-07-03 00:00:00")
 
 # set model specs
-specs_salmon <- specs(bayesian_mm, burnin_steps = 1000, saved_steps = 1000)
+specs_salmon <- specs(bayesian_mm, burnin_steps = 2000, saved_steps = 1000)
 
 # change binning
-specs_salmon <- set_Q_nodes(specs_salmon, inputs_prepped$salmon_karuk$discharge, 
+specs_salmon <- set_Q_nodes(specs_salmon, inputs_prepped$salmon$discharge, 
                             # using default sd; doesn't change k600 & best convergence
-                            k600_priors[2,2], log_k600_sd = 0.5, min_bins = 3)
+                            k600_priors[2,2], log_k600_sd = 0.5, min_bins = 4)
 plot_Q_bins(inputs_prepped$salmon$discharge, specs_salmon)
 
 # running model
@@ -455,7 +464,7 @@ plot_DO_preds(salmon_metab, date_start = "2023-09-20", date_end = "2023-09-28")
 # plot binning, ER vs. K600, correlation test for ER and K600, and K600
 plot_binning(salmon_fit, salmon_metab, "Salmon 2022-2023")
 plot_ER_K600(salmon_fit, "Salmon 2022-2023")
-cor.test(salmon_fit$daily$ER_mean, salmon_fit$daily$K600_daily_mean) # 0.311; correlated p << 0.006
+cor.test(salmon_fit$daily$ER_mean, salmon_fit$daily$K600_daily_mean) # 0.259; correlated p << 0.009
 plot_K600(salmon_fit, "Salmon 2022-2023")
 
 # convergence assessments
@@ -464,10 +473,10 @@ rstan::traceplot(get_mcmc(salmon_metab), pars='ER_daily', nrow=10) # great
 rstan::traceplot(get_mcmc(salmon_metab), pars='K600_daily', nrow=10) # great
 mean(na.omit(salmon_fit$daily$GPP_Rhat)) # great
 mean(na.omit(salmon_fit$daily$ER_daily_Rhat)) # great
-mean(na.omit(salmon_fit$daily$K600_daily_Rhat)) # good
+mean(na.omit(salmon_fit$daily$K600_daily_Rhat)) # great
 
 # goodness of fit metrics
-calc_gof_metrics(salmon_metab, "/salmon/", "salmon") # RMSE 0.349, nRMSE 0.0355
+calc_gof_metrics(salmon_metab, "/salmon/", "salmon") # RMSE 0.350, nRMSE 0.0357
 
 # remove large model object before starting next run
 rm(salmon_metab, salmon_fit)
@@ -475,21 +484,29 @@ rm(salmon_metab, salmon_fit)
 #### SALMON RIVER- Karuk data ####
 
 # model years together
-inputs_prepped$salmon_karuk <- rbind(inputs_prepped$salmon_2022_karuk, 
-                                     inputs_prepped$salmon_2023_karuk)
+inputs_prepped$salmon_karuk <- rbind(inputs_prepped$salmon_2022_karuk, inputs_prepped$salmon_2023_karuk)
 
 # visualize inputs
 visualize_inputs_full(inputs_prepped$salmon_karuk)
 visualize_inputs_full(inputs_prepped$salmon_2022_karuk)
 visualize_inputs_full(inputs_prepped$salmon_2023_karuk)
 visualize_inputs_zoomed(inputs_prepped$salmon_karuk, "2022-07-01 00:00:00", "2022-07-03 00:00:00")
-visualize_inputs_zoomed(inputs_prepped$salmon_karuk, "2023-07-01 00:00:00", "2023-07-03 00:00:00")
+visualize_inputs_zoomed(inputs_prepped$salmon_karuk, "2023-08-16 00:00:00", "2023-08-18 00:00:00")
 
-# look at binning
-plot_Q_bins(inputs_prepped$salmon_karuk$discharge, specs_salmon)
+
+# set model specs (need more with this data to converge)
+specs_salmon_karuk <- specs(bayesian_mm, burnin_steps = 6000, saved_steps = 3000, 
+                            # large amount of chains so doing some thinning
+                            thin_steps = 20)
+
+# change binning
+specs_salmon_karuk <- set_Q_nodes(specs_salmon, inputs_prepped$salmon_karuk$discharge, 
+                                  # using default sd; doesn't change k600 & best convergence
+                                  k600_priors[2,2], log_k600_sd = 0.5, min_bins = 4)
+plot_Q_bins(inputs_prepped$salmon_karuk$discharge, specs_salmon_karuk)
 
 # running model
-salmon_karuk_metab <- metab(specs_salmon, data = inputs_prepped$salmon_2023_karuk)
+salmon_karuk_metab <- metab(specs_salmon_karuk, data = inputs_prepped$salmon_karuk)
 
 # get fit and save files
 salmon_karuk_fit <- get_fit(salmon_karuk_metab)
@@ -552,19 +569,19 @@ plot_DO_preds(salmon_karuk_metab, date_start = "2023-09-20", date_end = "2023-09
 # plot binning, ER vs. K600, correlation test for ER and K600, and K600
 plot_binning(salmon_karuk_fit, salmon_karuk_metab, "Salmon (Karuk Data) 2022-2023")
 plot_ER_K600(salmon_karuk_fit,  "Salmon (Karuk Data) 2022-2023")
-cor.test(salmon_karuk_fit$daily$ER_mean, salmon_karuk_fit$daily$K600_daily_mean) # -0.608; correlated p << 0.002
+cor.test(salmon_karuk_fit$daily$ER_mean, salmon_karuk_fit$daily$K600_daily_mean) # -0.589; correlated p << 0.002
 plot_K600(salmon_karuk_fit,  "Salmon (Karuk Data) 2022-2023")
 
 # convergence assessments
 rstan::traceplot(get_mcmc(salmon_karuk_metab), pars='GPP_daily', nrow=10) # decent
-rstan::traceplot(get_mcmc(salmon_karuk_metab), pars='ER_daily', nrow=10) # great
-rstan::traceplot(get_mcmc(salmon_karuk_metab), pars='K600_daily', nrow=10) # great
+rstan::traceplot(get_mcmc(salmon_karuk_metab), pars='ER_daily', nrow=10) # decent
+rstan::traceplot(get_mcmc(salmon_karuk_metab), pars='K600_daily', nrow=10) # decent
 mean(na.omit(salmon_karuk_fit$daily$GPP_Rhat)) # decent
 mean(na.omit(salmon_karuk_fit$daily$ER_daily_Rhat)) # decent
 mean(na.omit(salmon_karuk_fit$daily$K600_daily_Rhat)) # decent
 
 # goodness of fit metrics
-calc_gof_metrics(salmon_karuk_metab, "/salmon_karuk/", "salmon_karuk") # RMSE 0.349, nRMSE 0.0355
+calc_gof_metrics(salmon_karuk_metab, "/salmon_karuk/", "salmon_karuk") # RMSE 0.384, nRMSE 0.0132
 
 # remove large model object before starting next run
 rm(salmon_karuk_metab, salmon_karuk_fit)
@@ -583,11 +600,11 @@ visualize_inputs_zoomed(inputs_prepped$sfkeel_mir_2022, "2022-08-01 00:00:00", "
 visualize_inputs_zoomed(inputs_prepped$sfkeel_mir_2023, "2023-08-15 00:00:00", "2023-08-17 00:00:00")
 
 # set model specs
-specs_sfkeel_mir <- specs(bayesian_mm, burnin_steps = 1000, saved_steps = 1000)
+specs_sfkeel_mir <- specs(bayesian_mm, burnin_steps = 2000, saved_steps = 1000)
 
 # change binning
 specs_sfkeel_mir <- set_Q_nodes(specs_sfkeel_mir, inputs_prepped$sfkeel_mir$discharge, 
-                                k600_priors[3,2], log_k600_sd = 0.5, min_bins = 6)
+                                k600_priors[3,2], log_k600_sd = 0.5, min_bins = 4)
 plot_Q_bins(inputs_prepped$sfkeel_mir$discharge, specs_sfkeel_mir)
 
 # running model
@@ -681,7 +698,7 @@ plot_DO_preds(sfkeel_mir_metab, date_start = "2023-09-24", date_end = "2023-09-3
 # plot binning, ER vs. K600, correlation test for ER and K600, and K600
 plot_binning(sfkeel_mir_fit, sfkeel_mir_metab, "South Fork Eel @ Miranda 2022-2023") # points all within bins
 plot_ER_K600(sfkeel_mir_fit, "South Fork Eel @ Miranda 2022-2023")
-cor.test(sfkeel_mir_fit$daily$ER_mean, sfkeel_mir_fit$daily$K600_daily_mean) # correlated 0.315; p << 0.004
+cor.test(sfkeel_mir_fit$daily$ER_mean, sfkeel_mir_fit$daily$K600_daily_mean) # correlated 0.304; p << 0.007
 plot_K600(sfkeel_mir_fit, "South Fork Eel @ Miranda 2022-2023")
 
 # convergence assessment
@@ -693,7 +710,7 @@ mean(na.omit(sfkeel_mir_fit$daily$ER_daily_Rhat)) # great
 mean(na.omit(sfkeel_mir_fit$daily$K600_daily_Rhat)) # great
 
 # goodness of fit metrics
-calc_gof_metrics(sfkeel_mir_metab, "/sfkeel_mir/", "sfkeel_mir") # rmse 0.273, nrsme 0.0421
+calc_gof_metrics(sfkeel_mir_metab, "/sfkeel_mir/", "sfkeel_mir") # rmse 0.272, nrsme 0.0420
 
 # remove large model object before starting next run
 rm(sfkeel_mir_metab, sfkeel_mir_fit)
@@ -704,25 +721,17 @@ rm(sfkeel_mir_metab, sfkeel_mir_fit)
 visualize_inputs_full(inputs_prepped$sfkeel_sth)
 visualize_inputs_zoomed(inputs_prepped$sfkeel_sth, "2023-08-15 00:00:00", "2023-08-17 00:00:00")
 
-# set model specs
-test_mm <- mm_name(type = "bayes", pool_K600 = "normal", 
-        err_obs_iid = TRUE, err_proc_iid = TRUE,
-        ode_method = "trapezoid", deficit_src = 'DO_mod', 
-        engine = 'stan')
-specs_sfkeel_sth <- specs(bayesian_mm, burnin_steps = 1000, saved_steps = 1000)
+# set model specs- needs more time to converge than south fork eel @ miranda
+specs_sfkeel_sth <- specs(bayesian_mm, burnin_steps = 4000, saved_steps = 2000)
 
 # change binning
 specs_sfkeel_sth <- set_Q_nodes(specs_sfkeel_sth, inputs_prepped$sfkeel_sth$discharge, 
-                                # making binning lower <- INSERT REASONING IF THIS WORKS!
                                 k600_priors[4,2], log_k600_sd = 0.5, min_bins = 2)
 plot_Q_bins(inputs_prepped$sfkeel_sth$discharge, specs_sfkeel_sth)
 # looks weird but that's because of time periods removed!
-specs_sfkeel_sth$K600_daily_meanlog_meanlog <- log(k600_priors[4,2])
-specs_sfkeel_sth$K600_daily_meanlog_sdlog <- 0.5
 
 # running model
-sfkeel_sth_metab <- metab(specs_sfkeel_sth, data = inputs_prepped$sfkeel_sth_2023) #%>% 
-                            #select(!discharge))
+sfkeel_sth_metab <- metab(specs_sfkeel_sth, data = inputs_prepped$sfkeel_sth_2023)
 
 # get fit and save files
 sfkeel_sth_fit <- get_fit(sfkeel_sth_metab)
@@ -767,7 +776,7 @@ ggplot(sfkeel_sth_fit$daily, aes(x = date, y = GPP_mean)) + # plot with sensor c
   theme_bw()
 
 # look at DO predictions vs. data on a 7-day interval to look closely
-plot_DO_preds(sfkeel_sth_metab, date_start = "2023-06-24", date_end = "2023-07-01") # looks way better without pooling
+plot_DO_preds(sfkeel_sth_metab, date_start = "2023-06-24", date_end = "2023-07-01")
 plot_DO_preds(sfkeel_sth_metab, date_start = "2023-07-01", date_end = "2023-07-08")
 plot_DO_preds(sfkeel_sth_metab, date_start = "2023-07-08", date_end = "2023-07-15")
 plot_DO_preds(sfkeel_sth_metab, date_start = "2023-07-23", date_end = "2023-07-30") # skipping time because forgot to turn sensor on; looks good!
@@ -784,19 +793,19 @@ plot_DO_preds(sfkeel_sth_metab, date_start = "2023-09-24", date_end = "2023-09-3
 # plot binning, ER vs. K600, correlation test for ER and K600, and K600
 plot_binning(sfkeel_sth_fit, sfkeel_sth_metab, "South fork eel @ standish hickey 2023") # points all within bins
 plot_ER_K600(sfkeel_sth_fit, "South fork eel @ standish hickey 2023")
-cor.test(sfkeel_sth_fit$daily$ER_mean, sfkeel_sth_fit$daily$K600_daily_mean) # not correlated .138; p = 0.2506
+cor.test(sfkeel_sth_fit$daily$ER_mean, sfkeel_sth_fit$daily$K600_daily_mean) # not correlated .140; p = 0.2452
 plot_K600(sfkeel_sth_fit, "South fork eel @ standish hickey 2023")
 
 # convergence assessment
 rstan::traceplot(get_mcmc(sfkeel_sth_metab), pars='GPP_daily', nrow=10) # good
-rstan::traceplot(get_mcmc(sfkeel_sth_metab), pars='ER_daily', nrow=10)
-rstan::traceplot(get_mcmc(sfkeel_sth_metab), pars='K600_daily', nrow=10) # goo
+rstan::traceplot(get_mcmc(sfkeel_sth_metab), pars='ER_daily', nrow=10) # good
+rstan::traceplot(get_mcmc(sfkeel_sth_metab), pars='K600_daily', nrow=10) # decent
 mean(na.omit(sfkeel_sth_fit$daily$GPP_Rhat)) # great
 mean(na.omit(sfkeel_sth_fit$daily$ER_daily_Rhat)) # great
 mean(na.omit(sfkeel_sth_fit$daily$K600_daily_Rhat)) # great
 
 # goodness of fit metrics
-calc_gof_metrics(sfkeel_sth_metab, "/sfkeel_sth/", "sfkeel_sth") # rmse 0.202, nrsme 0.0324
+calc_gof_metrics(sfkeel_sth_metab, "/sfkeel_sth/", "sfkeel_sth") # rmse 0.201, nrsme 0.0324
 
 # remove large model object though this is the last run :)
 rm(sfkeel_sth_metab, sfkeel_sth_fit)
