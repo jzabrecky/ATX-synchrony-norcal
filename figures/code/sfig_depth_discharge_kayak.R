@@ -55,7 +55,7 @@ figure <- ggplot() +
                                       `salmon`= "Salmon River (SAL)",
                                       `sfkeel_mir` = "South Fork Eel River at Miranda (SFE-M)",
                                       `sfkeel_sth` = "South Fork Eel River at Standish Hickey (SFE-SH)"))) +
-  scale_fill_manual(values = c("#bdb000", "#2871c7", "#416f16", "#a8ff82")) +
+  scale_fill_manual(values = c("#bdb000", "#62a7f8", "#416f16", "#a8ff82")) +
   #scale_color_manual(values = c("#7d7400", "darkblue", "#32590d", "#71d446")) +
   scale_shape_manual(values = c(24, 21, 22, 23)) +
   labs(x = expression("Discharge (m"^3~"s"^-1*")"), y = "Depth (m)") +

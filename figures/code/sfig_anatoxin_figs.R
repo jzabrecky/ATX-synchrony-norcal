@@ -23,14 +23,15 @@ anatoxins$year <- year(anatoxins$field_date)
 
 # summarize total percent of congeners by site
 anatoxins_site <- anatoxins %>% 
-  dplyr::group_by(site_reach) %>% 
+  dplyr::group_by(site_reach, sample_type) %>% 
   dplyr::summarize(ATXa_ug_g_percent = sum(ATXa_ug_g) / sum(ATX_all_ug_g),
                    dhATXa_ug_g_percent = sum(dhATXa_ug_g) / sum(ATX_all_ug_g),
-                   HTXa_ug_g_percent = sum(HTXa_ug_g) / sum(ATX_all_ug_g))
+                   HTXa_ug_g_percent = sum(HTXa_ug_g) / sum(ATX_all_ug_g)) %>% 
+  na.omit() # get rid of salmon with no detects
 
 # looking to see if there is difference per year real quick...
 anatoxin_site_year <- anatoxins %>% 
-  dplyr::group_by(site_reach, year) %>% 
+  dplyr::group_by(site_reach, sample_type, year) %>% 
   dplyr::summarize(ATXa_ug_g_percent = sum(ATXa_ug_g) / sum(ATX_all_ug_g),
                    dhATXa_ug_g_percent = sum(dhATXa_ug_g) / sum(ATX_all_ug_g),
                    HTXa_ug_g_percent = sum(HTXa_ug_g) / sum(ATX_all_ug_g))
@@ -38,7 +39,8 @@ anatoxin_site_year <- anatoxins %>%
 
 # pivot longer
 anatoxins_site_long <- anatoxins_site %>% 
-  pivot_longer(!site_reach, names_to = "congener", values_to = "percent")
+  pivot_longer(!(site_reach:sample_type), names_to = "congener",
+               values_to = "percent")
 
 # remove sites with no anatoxins
 anatoxins_site_long <- anatoxins_site_long %>% 
@@ -56,6 +58,7 @@ congener_fig <- ggplot(anatoxins_site_long, aes(fill = congener, y = percent, x 
   geom_bar(position="fill", stat="identity") +
   theme_bw() +
   labs(x = "Reach", y = "Proportion of Total Detected Anatoxins") +
+  facet_wrap(~sample_type) +
   theme_bw() +
   theme(strip.background = element_blank()) +
   theme(legend.position = "top",
@@ -64,6 +67,7 @@ congener_fig <- ggplot(anatoxins_site_long, aes(fill = congener, y = percent, x 
         text = element_text(size = 20), axis.ticks.length=unit(.25, "cm"),
         axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
 congener_fig
+## MAYBE FACET WRAP IS NOT THE WAY-- need to revisit this
 
 #### (2) Normalizing by OM vs. chl-a figure ####
 

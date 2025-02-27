@@ -1,9 +1,13 @@
 #### Large synchrony figure
 ### Jordan Zabrecky
-## last edited 01.16.2025
+## last edited 02.27.2025
+
+## IN PROGRESS :)
 
 # Large synchrony figure of gross primary productivity (GPP), % cover, and
 # anatoxin concentrations for each river and year
+
+# will likely separate GPP out
 
 # NEEDS TO BE UPDATED WITH SALMON RIVER WHEN YOU FIGURE OUT THOSE ISSUES
 
@@ -106,8 +110,10 @@ anatoxins$field_date[43] <- ymd("2022-09-06")
 atx_summarized <- anatoxins %>% 
   dplyr::rename(group = sample_type) %>% 
   dplyr::group_by(site_year, field_date, group) %>% 
-  dplyr::summarize(mean_ATX_all_ug_orgmat_g = mean(ATX_all_ug_orgmat_g),
-                   sd_ATX_all_ug_orgmat_g = sd(ATX_all_ug_orgmat_g))
+  dplyr::reframe(mean_ATX_all_ug_orgmat_g = mean(ATX_all_ug_orgmat_g),
+                   sd_ATX_all_ug_orgmat_g = sd(ATX_all_ug_orgmat_g),
+                 ATXa_ug_g_mean = mean(ATXa_ug_g),
+                 dhATXa_ug_g_mean = mean(dhATXa_ug_g))# to potentially look at ratio
 
 # split into list of dataframes
 anatoxins_list <- split(atx_summarized, atx_summarized$site_year)
@@ -143,12 +149,12 @@ sfkmir22_GPP_dis
 
 # figure
 sfkmir23_GPP_dis <- ggplot(data = metabolism_list$sfkeel_mir_2023, aes(x = date)) +
-  geom_area(data = discharge$SFE_M, aes(y = discharge_m3_s * 2.5, x = Date), fill = "#d9ecff") +
+  geom_area(data = discharge$SFE_M, aes(y = discharge_m3_s * 1.8, x = Date), fill = "#d9ecff") +
   geom_ribbon(aes(ymin = GPP.2.5.pct, ymax = GPP.97.5.pct), fill = "#9ced66", alpha = 0.8) +
   geom_point(aes(y = GPP.mean), color = "#397014", size = 2.5, alpha = 1) +
   scale_x_date(limits = as.Date(c("2023-06-18", "2023-09-27"))) +
-  scale_y_continuous(sec.axis = sec_axis(~ . / 2.5)) +
-  coord_cartesian(ylim = c(0, 12)) +
+  scale_y_continuous(sec.axis = sec_axis(~ . / 1.8)) +
+  coord_cartesian(ylim = c(0, 9)) +
   labs(y = NULL, x = NULL)
 sfkmir23_GPP_dis
 
@@ -187,20 +193,20 @@ rus22_GPP_dis <- ggplot(data = metabolism_list$russian_2022_USGS, aes(x = date))
   geom_point(aes(y = GPP.mean), color = "#397014", size = 2.5, alpha = 1) +
   scale_x_date(limits = as.Date(c("2022-06-24 00:00:00", "2022-09-16 00:00:00"))) +
   scale_y_continuous(sec.axis = sec_axis(~ . / 2.5)) +
-  coord_cartesian(ylim = c(0, 12)) +
+  coord_cartesian(ylim = c(0, 14)) +
   labs(y = NULL, x = NULL)
 rus22_GPP_dis
 
 ## salmon river 2022
 
 # figure- NEED TO SEE IF I CAN IMPROVE THIS DATA
-sal22_GPP_dis <- ggplot(data = metabolism_list$salmon_2022_karuk, aes(x = date)) +
+sal22_GPP_dis <- ggplot(data = metabolism_list$salmon_karuk_2022, aes(x = date)) +
   geom_area(data = discharge$SAL, aes(y = discharge_m3_s * 0.63, x = Date), fill = "#d9ecff") +
   geom_ribbon(aes(ymin = GPP.2.5.pct, ymax = GPP.97.5.pct), fill = "#9ced66", alpha = 0.8) +
   geom_point(aes(y = GPP.mean), color = "#397014", size = 2.5, alpha = 1) +
   scale_x_date(limits = as.Date(c("2022-06-26", "2022-09-23"))) +
   scale_y_continuous(sec.axis = sec_axis(~ . / 0.63)) +
-  coord_cartesian(ylim = c(0, 19)) +
+  coord_cartesian(ylim = c(0, 13)) +
   labs(y = NULL, x = NULL)
 sal22_GPP_dis
 
@@ -227,7 +233,7 @@ sal23_GPP_dis
 # figure
 sfkmir22_acc_atx <- ggplot(data = cover_list$sfkeel_mir_2022, aes(x = field_date)) +
   geom_bar(data = anatoxins_list$sfkeel_mir_2022, position = "dodge", stat = "identity", 
-           aes(y = mean_ATX_all_ug_afdm_g, fill = group), width = 6, color = "black") +
+           aes(y = mean_ATX_all_ug_orgmat_g, fill = group), width = 6, color = "black") +
   geom_line(data = cover_list$sfkeel_mir_2022, aes(y = 110 - (mean * 4), color = group, linetype = group),
             linewidth = 2) +
   geom_linerange(data = cover_list$sfkeel_mir_2022, aes(ymin = 110 - ((min) * 4),
@@ -254,12 +260,16 @@ sfkmir22_acc_atx
 ## south fork eel @ miranda 2023
 
 # figure
-sfkmir23_acc_atx <- ggplot(data = cover_list$sfkeel_mir_2023, aes(x = field_date, y = percent)) +
-  geom_bar(data = cover_list$sfkeel_mir_2023, position = "dodge", stat = "identity", 
-           aes(y = mean_ATX_all_ug_afdm_g, fill = group), width = 5.5, color = "black") +
-  geom_line(data = cover_list$sfkeel_mir_2023, aes(y = 110 - (percent * 4), color = group, linetype = group),
+sfkmir23_acc_atx <- ggplot(data = cover_list$sfkeel_mir_2023, aes(x = field_date)) +
+  geom_bar(data = anatoxins_list$sfkeel_mir_2023, position = "dodge", stat = "identity", 
+           aes(y = mean_ATX_all_ug_orgmat_g, fill = group), width = 5.5, color = "black") +
+  geom_line(data = cover_list$sfkeel_mir_2023, aes(y = 110 - (mean * 4), color = group, linetype = group),
             linewidth = 2) +
-  geom_point(data = cover_list$sfkeel_mir_2023, aes(y = 110 - (percent * 4), color = group,shape = group),
+  geom_errorbar(data = cover_list$sfkeel_mir_2023, aes(ymin = 110 - ((min) * 4),
+                                                        ymax = 110 - ((max) * 4),
+                                                        color = group), 
+                 size = 1.25, alpha = 0.7, width = 2) +
+  geom_point(data = cover_list$sfkeel_mir_2023, aes(y = 110 - (mean * 4), color = group,shape = group),
              size = 5) +
   scale_color_manual("Group", values = c("#8f8504","#2871c7"),
                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
@@ -279,3 +289,138 @@ sfkmir23_acc_atx <- ggplot(data = cover_list$sfkeel_mir_2023, aes(x = field_date
         text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), plot.margin = unit(c(.3,0,0,0), "cm")) +
   theme(legend.position = "none") # will move over legend via illustrator
 sfkmir23_acc_atx
+
+# remove microcoleus entirely from accrual so we don't get a line for y = 0
+acc_mod_rus22 <- cover_list$russian_2022 %>% 
+  filter(group == "Anabaena/Cylindrospermum")
+
+# still want to keep atx bars 1/2 length
+atx_mod_rus22 <- rbind(anatoxins_list$russian_2022, # duplicate those dates on new df
+                       anatoxins_list$russian_2022)
+atx_mod_rus22[6:10,4:5] <- 0 # make ATX values for those all 0
+atx_mod_rus22[6:10,3] <- "TM" # flip labels for those rows
+
+rus22_acc_atx <- ggplot(data = acc_mod_rus22, aes(x = field_date, y = percent)) +
+  geom_bar(data = atx_mod_rus22, position = "dodge", stat = "identity", 
+           aes(y = mean_ATX_all_ug_orgmat_g, fill = group), width = 6, color = "black") +
+  geom_line(data = acc_mod_rus22, aes(y = 10 - (mean * 1.5), color = group, linetype = group),
+            linewidth = 2) +
+  geom_point(data = acc_mod_rus22, aes(y = 10 - (mean * 1.5), color = group,shape = group),
+             size = 5) +
+  scale_color_manual("Group", values = c("#8f8504","#2871c7"),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_linetype_manual("Group", values = c("dotted", "dashed"),
+                        labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_shape_manual("Group", values = c(16, 18),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
+                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  labs(y = NULL, x = NULL) +
+  ylim(0, 20) +
+  scale_x_date(limits = as.Date(c("2022-06-24", "2022-09-16"))) +
+  scale_y_reverse(sec.axis = sec_axis(~ ((. - 10)/1.5) * -1)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
+        text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), plot.margin = unit(c(.3,0,0,0), "cm")) +
+  theme(legend.position = "none") # will move over legend via illustrator
+rus22_acc_atx
+
+# remove A&C entirely from accrual so we don't get a line for y = 0
+acc_mod_sal22 <- cover_list$salmon_2022 %>% 
+  filter(group == "Microcoleus")
+
+# add segment column to avoid line being drawn across plot when we weren't taking data
+acc_mod_sal22$segment <- 1
+acc_mod_sal22$segment[4] <- 2
+
+# dataframe for rectangle bounds
+wildfire1 <- data.frame(xmin = as.Date("2022-07-28"),
+                        xmax = as.Date("2022-09-20"),
+                        ymin = 0, 
+                        ymax = 110)
+
+# STILL NEEDS WILDFIRE RECTANGLE
+sal22_acc_atx <- ggplot(data = acc_mod_sal22) +
+  geom_bar(data = anatoxins_list$salmon_2022, position = "dodge", stat = "identity", 
+           aes(x = field_date, y = mean_ATX_all_ug_orgmat_g, fill = group), width = 6, color = "black") +
+  geom_rect(data = wildfire1, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), fill = "#ededed") +
+  geom_line(data = acc_mod_sal22, aes(x = field_date, y = 110 - (mean * 4), group = segment, 
+                                      color = group, linetype = group), linewidth = 2) +
+  geom_point(data = acc_mod_sal22, aes(x = field_date, y = 110 - (mean * 4), color = group,
+                                       shape = group),size = 5) +
+  scale_color_manual("Group", values = c("#2871c7"),
+                     labels = c("Microcoleus")) +
+  scale_linetype_manual("Group", values = c("dashed"),
+                        labels = c("Microcoleus")) +
+  scale_shape_manual("Group", values = c(18),
+                     labels = c("Microcoleus")) +
+  scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
+                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  labs(y = NULL, x = NULL) +
+  ylim(0, 110) +
+  scale_x_date(limits = as.Date(c("2022-06-26", "2022-09-23"))) +
+  scale_y_reverse(sec.axis = sec_axis(~ ((. - 110)/4) * -1)) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+        panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
+        text = element_text(size = 30), axis.ticks.length=unit(.25, "cm"), plot.margin = unit(c(.3,0,0,0), "cm")) +
+  theme(legend.position = "none") # will move over legend via illustrator
+sal22_acc_atx
+
+# hysteresis loops
+
+# anatoxins per taxa (TM and TAC have separate rows)
+anatoxins_taxa <- split(atx_summarized, atx_summarized$group)
+anatoxins_taxa$TAC <- anatoxins_taxa$TAC %>% 
+  dplyr::rename(TAC_mean_ATX = mean_ATX_all_ug_orgmat_g,
+         TAC_sd_ATX = sd_ATX_all_ug_orgmat_g,
+         TAC_ATXa = ATXa_ug_g_mean,
+         TAC_dhATXa = dhATXa_ug_g_mean) %>% 
+  select(!group)
+anatoxins_taxa$TM <- anatoxins_taxa$TM %>% 
+  dplyr::rename(TM_mean_ATX = mean_ATX_all_ug_orgmat_g,
+         TM_sd_ATX = sd_ATX_all_ug_orgmat_g,
+         TM_ATXa = ATXa_ug_g_mean,
+         TM_dhATXa = dhATXa_ug_g_mean) %>% 
+  select(!group)
+
+# join atx and cover data
+hysteresis <- left_join(cover, anatoxins_taxa$TAC, by = c("field_date", "site_year"))
+hysteresis <- left_join(hysteresis, anatoxins_taxa$TM, by = c("field_date", "site_year"))
+
+# fill NA
+hysteresis$TAC_mean_ATX <- replace_na(hysteresis$TAC_mean_ATX, 0)
+hysteresis$TM_mean_ATX <- replace_na(hysteresis$TM_mean_ATX, 0)
+
+# change site tag
+hysteresis$site[which(hysteresis$site == "SFE-M_all_sites")] <- "SFE-M"
+hysteresis$site[which(hysteresis$site == "SFE-M_excl_site2")] <- "SFE-M"
+
+# all on one plot
+hysteresis_plot_TM <- ggplot(data = hysteresis, aes(x = microcoleus_mean, y = TM_mean_ATX)) +
+  geom_point(aes(color = site_year, shape = site_year), size = 3) +
+  ggtitle("Microcoleus") #+
+  #scale_y_log10()
+hysteresis_plot_TM
+
+hysteresis_plot_TAC <- ggplot(data = hysteresis, aes(x = anabaena_cylindrospermum_mean, y = TAC_mean_ATX)) +
+  geom_point(aes(color = site_year, shape = site_year), size = 3) +
+  ggtitle("Anabaena") +
+  scale_y_log10()
+hysteresis_plot_TAC
+
+hysteresis <- hysteresis %>% 
+  mutate(TM_atx_dhatx = TM_ATXa / TM_dhATXa,
+         TAC_atx_dhatx = TAC_ATXa / TAC_dhATXa)
+
+# all on one plot
+hysteresis_plot_TM <- ggplot(data = hysteresis, aes(x = microcoleus_mean, y = TM_atx_dhatx)) +
+  geom_point(aes(color = site_year, shape = site_year), size = 3) +
+  ggtitle("Microcoleus")
+hysteresis_plot_TM
+
+hysteresis_plot_TAC <- ggplot(data = hysteresis, aes(x = anabaena_cylindrospermum_mean, y = TAC_atx_dhatx)) +
+  geom_point(aes(color = site_year, shape = site_year), size = 3) +
+  ggtitle("Anabaena")
+hysteresis_plot_TAC
