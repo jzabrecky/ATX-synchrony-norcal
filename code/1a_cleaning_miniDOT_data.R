@@ -63,13 +63,13 @@ round_5M <- function(df) {
 interpolate_DO <- function(df) {
   create_filled_TS(round_5M(df), "5M", "DO_mg_L") %>% 
     dplyr::select(date_time, Filled_Var) %>% 
-    rename(DO_mg_L = Filled_Var)
+    dplyr::rename(DO_mg_L = Filled_Var)
 }
 
 interpolate_temp <- function(df) {
   create_filled_TS(round_5M(df), "5M", "Temp_C") %>% 
     dplyr::select(date_time, Filled_Var) %>% 
-    rename(Temp_C = Filled_Var)
+    dplyr::rename(Temp_C = Filled_Var)
 }
 
 # applying functions to dataframe lists
