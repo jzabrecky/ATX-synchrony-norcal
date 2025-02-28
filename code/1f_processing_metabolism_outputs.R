@@ -1,6 +1,6 @@
 #### processing metabolism outputs
 ### Jordan Zabrecky
-## last edited 02.24.2024
+## last edited 02.27.2024
 
 # This code processes metabolism outputs from the "streamMetabolizer" package
 # from script "1e_processing_metabolism_outputs.csv" and saves a csv
@@ -262,6 +262,21 @@ daily_metab_list$sfkeel_mir <- left_join(daily_metab_list$sfkeel_mir,
                                          USGS_daily_discharge$sfkeel_mir, by = "date")
 daily_metab_list$sfkeel_sth <- left_join(daily_metab_list$sfkeel_sth,
                                          USGS_daily_discharge$sfkeel_sth, by = "date")
+
+# calculate mean r-hat values for each parameter
+rhats <- data.frame()
+for(i in 1:length(daily_metab_list)) {
+  new <- daily_metab_list[[i]] %>% 
+    summarize(site = site[1],
+              mean_GPP_rhat = mean(GPP_Rhat, na.rm = TRUE),
+              mean_ERR_rhat = mean(ER_Rhat, na.rm = TRUE),
+              mean_K600_rhat = mean(K600_daily_Rhat, na.rm = TRUE))
+  rhats <- rbind(rhats, new)
+}
+
+# join with metrics
+metrics <- left_join(metrics, rhats, by = "site") %>% 
+  relocate(site, .before = rmse)
 
 # note for applying depths after running metabolism model
 # thus, as we are not dividing GPP by anything, our GPP will be in units g O2 m^-3 d^-1
