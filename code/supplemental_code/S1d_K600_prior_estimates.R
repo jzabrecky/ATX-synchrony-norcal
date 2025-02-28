@@ -1,6 +1,6 @@
 #### Code for calculating K600 estimates to use as a prior
 ### Jordan Zabrecky
-## last edited: 02.10.2025
+## last edited: 02.27.2025
 
 # This code calculates a K600 estimate using slope, median velocity, median depth,
 # and equation 1 from Raymond et al. (2012) to use as a prior in metabolism models
@@ -8,7 +8,7 @@
 #### (1) Loading libraries and data ####
 
 # use work from script that builds depth discharge relationships
-source("code/1g_processing_metabolism_outputs.R")
+source("code/1f_processing_metabolism_outputs.R")
 
 # need to also get geomorphology data for South Fork Eel at Miranda and Standish Hickey
 geomorph_sfkeel_mir <- geomorph_data("11476500")
@@ -85,12 +85,15 @@ sth_vel <- as.numeric(exp(sth_velocity_model$coefficients[1] + log(sth_dis) * st
 raymond_eq <- function(velocity, slope, depth) {
   # equation 1 (not bothering with upper or lower bounds)
   k600_est <- (velocity * slope)^0.89 * (depth)^0.54 * 5037
-  return(k600_est)
+  return(c(k600_est, velocity, slope, depth))
 }
 
 # make empty dataframe
 k600_estimates <- data.frame(site = character(), 
-                             k600_prior = numeric())
+                             k600_prior = numeric(),
+                             velocity = numeric(),
+                             slope = numeric(),
+                             depth = numeric())
 
 # add calculations to dataframe
 k600_estimates[1,] <- c("russian", raymond_eq(rus_vel, rus_slope, rus_depth))
