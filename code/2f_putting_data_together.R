@@ -1,14 +1,15 @@
 #### putting all field and lab data together for south fork eel 2023
 ### Jordan Zabrecky
-## last edited: 01.11.2025
+## last edited: 02.27.2025
 
 # This script aggregates all field and lab information for reaches
-# on the South Fork Eel in 2023
+# on the South Fork Eel in 2023 for predictive modeling
 
 #### (1) Loading data and libraries ####
 
 # loading libraries
-lapply(c("tidyverse", "lubridate", "plyr", "dataRetrieval"), require, character.only = T)
+lapply(c("tidyverse", "lubridate", "plyr", "dataRetrieval", "zoo"), 
+       require, character.only = T)
 
 # read in data
 anatoxins <- read.csv("./data/field_and_lab/cyano_atx.csv")
@@ -71,7 +72,7 @@ sfkeel23 <- all %>%
          TAC_ATX_all_ug_orgmat_g, TAC_ATX_all_ug_chla_ug, TAC_Chla_ug_g, TAC_Pheo_ug_g,
          TAC_Chla_Pheo_ratio, TAC_percent_organic_matter)
 
-# may fill out all NA's (no ATX sample taken) with 0's but may rethink in future
+# can fill out all NA's with 0's but may do that in the finalizing document
 # sfkeel23 <- sfkeel23 %>% replace(is.na(.), 0)
 
 #### (3) Joining in metabolism data ####
@@ -115,8 +116,7 @@ visits_sth$visit <- seq(1, nrow(visits_sth))
 metab_mir <- left_join(metab_mir, visits_mir, by = "field_date")
 metab_sth <- left_join(metab_sth, visits_sth, by = "field_date")
 
-# at most can do average of four days before field visit
-# will just do that for now- but can play around with interval
+# currently just doing average and median of four days before visit
 
 # need to get indices of dataframe that have field visits
 index_mir <- which(!is.na(metab_mir$visit))[-1] # cannot get more than a day before
@@ -131,20 +131,28 @@ map_sth <- index_sth %>%
 # take average of four days and put in dataframe with index
 avg_mir <- data.frame(unlist(lapply(map_mir, function(x) mean(x))))
 avg_sth <- data.frame(unlist(lapply(map_sth, function(x) mean(x))))
+med_mir <- data.frame(unlist(lapply(map_mir, function(x) median(x))))
+med_sth <- data.frame(unlist(lapply(map_sth, function(x) median(x))))
 
-# change column name and add in visit index
+# change column name
 colnames(avg_mir) <- c("GPP_mean_fourdaysprior")
 colnames(avg_sth) <- c("GPP_mean_fourdaysprior")
+colnames(med_mir) <- c("GPP_median_fourdaysprior")
+colnames(med_sth) <- c("GPP_median_fourdaysprior")
+
+# add in median as a column to the dataframes for the average
+avg_mir <- cbind(avg_mir, med_mir)
+avg_sth <- cbind(avg_sth, med_sth)
 
 # put in visit index to GPP average
 avg_mir$visit <- visits_mir$visit[-1]
 avg_sth$visit <- visits_sth$visit[-1]
 
 # calculate change in GPP average
-avg_mir$GPP_change[2:nrow(avg_mir)] <- avg_mir$GPP_mean_fourdaysprior[2:nrow(avg_mir)] -
-  avg_mir$GPP_mean_fourdaysprior[1:(nrow(avg_mir)-1)]
-avg_sth$GPP_change[2:nrow(avg_sth)] <- avg_sth$GPP_mean_fourdaysprior[2:nrow(avg_sth)] -
-  avg_sth$GPP_mean_fourdaysprior[1:(nrow(avg_sth)-1)]
+#avg_mir$GPP_change[2:nrow(avg_mir)] <- avg_mir$GPP_mean_fourdaysprior[2:nrow(avg_mir)] -
+ # avg_mir$GPP_mean_fourdaysprior[1:(nrow(avg_mir)-1)]
+#avg_sth$GPP_change[2:nrow(avg_sth)] <- avg_sth$GPP_mean_fourdaysprior[2:nrow(avg_sth)] -
+ # avg_sth$GPP_mean_fourdaysprior[1:(nrow(avg_sth)-1)]
 
 # left merge onto metabolism dataframes
 metab_mir <- left_join(metab_mir, avg_mir, by = "visit")
@@ -152,10 +160,10 @@ metab_sth <- left_join(metab_sth, avg_sth, by = "visit")
 
 # only keep columns from metab that we care about
 metab_mir <- metab_mir %>% 
-  select(field_date, GPP_mean_fourdaysprior, GPP_change, discharge_m3_s) %>% 
+  select(field_date, GPP_mean_fourdaysprior, GPP_median_fourdaysprior, discharge_m3_s) %>% 
   mutate(site = "SFE-M")
 metab_sth <- metab_sth %>% 
-  select(field_date, GPP_mean_fourdaysprior, GPP_change, discharge_m3_s) %>% 
+  select(field_date, GPP_mean_fourdaysprior, GPP_median_fourdaysprior, discharge_m3_s) %>% 
   mutate(site = "SFE-SH")
 
 # keep only columns we care about and merge into south fork eel field dataframes
