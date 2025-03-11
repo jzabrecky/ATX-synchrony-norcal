@@ -1,6 +1,6 @@
 #### standardizing and normalizing data for predictive moels
 ### Jordan Zabrecky
-## last edited: 02.27.2025
+## last edited: 03.11.2025
 
 # This script standardizes (and, in some cases, normalizes) South Fork
 # Eel 2023 data before predictive modeling
@@ -27,9 +27,9 @@ data_cov <- data %>%  # remove columns that won't be used as covariates
          
 
 # standardize all covariates by reach
-data_cov[,c(4:ncol(data_stnd))] <- apply(data_cov[,c(4:ncol(data_cov))], MARGIN = 2, 
-                                         function(x) ave(x, data_cov$site_reach, 
-                                                         FUN = scale))
+data_cov[,c(4:ncol(data_cov))] <- apply(data_cov[,c(4:ncol(data_cov))], MARGIN = 2, 
+                                        function(x) ave(x, data_cov$site_reach, 
+                                                        FUN = scale))
 
 #### (3) Prepping response for modeling ####
 
