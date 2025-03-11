@@ -21,6 +21,8 @@ anatoxins$year <- year(anatoxins$field_date)
 
 #### (2) Percent of congeners per site Figure ####
 
+#### NEED TO ADD CODE TO SEE WHAT PROPORTION OF CONGENERS IN EACH SAMPLE OVERALL?!
+
 # summarize total percent of congeners by site
 anatoxins_site <- anatoxins %>% 
   dplyr::group_by(site_reach, sample_type) %>% 

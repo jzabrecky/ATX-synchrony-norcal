@@ -8,6 +8,7 @@
 #### (1) Loading libraries and data ####
 
 # use work from script that builds depth discharge relationships
+# will also load in libraries from this script
 source("code/1f_processing_metabolism_outputs.R")
 
 # need to also get geomorphology data for South Fork Eel at Miranda and Standish Hickey
