@@ -93,9 +93,11 @@ pred_out_null <- function(params, y) {
     # save mean of all predictions to use as autoregressive term in next time stamp
     y[j] <- mean(preds[,j-1])
   }
-  
-  # need to include 95% confidence intervals
-  return(y) # only returning mean prediction at the moment
+  # make return dataframe with 95% confidence interval
+  final <- data.frame(mean = y,
+                      ci_lower = apply(preds, 2, quantile, prob = 0.025),
+                      ci_upper = apply(preds, 2, quantile, prob = 0.975))
+  return(final)
 }
 
 # prediction function for physical model
@@ -113,9 +115,10 @@ pred_out_physical <- function(params, y, dis, temp) {
     # save mean of all predictions to use as autoregressive term in next time stamp
     y[j] <- mean(preds[,j-1])
   }
-  
-  # need to include 95% confidence intervals
-  return(y) # only returning mean prediction at the moment
+  final <- data.frame(mean = y,
+                      ci_lower = apply(preds, 2, quantile, prob = 0.025),
+                      ci_upper = apply(preds, 2, quantile, prob = 0.975))
+  return(final)
 }
 
 # prediction function for chemical model
@@ -261,7 +264,7 @@ for(i in 1:length(training_sites)) {
                                cond = test_sites[[i]]$cond_uS_cm,
                                GPP = test_sites[[i]]$GPP_median_fourdaysprior)
   # add predictions to predictions dataframe
-  predictions[[i]]$biological <- preds
+  predictions[[i]]$biological <- preds$mean
   # add in nrmse for model predictions on each test site (not including initial value)
   nrmse_M[4,i+1] <- (sqrt(sum((preds[-1] - test_sites[[i]]$resp_M_cover_stnd[-1])^2)/length(preds))) /
     (max(test_sites[[i]]$resp_M_cover_stnd - min(test_sites[[i]]$resp_M_cover_stnd)))
