@@ -89,6 +89,9 @@ IC <- read_data("IC")
 # replace missing values with NA as missing value code for EDI
 field_params <- field_params %>% replace(is.na(.), "NA")
 
+# convert time to HH:MM
+field_params$time <- format(lubridate::parse_date_time(field_params$time, c('HMS', 'HM')), '%H:%M')
+
 # saving csv
 write.csv(field_params, "./data/EDI_data_package/water_in_situ_measurements.csv",
           row.names = FALSE)
@@ -376,11 +379,13 @@ combined <- left_join(metadata, anatoxins_processed, by = "ESF_ID") %>%
   # un-needed Gloeotrichia and Microcoleus from Poudre
   filter(sample_type != "Gloeotrichia" & sample_type != "Microcoleus")
 
-# convert field_date to yyyy-mm-dd
+# convert field_date and lyophilize date to yyyy-mm-dd
 combined$field_date <- mdy(combined$field_date)
+combined$lyophilize_date <- mdy(combined$lyophilize_date)
 
 # convert to character to add in NAs
 combined$field_date <- as.character(combined$field_date)
+combined$lyophilize_date <- as.character(combined$lyophilize_date)
 
 # replace blank sample information with NA (no information) as missing value code for EDI
 combined <- combined %>% replace(is.na(.), "NA")
