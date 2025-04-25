@@ -60,13 +60,15 @@ congener_fig <- ggplot(anatoxins_site_long, aes(fill = congener, y = percent, x 
   geom_bar(position="fill", stat="identity") +
   theme_bw() +
   labs(x = "Reach", y = "Proportion of Total Detected Anatoxins") +
-  facet_wrap(~sample_type) +
+  facet_wrap(~sample_type, scales = "free",
+             labeller =  as_labeller(c(`TM` = "Microcoleus", 
+                                       `TAC`= "Anabaena/Cylindrospermum"))) +
   theme_bw() +
   theme(strip.background = element_blank()) +
   theme(legend.position = "top",
         panel.grid.minor = element_blank(),
         panel.border = element_rect(linewidth = 1.2), axis.ticks = element_line(linewidth = 1.2),
-        text = element_text(size = 20), axis.ticks.length=unit(.25, "cm"),
+        text = element_text(size = 15), axis.ticks.length=unit(.25, "cm"),
         axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
 congener_fig
 ## MAYBE FACET WRAP IS NOT THE WAY-- need to revisit this

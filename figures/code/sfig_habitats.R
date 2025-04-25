@@ -1,17 +1,16 @@
 #### Supplemental figures related to habitat occupied by benthic cyanobacteria
 ### Jordan Zabrecky
-## last edited: 02.12.2025
+## last edited: 04.25.2025
 
-# These figures show (1) the proportion of anatoxin congeners at each reach,
-# (2) the difference between anatoxins normalized per organic matter vs. chl-a,
-# (3) the difference in mat concentrations on our single day riffle experiment
+# This figure shows the amount of 
 
 #### (1) Loading libraries and anatoxins data ####
 
 # loading libraries
 lapply(c("tidyverse", "lubridate"), require, character.only = T)
 
-# loading anatoxins data
+# loading survey data including each transect 
+# (y if present within 7.5-m of transect where habitat was recorded)
 surveys <- read.csv("./data/EDI_data_package/benthic_surveys.csv") %>% 
   mutate(field_date = ymd(field_date)) %>% 
   mutate(month = month(field_date)) %>% 
@@ -29,27 +28,82 @@ surveys$Ana_Cyl_pres[surveys$Ana_Cyl_pres == "n"] <- 0
 surveys$Micro_pres <- as.numeric(surveys$Micro_pres)
 surveys$Ana_Cyl_pres <- as.numeric(surveys$Ana_Cyl_pres)
 
-# group by month, riffle_rapid, and site
+# make column with "y/1" or "n/0" to indicate presence within quadrat
+surveys <- surveys %>% 
+  mutate(Micro_quadrat = case_when(Microcoleus > 0 ~ 1,
+                                   TRUE ~ 0),
+         Anacyl_quadrat = case_when(Anabaena_Cylindrospermum > 0 ~ 1,
+                                 TRUE ~ 0))
+
+# group by month, riffle_rapid, and site and count number of taxa-specific
+# observations
 summarized <- surveys %>% 
   dplyr::group_by(site, month, riffle_rapid) %>% 
   dplyr::summarize(num_micro = sum(Micro_pres),
                    num_anacyl = sum(Ana_Cyl_pres),
-                   num_transects = length(transect)) %>%
-  mutate(percent_micro = (num_micro / num_transects) * 100,
-         percent_anacyl = (num_anacyl / num_transects) * 100)
+                   quadrat_micro = sum(Micro_quadrat),
+                   quadrat_anacyl = sum(Anacyl_quadrat))
+
+# get total number of transects surveyed for each site and month
+# regardless of habitat
+total <- surveys %>% 
+  dplyr::group_by(site, month) %>% 
+  dplyr::summarize(total_transects = length(transect))
+
+# left join the two
+summarized <- left_join(summarized, total, by = c("site", "month"))
+
+# calculate proportion of transects that have taxa-specific observations
+summarized$prop_micro_transect <- summarized$num_micro / summarized$total_transects
+summarized$prop_micro_quadrat <- summarized$quadrat_micro / summarized$total_transects
+summarized$prop_anacyl_transect <- summarized$num_anacyl / summarized$total_transects
+summarized$prop_anacyl_quadrat <- summarized$quadrat_anacyl / summarized$total_transects
+
+# remove NAs for when no habitat was recorded
+summarized <- na.omit(summarized)
 
 ##### (3) Making figures ####
 
 # need to make month a character
 summarized$month <- as.character(summarized$month)
 
-# initial trial....
-initial <- ggplot(data = summarized, aes(x = month, y = percent_micro, fill = riffle_rapid)) +
-  geom_bar(position="dodge", stat = "identity") +
-  facet_wrap(~site)
-initial  
+# separate out micro data and anabaena data (so site without taxa does not plot!)
+micro_summarized <- summarized %>% 
+  filter(site != "RUS")
+anacyl_summarized <- summarized %>% 
+  # while one reach had a single anabaena siting, it was not in quadrat
+  filter(site != "SAL")
 
-initial_ana <- ggplot(data = summarized, aes(x = month, y = percent_anacyl, fill = riffle_rapid)) +
-  geom_bar(position="dodge", stat = "identity") +
+## Trying with survey presence/absence
+
+# microcoleus
+presence_micro <- ggplot(data = micro_summarized, aes(x = month, y = prop_micro_transect, fill = riffle_rapid)) +
+  geom_bar(position="stack", stat = "identity") +
   facet_wrap(~site)
-initial_ana
+presence_micro
+
+# anabaena/cylindrospermum
+presence_ana <- ggplot(data = anacyl_summarized, aes(x = month, y = prop_anacyl_transect, fill = riffle_rapid)) +
+  geom_bar(position="stack", stat = "identity") +
+  facet_wrap(~site)
+presence_ana
+
+# I think that since this presence/absence includes up to ~7.5-m
+# out from where quadrat was placed and habitat was recorded
+# a less clear message is conveyed than using quadrat presence/absence
+
+## Trying with quadrat presence absence data
+
+# microcoleus
+quadrat_micro <- ggplot(data = micro_summarized, aes(x = month, y = prop_micro_quadrat, fill = riffle_rapid)) +
+  geom_bar(position="stack", stat = "identity") +
+  facet_wrap(~site)
+quadrat_micro
+
+# anabaena
+quadrat_anacyl <- ggplot(data = anacyl_summarized, aes(x = month, y = prop_anacyl_quadrat, fill = riffle_rapid)) +
+  geom_bar(position="stack", stat = "identity") +
+  facet_wrap(~site)
+quadrat_anacyl
+
+# NEED TO MAKE PLOTS LOOK NICE AFTER THEMING HAS BEEN DECIDED :)

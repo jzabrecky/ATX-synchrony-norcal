@@ -1,6 +1,6 @@
 #### Large synchrony figure
 ### Jordan Zabrecky
-## last edited 02.27.2025
+## last edited 03.14.2025
 
 ## IN PROGRESS :)
 
@@ -304,7 +304,6 @@ sfksth23_acc_atx <- ggplot(data = cover_list$sfkeel_sth_2022, aes(x = field_date
            aes(y = mean_ATX_all_ug_orgmat_g, fill = group), width = 5.5, color = "black") +
   geom_line(data = cover_list$sfkeel_sth_2022, aes(y = 40 - (mean * 3), color = group, linetype = group),
             linewidth = 2) +
-                size = 1.25, alpha = 0.7, width = 2) +
   geom_point(data = cover_list$sfkeel_sth_2022, aes(y = 40 - (mean * 3), color = group,shape = group),
              size = 5) +
   scale_color_manual("Group", values = c("#8f8504","#2871c7"),
@@ -543,3 +542,19 @@ hysteresis_plot_TAC <- ggplot(data = hysteresis, aes(x = anabaena_cylindrospermu
   geom_point(aes(color = site_year, shape = site_year), size = 3) +
   ggtitle("Anabaena")
 hysteresis_plot_TAC
+
+### plot of GPP vs. cover & anatoxins
+
+metabolism_list$sfkeel_mir_2023 <- metabolism_list$sfkeel_mir_2023 %>% 
+  dplyr::rename(field_date = date)
+
+sfkeel_mir_23_cover <- left_join(cover_list$sfkeel_mir_2023, metabolism_list$sfkeel_mir_2023, by = "field_date")
+sfkeel_mir_23_atx <- left_join(anatoxins_list$sfkeel_mir_2023, metabolism_list$sfkeel_mir_2023, by = "field_date")
+
+sfkeel_mir_23_cover_m <- sfkeel_mir_23_cover %>% 
+  filter(group == "Microcoleus")
+
+# note that this is not the mean of four days like in modeling
+ggplot(data = sfkeel_mir_23_cover, aes(x = GPP.mean, y = mean)) +
+  geom_point() +
+  facet_wrap(~group)
