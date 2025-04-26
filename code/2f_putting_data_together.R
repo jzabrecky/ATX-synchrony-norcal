@@ -1,6 +1,6 @@
 #### putting all field and lab data together for south fork eel 2023
 ### Jordan Zabrecky
-## last edited: 02.27.2025
+## last edited: 04.25.2025
 
 # This script aggregates all field and lab information for reaches
 # on the South Fork Eel in 2023 for predictive modeling
@@ -51,7 +51,7 @@ microcoleus <- rename_cols(microcoleus, "TM")
 ana_cyl <- rename_cols(ana_cyl, "TAC")
 
 # joining dataframes
-all <- left_join(survey, water, by = c("field_date", "site_reach", "site", "reach"))
+all <- left_join(survey, water, by = c("field_date", "site_reach"))
 all <- (list(all, microcoleus, ana_cyl)) %>% 
   join_all(by = c("field_date", "site_reach"), type = "left")
 

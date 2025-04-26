@@ -1,6 +1,6 @@
 #### putting together water chemistry data from field and lab measurements
 ### Jordan Zabrecky
-## last edited: 11.29.2024
+## last edited: 04.25.2025
 
 # This code combines in-situ water chemistry measurements, AQ400 nitrate, ammonium,
 # and orthophosphate values, Shimadzu total dissolved carbon, dissolved organic
@@ -37,7 +37,7 @@ IC <- read_data("anion_cation")
 ## (a) analyzing instrument duplicates
 aq400_instrument_dups <- aq400 %>%
   filter(instrument_duplicate == "y") %>% 
-  dplyr::group_by(site_reach, site, reach, field_date, assumed_pH) %>% 
+  dplyr::group_by(site_reach, field_date, assumed_pH) %>% 
   dplyr::summarize(mean_ophos = mean(oPhos_ug_P_L),
                    sd_ophos = sd(oPhos_ug_P_L),
                    rsd_ophos = sd_ophos * 100 / mean_ophos,
@@ -62,7 +62,7 @@ mean(na.omit(aq400_instrument_dups$rsd_amm)) # average 11.31%
 ## (b) analyzing field_duplicates
 aq400_field_dups <- aq400 %>%
   filter(field_duplicate == "y") %>% 
-  dplyr::group_by(site_reach, site, reach, field_date, assumed_pH) %>% 
+  dplyr::group_by(site_reach, field_date, assumed_pH) %>% 
   dplyr::summarize(mean_ophos = mean(oPhos_ug_P_L),
                    sd_ophos = sd(oPhos_ug_P_L),
                    rsd_ophos = sd_ophos * 100 / mean_ophos,
@@ -84,7 +84,7 @@ mean(aq400_field_dups$rsd_amm) # average 24.71% which is high but field duplicat
 # original data that does not contain duplicates
 nutrients <- aq400 %>% 
   filter(instrument_duplicate == "n" & field_duplicate == "n") %>% 
-  select(site_reach, site, reach, field_date, oPhos_ug_P_L, nitrate_mg_N_L,
+  select(site_reach, field_date, oPhos_ug_P_L, nitrate_mg_N_L,
          ammonium_mg_N_L, assumed_pH)
 
 # instrument duplicates
@@ -92,7 +92,7 @@ aq400_instrument_dups <- aq400_instrument_dups %>%
   dplyr::rename(oPhos_ug_P_L = preserve_ophos,
                 nitrate_mg_N_L = preserve_nitrate,
                 ammonium_mg_N_L = preserve_amm) %>% 
-  select(site_reach, site, reach, field_date, oPhos_ug_P_L, nitrate_mg_N_L,
+  select(site_reach, field_date, oPhos_ug_P_L, nitrate_mg_N_L,
          ammonium_mg_N_L, assumed_pH)
 
 # field duplicates
@@ -100,7 +100,7 @@ aq400_field_dups <- aq400_field_dups %>%
   dplyr::rename(oPhos_ug_P_L = mean_ophos,
                 nitrate_mg_N_L = mean_nitrate,
                 ammonium_mg_N_L = mean_amm) %>% 
-  select(site_reach, site, reach, field_date, oPhos_ug_P_L, nitrate_mg_N_L,
+  select(site_reach, field_date, oPhos_ug_P_L, nitrate_mg_N_L,
          ammonium_mg_N_L, assumed_pH)
 
 # merging together data frames
@@ -108,15 +108,14 @@ nutrients <- rbind(nutrients, aq400_field_dups, aq400_instrument_dups)
 
 # join with field parameters
 water_chemistry <- left_join(field_params, nutrients, by = c("field_date",
-                                                                "site_reach",
-                                                                "site", "reach"))
+                                                                "site_reach"))
 
 #### (3) Processing Shimadzu data ####
 
 ## (a) analyzing field duplicates
 shimadzu_field_dups <- shimadzu %>%
   filter(field_duplicate == "y") %>% 
-  dplyr::group_by(site_reach, site, reach, field_date) %>% 
+  dplyr::group_by(site_reach, field_date) %>% 
   dplyr::summarize(mean_TDC = mean(TDC_mg_L),
                    sd_TDC = sd(TDC_mg_L),
                    rsd_TDC = sd_TDC * 100 / mean_TDC,
@@ -134,21 +133,20 @@ mean(shimadzu_field_dups$rsd_DOC) # average 25.07%
 # original data that does not contain duplicates
 carbon <- shimadzu %>% 
   filter(field_duplicate == "n") %>% 
-  select(site_reach, site, reach, field_date, TDC_mg_L, DOC_mg_L)
+  select(site_reach, field_date, TDC_mg_L, DOC_mg_L)
 
 # field duplicates
 shimadzu_field_dups <- shimadzu_field_dups %>% 
   dplyr::rename(TDC_mg_L = mean_TDC,
                 DOC_mg_L = mean_DOC) %>% 
-  select(site_reach, site, reach, field_date, TDC_mg_L, DOC_mg_L)
+  select(site_reach, field_date, TDC_mg_L, DOC_mg_L)
 
 # merging together data frames
 carbon <- rbind(carbon, shimadzu_field_dups)
 
 # join with water chemistry
 water_chemistry <- left_join(water_chemistry, carbon, by = c("field_date",
-                                                             "site_reach",
-                                                             "site", "reach"))
+                                                             "site_reach"))
 
 #### (4) Processing IC data ####
 
@@ -162,7 +160,7 @@ view(IC_field_dups)
 
 # average out duplicates
 IC_field_dups <- IC_field_dups %>% 
-  dplyr::group_by(field_date, site_reach, site, reach) %>% 
+  dplyr::group_by(field_date, site_reach) %>% 
   dplyr::summarize(Cl_mg_L = mean(Cl_mg_L),
                    SO4_mg_L = mean(SO4_mg_L),
                    Br_mg_L = mean(Br_mg_L),
@@ -181,8 +179,7 @@ anions_cations <- rbind(anions_cations, IC_field_dups)
 
 # join with water chemistry
 water_chemistry <- left_join(water_chemistry, anions_cations, by = c("field_date",
-                                                             "site_reach",
-                                                             "site", "reach"))
+                                                             "site_reach"))
 
 # save csv
 write.csv(water_chemistry, "./data/field_and_lab/water_chemistry.csv", row.names = FALSE)
