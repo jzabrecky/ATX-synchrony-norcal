@@ -1,9 +1,12 @@
 #### standardizing and normalizing data for predictive moels
 ### Jordan Zabrecky
-## last edited: 03.11.2025
+## last edited: 04.25.2025
 
 # This script standardizes (and, in some cases, normalizes) South Fork
 # Eel 2023 data before predictive modeling
+
+## CAN MAYBE REMOVE STANDARDIZED COLUMN WHEN WE DECIDE FOR SURE NOT TO 
+## DO THAT :)
 
 #### (1) Loading data and libraries ####
 
@@ -15,6 +18,13 @@ data <- read.csv("./data/field_and_lab/sfkeel23_combined.csv") %>%
   mutate(field_date = ymd(field_date))
 
 #### (2) Prepping data for modeling ####
+
+# making column that is dissolved inorganic nitrogen (DIN)
+# which is ammonium, nitrate, and nitrite to reduce number of covariates
+# we are assuming amount of nitrite is low
+data <- data %>% 
+  mutate(DIN_mg_N_L = ammonium_mg_N_L + nitrate_mg_N_L) %>% 
+  relocate(DIN_mg_N_L, .after = ammonium_mg_N_L)
 
 # new dataframe for standardizing covariates
 data_cov <- data %>%  # remove columns that won't be used as covariates
@@ -33,7 +43,7 @@ data_cov[,c(4:ncol(data_cov))] <- apply(data_cov[,c(4:ncol(data_cov))], MARGIN =
 
 #### (3) Prepping response for modeling ####
 
-## (a) Cover
+## (a) Cover (Quadrat)
 
 # get max for each reach
 max_cover <- data %>% 
@@ -65,7 +75,39 @@ cover_rsp <- cover_rsp %>%
   select(field_date, site_reach, site, resp_M_cover_norm, resp_AC_cover_norm, 
          resp_M_cover_stnd, resp_AC_cover_stnd)
 
-## (b) Anatoxins
+## (b) Transects Present
+
+# get max proportion of transects for each reach
+max_pres <- data %>% 
+  dplyr::group_by(site_reach) %>% 
+  dplyr::summarize(max_microcoleus = max(proportion_micro_transects),
+                   max_anacyl = max(proportion_ana_cyl_transects))
+
+# normalizing for max microcoleus and anabaena/cylindrospermum
+pres_rsp <- data %>% 
+  mutate(max_microcoleus = case_when(site_reach == "SFE-M-1S" ~ max_pres$max_microcoleus[1],
+                                     site_reach == "SFE-M-2" ~ max_pres$max_microcoleus[2],
+                                     site_reach == "SFE-M-3" ~ max_pres$max_microcoleus[3],
+                                     site_reach == "SFE-M-4" ~ max_pres$max_microcoleus[4],
+                                     site_reach == "SFE-SH-1S" ~ max_pres$max_microcoleus[5],),
+         max_anacyl = case_when(site_reach == "SFE-M-1S" ~ max_pres$max_anacyl[1],
+                                site_reach == "SFE-M-2" ~ max_pres$max_anacyl[2],
+                                site_reach == "SFE-M-3" ~ max_pres$max_anacyl[3],
+                                site_reach == "SFE-M-4" ~ max_pres$max_anacyl[4],
+                                site_reach == "SFE-SH-1S" ~ max_pres$max_anacyl[5]),
+         resp_M_pres_norm = proportion_micro_transects / max_microcoleus * 100,
+         resp_AC_pres_norm = proportion_ana_cyl_transects / max_anacyl * 100)
+
+# standardize responses
+pres_rsp$resp_M_pres_stnd <- ave(data$proportion_micro_transects, data$site_reach, FUN = scale)
+pres_rsp$resp_AC_pres_stnd <- ave(data$proportion_ana_cyl_transects, data$site_reach, FUN = scale)
+
+# keep response variables only
+pres_rsp <- pres_rsp %>% 
+  select(field_date, site_reach, site, resp_M_pres_norm, resp_AC_pres_norm, 
+         resp_M_pres_stnd, resp_AC_pres_stnd)
+
+## (c) Anatoxins
 
 # modeling with anatoxins normalized to ash-free dry mass % of sample
 
@@ -110,6 +152,7 @@ atx_rsp <- atx_rsp %>%
 
 # left join in responses to standardized covariates
 final <- left_join(data_cov, cover_rsp, by = c("field_date", "site_reach", "site"))
+final <- left_join(final, pres_rsp, by = c("field_date", "site_reach", "site"))
 final <- left_join(final, atx_rsp, by = c("field_date", "site_reach", "site"))
 
 # save csv

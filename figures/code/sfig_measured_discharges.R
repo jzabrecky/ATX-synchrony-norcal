@@ -1,6 +1,6 @@
 #### USGS gage discharge vs. our discharge measurements
 ### Jordan Zabrecky
-## last edited: 02.04.2025
+## last edited: 04.25.2025
 
 # This figure shows that our discharge measurements are in rough accordance 
 # with nearby USGS gage discharge measurements
@@ -54,7 +54,7 @@ USGS_discharge$`SFE-SH` <- USGS_discharge$`SFE-SH` %>%
   dplyr::filter(date_time >= "2023-06-24 00:00:00" & date_time <= "2023-09-28 00:00:00") %>% 
   mutate(site = "SFE-SH")
 
-# combining all into one dataframehttp://127.0.0.1:22675/graphics/plot_zoom_png?width=1168&height=833
+# combining all into one data frame
 discharge_all <- rbind(USGS_discharge$RUS, USGS_discharge$`SFE-M`, USGS_discharge$`SFE-SH`)
 
 # left joining in our discharge measurements
@@ -65,14 +65,13 @@ discharge_all <- left_join(discharge_all, discharge, by = c("date_time", "site")
 # not sure if points need to be indicated that they are measured on plot or text
 figure <- ggplot(data = discharge_all, aes(x = date_time, y = discharge_m3_s.x)) +
   geom_area(fill = "#d9ecff") +
-  geom_point(aes(y = discharge_m3_s.y, fill = site, shape = site, color = site), 
-             size = 6, alpha = 0.95, stroke = 2) +
+  geom_point(aes(y = discharge_m3_s.y, fill = site, shape = site), 
+             color = "black", size = 5, alpha = 0.9, stroke = 1.2) +
   facet_wrap(~site, ncol = 1, scales = "free", 
              labeller = as_labeller(c(`RUS` = "Russian River (RUS)", 
                                       `SFE-M` = "South Fork Eel River at Miranda (SFE-M)",
                                       `SFE-SH` = "South Fork Eel River at Standish Hickey (SFE-SH)"))) +
-  scale_fill_manual(values = c("#bdb000", "#416f16", "#ddf1b0")) +
-  scale_color_manual(values = c("#7d7400", "#32590d", "#afcf69")) +
+  scale_fill_manual(values = c("#bdb000", "#416f16", "#a8ff82")) +
   scale_shape_manual(values = c(24, 22, 23)) +
   labs(x = NULL, y = expression("Discharge (m"^3~"s"^-1*")")) +
   theme_bw() +

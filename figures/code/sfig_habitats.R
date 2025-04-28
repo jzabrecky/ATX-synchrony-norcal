@@ -64,6 +64,14 @@ summarized <- na.omit(summarized)
 
 ##### (3) Making figures ####
 
+# set universal theme for all plots
+theme_set(theme_bw() + theme(legend.position = "right",
+                             panel.grid.minor = element_blank(),
+                             panel.border = element_rect(linewidth = 1.2), axis.ticks = element_line(linewidth = 1.2),
+                             text = element_text(size = 15), axis.ticks.length=unit(.25, "cm"),
+                             axis.text.y = element_text(size = 10), strip.background = element_blank(),
+                             plot.title = element_markdown()))
+
 # need to make month a character
 summarized$month <- as.character(summarized$month)
 
@@ -79,13 +87,25 @@ anacyl_summarized <- summarized %>%
 # microcoleus
 presence_micro <- ggplot(data = micro_summarized, aes(x = month, y = prop_micro_transect, fill = riffle_rapid)) +
   geom_bar(position="stack", stat = "identity") +
-  facet_wrap(~site)
+  scale_x_discrete(labels = c("June", "July", "Aug", "Sept")) +
+  scale_fill_manual("Habitat:", labels = c("Pool or Run", "Riffle or Rapid"),
+                    values = c("#ebdf38", "#62a7f8")) +
+  facet_wrap(~site, labeller =  as_labeller(c(`SAL` = "Salmon River", 
+                                              `SFE-M`= "South Fork Eel River at Miranda",
+                                              `SFE-SH` = "South Fork Eel River at Standish Hickey"))) +
+  labs(x = NULL, y = "Proportion of Transects Present", title = "*Microcoleus* Presence")
 presence_micro
 
 # anabaena/cylindrospermum
 presence_ana <- ggplot(data = anacyl_summarized, aes(x = month, y = prop_anacyl_transect, fill = riffle_rapid)) +
   geom_bar(position="stack", stat = "identity") +
-  facet_wrap(~site)
+  scale_x_discrete(labels = c("June", "July", "Aug", "Sept")) +
+  scale_fill_manual("Habitat:", labels = c("Pool or Run", "Riffle or Rapid"),
+                    values = c("#ebdf38", "#62a7f8")) +
+  facet_wrap(~site, labeller =  as_labeller(c(`RUS` = "Russian River", 
+                                              `SFE-M`= "South Fork Eel River at Miranda",
+                                              `SFE-SH` = "South Fork Eel River at Standish Hickey"))) +
+  labs(x = NULL, y = "Proportion of Transects Present", title = "*Anabaena/Cylindrospermum* Presence")
 presence_ana
 
 # I think that since this presence/absence includes up to ~7.5-m
@@ -97,13 +117,28 @@ presence_ana
 # microcoleus
 quadrat_micro <- ggplot(data = micro_summarized, aes(x = month, y = prop_micro_quadrat, fill = riffle_rapid)) +
   geom_bar(position="stack", stat = "identity") +
-  facet_wrap(~site)
+  scale_x_discrete(labels = c("June", "July", "Aug", "Sept")) +
+  scale_y_continuous(limits = c(0, 0.4)) +
+  scale_fill_manual("Habitat:", labels = c("Pool or Run", "Riffle or Rapid"),
+                    values = c("#ebdf38", "#62a7f8")) +
+  facet_wrap(~site, labeller =  as_labeller(c(`SAL` = "Salmon River", 
+                                              `SFE-M`= "South Fork Eel River at Miranda",
+                                              `SFE-SH` = "South Fork Eel River at Standish Hickey"))) +
+  labs(x = NULL, y = "Proportion of Quadrat Presence", title = "*Microcoleus* Cover")
 quadrat_micro
 
 # anabaena
 quadrat_anacyl <- ggplot(data = anacyl_summarized, aes(x = month, y = prop_anacyl_quadrat, fill = riffle_rapid)) +
   geom_bar(position="stack", stat = "identity") +
-  facet_wrap(~site)
+  scale_x_discrete(labels = c("June", "July", "Aug", "Sept")) +
+  scale_y_continuous(limits = c(0, 0.4)) +
+  scale_fill_manual("Habitat:", labels = c("Pool or Run", "Riffle or Rapid"),
+                    values = c("#ebdf38", "#62a7f8")) +
+  facet_wrap(~site, labeller =  as_labeller(c(`RUS` = "Russian River", 
+                                              `SFE-M`= "South Fork Eel River at Miranda",
+                                              `SFE-SH` = "South Fork Eel River at Standish Hickey"))) +
+  labs(x = NULL, y = "Proportion of Quadrat Presence", title = "*Anabaena/Cylindrospermum* Cover")
 quadrat_anacyl
 
-# NEED TO MAKE PLOTS LOOK NICE AFTER THEMING HAS BEEN DECIDED :)
+# need alternative phrase than proportion of quadrat presence...
+# is quadrat detections what is happening here? REVISIT THIS
