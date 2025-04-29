@@ -8,7 +8,8 @@
 data/GLDAS/
 data/NLDAS/
 data/metab_model_outputs/
-data/predictive_models/Microcoleus_cover_models
+data/predictive_models/M_cover_models
+data/predictive_models/AC_cover_models
 data/EDI_data_package/site_reach_locations.csv
 # cannot publicly release data collected by karuk tribe
 data/karuk_tribe_data
