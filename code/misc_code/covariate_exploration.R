@@ -147,3 +147,17 @@ ggplot(data = norm_data, aes(x = field_date, y = resp_AC_cover_stnd)) +
   geom_point(aes(color = site_reach, shape = site_reach)) +
   geom_line(aes(color = site_reach)) +
   ggtitle("Anabaena/Cylindrospermum (standardized per reach)")
+
+## miscellaneous
+
+# median depth sampled
+ggplot(data = norm_data, aes(x = field_date, y = median_depth_cm_sampled)) +
+  geom_point(aes(color = site_reach, shape = site_reach)) +
+  geom_line(aes(color = site_reach)) +
+  ggtitle("Median Depth Sampled")
+
+# nitrogen fixer cover
+ggplot(data = norm_data, aes(x = field_date, y = other_nfixers)) +
+  geom_point(aes(color = site_reach, shape = site_reach)) +
+  geom_line(aes(color = site_reach)) +
+  ggtitle("Median Depth Sampled")
