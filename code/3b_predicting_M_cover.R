@@ -1,6 +1,6 @@
 #### models to predict cover (truncated norm version)
 ### Jordan Zabrecky
-## last edited: 04.29.2025
+## last edited: 05.04.2025
 
 # This script builds models to predict cover of benthic Microcoleus cover
 # as determined by benthic cover surveys
@@ -87,34 +87,49 @@ names(predictions) <- c("null", "physical", "chemical", "biological", "physicoch
 # biochemical = autoregressive w/ GPP, nutrients, and conductivity
 # all = autoregressive w/ all covariates
 
-# function to calculate nRMSE for all sites
-# takes in model name and predictions dataframe (which includes, in order mean, ci_lower, ci_upper)
-calcnRMSE <- function(model, predictions) {
+# function to calculate mean & 95% confidence interval of predictions from prediction matrix
+preds_summary <- function(preds_matrix) {
   
-  # make new dataframe
-  data <- data.frame(site_reach = names(predictions), # list of test sites
-                     model = rep(model, length(names(predictions))), # model name
-                     mean = rep(NA, length(names(predictions))),
-                     ci_lower = rep(NA, length(names(predictions))),
-                     ci_upper = rep(NA, length(names(predictions)))) # nRMSE mean
+  # creating dataframe of mean and 95% confidence interval
+  y <- data.frame(mean = rep(NA, ncol(preds_matrix)))
+  y$mean <- apply(preds_matrix, 2, mean)
+  y$ci_lower <- apply(preds_matrix, 2, function(x) quantile(x, prob = 0.025))
+  y$ci_upper <- apply(preds_matrix, 2, function(x) quantile(x, prob = 0.975))
   
-  # calculate nRMSE for each reach
-  for(i in 1:length(names(predictions))) {
-    # calculate nRMSE for each type of value
-    for(j in 3:5) {
-    
-      # temporary values for nRMSE calculation
-      observed <- test_sites[[i]]$resp_M_cover_norm[-1]
-      predicted <- predictions[[i]][[j-1]][-1] # minus one because no model name column
-      max <- max(test_sites[[i]]$resp_M_cover_norm[-1])
-      min <- min(test_sites[[i]]$resp_M_cover_norm[-1])
-    
-      # calculate nRMSE (we ignore 1st value as that was not calculated)
-      data[i,j] <- rmse(observed, predicted) / (max - min)
+  return(y)
+}
+
+# function to calculate nRMSE with predicted and observed vectors
+calc_nRMSE <- function(predicted, observed, max, min) {
+  nRMSE <- rmse(observed, predicted) / (max - min)
+}
+
+# calculate mean and 95% confidence interval nRMSE's
+nRMSE_summary <- function(preds_matrix, observed, site_reach_name, model_name) {
+  
+  # get number of predictions and max and min of observed values (should be 0 & 100)
+  n.pred <- length(observed)
+  max <- max(observed[-1])
+  min <- min(observed[-1])
+  
+  # make matrix for RMSE values
+  nRMSE_matrix <- matrix(data = NA, nrow = nrow(preds_matrix), ncol = ncol(preds_matrix))
+                           
+  # fill in nRMSE for each predicted value in the matrix
+  for(j in 2:n.pred){
+    for(i in 1:length(params$sigma)) {
+      nRMSE_matrix[i,j-1] <- calc_nRMSE(observed[j], preds_matrix[i,j-1], max, min)
     }
   }
+
+  # creating dataframe for nRMSE 
+  nRMSE <- data.frame(site_reach = site_reach_name,
+                      model = model_name)
+  nRMSE$mean <- mean(nRMSE_matrix)
+  nRMSE$ci_lower <- quantile(nRMSE_matrix, prob = 0.025)
+  nRMSE$ci_upper <- quantile(nRMSE_matrix, prob = 0.975)
   
-  return(data)
+  return(nRMSE)
 }
 
 #### (4) Predicting Microcoleus Cover ####
@@ -134,8 +149,18 @@ for(i in 1:length(test_sites)) {
   predictions$null[[i]]$ci_upper <- rep(mean_cover, nrow(predictions$null[[i]]))
 }
 
-# calculate nRMSE using function
-nrmse <- rbind(nrmse, calcnRMSE("null", predictions$null))
+# calculate nRMSE 
+for(i in 1:length(test_sites)) {
+  new <- data.frame(site_reach = names(test_sites)[i],
+                    model = "null")
+  new$mean <- calc_nRMSE(predictions$null[[i]]$mean[-1], test_sites[[i]]$resp_M_cover_norm[-1],
+                         max(test_sites[[i]]$resp_M_cover_norm[-1]), min(test_sites[[i]]$resp_M_cover_norm[-1]))
+  new$ci_lower <- calc_nRMSE(predictions$null[[i]]$ci_lower[-1], test_sites[[i]]$resp_M_cover_norm[-1],
+                             max(test_sites[[i]]$resp_M_cover_norm[-1]), min(test_sites[[i]]$resp_M_cover_norm[-1]))
+  new$ci_upper <- calc_nRMSE(predictions$null[[i]]$ci_upper[-1], test_sites[[i]]$resp_M_cover_norm[-1],
+                             max(test_sites[[i]]$resp_M_cover_norm[-1]), min(test_sites[[i]]$resp_M_cover_norm[-1]))
+  nrmse <- rbind(nrmse, new)
+}
 
 ## (b) physical (discharge + temp)
 
@@ -157,13 +182,14 @@ for(i in 1:length(training_sites)) {
   params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3"))
   rownames(physical_param_est) <- rownames(get_posterior_mean(model))
   physical_param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
-  predictions$physical[[i]] <- preds_physical(params, y = predictions$physical[[i]],
-                                              dis = test_sites[[i]]$discharge_m3_s,
-                                              temp = test_sites[[i]]$temp_C)
+  preds_matrix <- preds_physical(params, y = predictions$physical[[i]],
+                                 dis = test_sites[[i]]$discharge_m3_s,
+                                 temp = test_sites[[i]]$temp_C)
+  predictions$physical[[i]][-1,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$resp_M_cover_norm,
+                 site_reach_name = names(test_sites)[i],
+                 model_name = "physical")) # calculate nRMSE
 }
-
-# add nrmse for model predictions to table
-nrmse <- rbind(nrmse, calcnRMSE("physical", predictions$physical))
 
 # looking at how parameter estimates change across all models
 view(physical_param_est)
@@ -195,14 +221,15 @@ for(i in 1:length(training_sites)) {
   params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3", "b4"))
   rownames(chemical_param_est) <- rownames(get_posterior_mean(model))
   chemical_param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
-  predictions$chemical[[i]] <- preds_chemical(params, y = predictions$chemical[[i]],
-                                              din = test_sites[[i]]$DIN_mg_N_L,
-                                              ophos = test_sites[[i]]$oPhos_ug_P_L,
-                                              cond = test_sites[[i]]$cond_uS_cm)
+  preds_matrix <- preds_chemical(params, y = predictions$chemical[[i]],
+                                 din = test_sites[[i]]$DIN_mg_N_L,
+                                 ophos = test_sites[[i]]$oPhos_ug_P_L,
+                                 cond = test_sites[[i]]$cond_uS_cm)
+  predictions$chemical[[i]][-1,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$resp_M_cover_norm,
+                                      site_reach_name = names(test_sites)[i],
+                                      model_name = "chemical")) # calculate nRMSE
 }
-
-# add nrmse for model predictions to table
-nrmse <- rbind(nrmse, calcnRMSE("chemical", predictions$chemical))
 
 # looking at how parameter estimates change across all models
 view(chemical_param_est)
@@ -233,12 +260,13 @@ for(i in 1:length(training_sites)) {
   params <- rstan::extract(model, c("sigma", "b0", "b1", "b2"))
   rownames(biological_param_est) <- rownames(get_posterior_mean(model))
   biological_param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
-  predictions$biological[[i]] <- preds_biological(params, y = predictions$biological[[i]],
-                                                  GPP = test_sites[[i]]$GPP_median_fourdaysprior)
+  preds_matrix <- preds_biological(params, y = predictions$biological[[i]],
+                                   GPP = test_sites[[i]]$GPP_median_fourdaysprior)
+  predictions$biological[[i]][-1,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$resp_M_cover_norm,
+                                      site_reach_name = names(test_sites)[i],
+                                      model_name = "biological")) # calculate nRMSE
 }
-
-# add nrmse for model predictions to table
-nrmse <- rbind(nrmse, calcnRMSE("biological", predictions$biological))
 
 # looking at how parameter estimates change across all models
 view(biological_param_est)
@@ -271,17 +299,17 @@ for(i in 1:length(training_sites)) {
   params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3", "b4", "b5", "b6"))
   rownames(physicochemical_param_est) <- rownames(get_posterior_mean(model))
   physicochemical_param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
-  predictions$physicochemical[[i]] <- preds_physicochemical(params, 
-                                                            y = predictions$physicochemical[[i]],
-                                                            dis = test_sites[[i]]$discharge_m3_s,
-                                                            temp = test_sites[[i]]$temp_C,
-                                                            din = test_sites[[i]]$DIN_mg_N_L,
-                                                            ophos = test_sites[[i]]$oPhos_ug_P_L,
-                                                            cond = test_sites[[i]]$cond_uS_cm)
+  preds_matrix <- preds_physicochemical(params, y = predictions$physicochemical[[i]],
+                                        dis = test_sites[[i]]$discharge_m3_s,
+                                        temp = test_sites[[i]]$temp_C,
+                                        din = test_sites[[i]]$DIN_mg_N_L,
+                                        ophos = test_sites[[i]]$oPhos_ug_P_L,
+                                        cond = test_sites[[i]]$cond_uS_cm)
+  predictions$physicochemical[[i]][-1,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$resp_M_cover_norm,
+                                      site_reach_name = names(test_sites)[i],
+                                      model_name = "physicochemical")) # calculate nRMSE
 }
-
-# add nrmse for model predictions to table
-nrmse <- rbind(nrmse, calcnRMSE("physicochemical", predictions$physicochemical))
 
 # looking at how parameter estimates change across all models
 view(physicochemical_param_est)
@@ -316,15 +344,15 @@ for(i in 1:length(training_sites)) {
   params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3", "b4"))
   rownames(ecohydrological_param_est) <- rownames(get_posterior_mean(model))
   ecohydrological_param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
-  predictions$ecohydrological[[i]] <- preds_ecohydrological(params, 
-                                                            y = predictions$ecohydrological[[i]],
-                                                            dis = test_sites[[i]]$discharge_m3_s,
-                                                            temp = test_sites[[i]]$temp_C,
-                                                            GPP = test_sites[[i]]$GPP_median_fourdaysprior)
+  preds_matrix <- preds_ecohydrological(params, y = predictions$ecohydrological[[i]],
+                                        dis = test_sites[[i]]$discharge_m3_s,
+                                        temp = test_sites[[i]]$temp_C,
+                                        GPP = test_sites[[i]]$GPP_median_fourdaysprior)
+  predictions$ecohydrological[[i]][-1,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$resp_M_cover_norm,
+                                      site_reach_name = names(test_sites)[i],
+                                      model_name = "ecohydrological")) # calculate nRMSE
 }
-
-# add nrmse for model predictions to table
-nrmse <- rbind(nrmse, calcnRMSE("ecohydrological", predictions$ecohydrological))
 
 # looking at how parameter estimates change across all models
 view(ecohydrological_param_est)
@@ -358,15 +386,16 @@ for(i in 1:length(training_sites)) {
   params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3", "b4", "b5"))
   rownames(biochemical_param_est) <- rownames(get_posterior_mean(model))
   biochemical_param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
-  predictions$biochemical[[i]] <- preds_biochemical(params, y = predictions$biochemical[[i]],
-                                                    din = test_sites[[i]]$DIN_mg_N_L,
-                                                    ophos = test_sites[[i]]$oPhos_ug_P_L,
-                                                    cond = test_sites[[i]]$cond_uS_cm,
-                                                    GPP = test_sites[[i]]$GPP_median_fourdaysprior)
+  preds_matrix <- preds_biochemical(params, y = predictions$biochemical[[i]],
+                                    din = test_sites[[i]]$DIN_mg_N_L,
+                                    ophos = test_sites[[i]]$oPhos_ug_P_L,
+                                    cond = test_sites[[i]]$cond_uS_cm,
+                                    GPP = test_sites[[i]]$GPP_median_fourdaysprior)
+  predictions$biochemical[[i]][-1,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$resp_M_cover_norm,
+                                      site_reach_name = names(test_sites)[i],
+                                      model_name = "biochemical")) # calculate nRMSE
 }
-
-# add nrmse for model predictions to table
-nrmse <- rbind(nrmse, calcnRMSE("biochemical", predictions$biochemical))
 
 # looking at how parameter estimates change across all models
 view(biochemical_param_est)
@@ -403,17 +432,18 @@ for(i in 1:length(training_sites)) {
   params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3", "b4", "b5", "b6", "b7"))
   rownames(all_param_est) <- rownames(get_posterior_mean(model))
   all_param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
-  predictions$all[[i]] <- preds_all(params, y = predictions$all[[i]],
-                                    dis = test_sites[[i]]$discharge_m3_s,
-                                    temp = test_sites[[i]]$temp_C,
-                                    din = test_sites[[i]]$DIN_mg_N_L,
-                                    ophos = test_sites[[i]]$oPhos_ug_P_L,
-                                    cond = test_sites[[i]]$cond_uS_cm,
-                                    GPP = test_sites[[i]]$GPP_median_fourdaysprior)
+  preds_matrix <- preds_all(params, y = predictions$all[[i]],
+                            dis = test_sites[[i]]$discharge_m3_s,
+                            temp = test_sites[[i]]$temp_C,
+                            din = test_sites[[i]]$DIN_mg_N_L,
+                            ophos = test_sites[[i]]$oPhos_ug_P_L,
+                            cond = test_sites[[i]]$cond_uS_cm,
+                            GPP = test_sites[[i]]$GPP_median_fourdaysprior)
+  predictions$all[[i]][-1,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$resp_M_cover_norm,
+                                      site_reach_name = names(test_sites)[i],
+                                      model_name = "all")) # calculate nRMSE 
 }
-
-# add nrmse for model predictions to table
-nrmse <- rbind(nrmse, calcnRMSE("all", predictions$all))
 
 # looking at how parameter estimates change across all models
 view(all_param_est)
