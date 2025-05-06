@@ -2,6 +2,7 @@ data {
   int<lower=0> N; // number of visits to each site reach
   // normalized % cover or anatoxins (bounded 0 to 100)
   array[N] real<lower=0, upper=100> y; 
+  vector[N] cover; // standardized cover
   vector[N] din; // standardized DIN in water column
   vector[N] ophos; // standardized orthophosphate in water column
   vector[N] cond; // standardized conductivity in water column

@@ -26,7 +26,7 @@ parameters {
 // autoregressive model with covariates
 model {
   for(i in 2:N) {
-   y[i] ~ normal(b0 + b1*y[i-1] + b2*cover[i] b3*dis[i] + b4*temp[i] 
+   y[i] ~ normal(b0 + b1*y[i-1] + b2*cover[i] + b3*dis[i] + b4*temp[i] 
    + b5*din[i] + b6*ophos[i] + b7*cond[i], sigma);
   }
 

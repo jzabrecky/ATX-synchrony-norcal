@@ -3,7 +3,7 @@
 ## last edited: 05.05.2025
 
 # This script builds models to predict anatoxin concentrations of Microcoleus mats
-# without using Microcoleus cover as a covariate
+# using Microcoleus cover as a covariate
 
 #### (1) Loading data and libraries ####
 
@@ -47,8 +47,9 @@ nrmse <- data.frame(site_reach = NA,
                     ci_upper = NA)
 
 # empty dataframes for predictions (list of model types and then list within per reach)
-model_names <- c("null", "physical", "chemical", "biological", "physicochemical",
-                 "ecohydrological", "biochemical", "all")
+model_names <- c("null", "w_cover", "physical_w_cover", "chemical_w_cover", "biological_w_cover", 
+                 "physicochemical_w_cover", "ecohydrological_w_cover", "biochemical_w_cover",
+                 "all_w_cover")
 predictions <- list() # empty list
 for(j in 1:length(model_names)) {
   # for each model (j) create a list for each reach (i)
@@ -66,13 +67,14 @@ names(predictions) <- model_names
 
 # model names cheat sheet:
 # null = average of all across time
-# physical = autoregressive w/ temperature and flow
-# chemical = autoregressive w/ nutrients and conductivity
-# biological = autoregressive w/ GPP
-# physicochemical = autoregressive w/ temperature, flow, nutrients, and conductivity
-# ecohydrological = autoregressive w/ temperature, flow, and GPP
-# biochemical = autoregressive w/ GPP, nutrients, and conductivity
-# all = autoregressive w/ all covariates
+# w/ cover = autoregressive w/ cover
+# physical w/ cover = autoregressive w/ cover + temperature and flow
+# chemical w/ cover = autoregressive w/ cover + nutrients and conductivity
+# biological w/ cover = autoregressive w/ cover + GPP
+# physicochemical w/ cover = autoregressive w/ cover + temperature, flow, nutrients, and conductivity
+# ecohydrological w/ cover = autoregressive w/ cover + temperature, flow, and GPP
+# biochemical w/ cover = autoregressive w/ cover + GPP, nutrients, and conductivity
+# all w/ cover = autoregressive w/ cover + all covariates
 
 # function to calculate mean & 95% confidence interval of predictions from prediction matrix
 preds_summary <- function(preds_matrix) {
@@ -124,7 +126,7 @@ nRMSE_summary <- function(preds_matrix, observed, site_reach_name, model_name) {
 # get prediction functions
 source("./code/supplemental_code/S3b_pred_functions.R")
 
-## (a) null - mean of all cover data
+## (a) null - mean of all cover data (repeat of what we did before but for plotting)
 
 # calculate mean (ignoring first day which are all zeros)
 mean_atx <- sum(data$resp_M_atx_norm) / (nrow(data) - length(test_sites))
@@ -149,306 +151,362 @@ for(i in 1:length(test_sites)) {
   nrmse <- rbind(nrmse, new)
 }
 
-## (b) physical (discharge + temp)
+## (b) cover only (cover)
 
 # empty list to save parameter estimates for each model
-physical_param_est <- data.frame(matrix(NA, nrow = 6, ncol = 5))
+cover_param_est <- data.frame(matrix(NA, nrow = 5, ncol = 5))
+colnames(cover_param_est) <- names(test_sites)
+
+# generate predictions for each site
+for(i in 1:length(training_sites)) {
+  mod_data <- list(N = nrow(training_sites[[i]]), 
+                   y = training_sites[[i]]$resp_M_atx_norm,
+                   cover = training_sites[[i]]$microcoleus)
+  model <- stan(file = "./code/model_STAN_files/normalized_w_cover.stan", 
+                data = mod_data,
+                chains = 3, iter = 2000, warmup = 1000)
+  saveRDS(model, paste("./data/predictive_models/M_atx_models/w_cover_", 
+                       names(test_sites)[i], sep = ""))
+  params <- rstan::extract(model, c("sigma", "b0", "b1", "b2"))
+  rownames(cover_param_est) <- rownames(get_posterior_mean(model))
+  cover_param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
+  preds_matrix <- preds_w_cover(params, y = predictions$physical[[i]],
+                                cover = test_sites[[i]]$resp_M_cover_stnd)
+  predictions$w_cover[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$microcoleus,
+                                      site_reach_name = names(test_sites)[i],
+                                      model_name = "w_cover")) # calculate nRMSE
+}
+
+# looking at how parameter estimates change across all models
+view(cover_param_est)
+# ranges:
+# b0 / intercept: 9.1, 11.5
+# b1 / autoregressive: 0.41, 0.59
+# b2 / cover: 5.2, 11.2
+# sigma: 23.7, 25.4
+
+## (c) physical (discharge + temp)
+
+# empty list to save parameter estimates for each model
+physical_param_est <- data.frame(matrix(NA, nrow = 7, ncol = 5))
 colnames(physical_param_est) <- names(test_sites)
 
 # generate predictions for each site
 for(i in 1:length(training_sites)) {
   mod_data <- list(N = nrow(training_sites[[i]]), 
                    y = training_sites[[i]]$resp_M_atx_norm,
+                   cover = training_sites[[i]]$microcoleus,
                    dis = training_sites[[i]]$discharge_m3_s,
                    temp = training_sites[[i]]$temp_C)
-  model <- stan(file = "./code/model_STAN_files/normalized_physical.stan", 
+  model <- stan(file = "./code/model_STAN_files/normalized_physical_w_cover.stan", 
                 data = mod_data,
                 chains = 3, iter = 2000, warmup = 1000)
-  saveRDS(model, paste("./data/predictive_models/M_atx_models/physical_", 
+  saveRDS(model, paste("./data/predictive_models/M_atx_models/physical_w_cover_", 
                        names(test_sites)[i], sep = ""))
-  params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3"))
+  params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3", "b4"))
   rownames(physical_param_est) <- rownames(get_posterior_mean(model))
   physical_param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
-  preds_matrix <- preds_physical(params, y = predictions$physical[[i]],
-                                 dis = test_sites[[i]]$discharge_m3_s,
-                                 temp = test_sites[[i]]$temp_C)
-  predictions$physical[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
-  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$resp_M_atx_norm,
+  preds_matrix <- preds_physical_w_cover(params, y = predictions$physical[[i]],
+                                         cover = test_sites[[i]]$resp_M_cover_stnd,
+                                         dis = test_sites[[i]]$discharge_m3_s,
+                                         temp = test_sites[[i]]$temp_C)
+  predictions$physical_w_cover[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$microcoleus,
                                       site_reach_name = names(test_sites)[i],
-                                      model_name = "physical")) # calculate nRMSE
+                                      model_name = "physical_w_cover")) # calculate nRMSE
 }
 
 # looking at how parameter estimates change across all models
 view(physical_param_est)
 # ranges:
-# b0 / intercept: 9.1, 10.4
-# b1 / autoregressive: 0.43, 0.57
-# b2 / discharge: -12.2, -8.5
-# b3 / temperature: -1.7, 0.19
-# sigma: 22.2, 25.2
+# b0 / intercept: 9.8, 11.5
+# b1 / autoregressive: 0.40, 0.53
+# b2 / cover: -1.2, 7.0
+# b3 / discharge: -13.0, -7.7
+# b4 / temperature: -1.2, 0.7
+# sigma: 22.3, 25.4
 
-## (c) chemical (DIN + ophos + cond)
+## (d) chemical (DIN + ophos + cond)
 
 # empty list to save parameter estimates for each model
-chemical_param_est <- data.frame(matrix(NA, nrow = 7, ncol = 5))
+chemical_param_est <- data.frame(matrix(NA, nrow = 8, ncol = 5))
 colnames(chemical_param_est) <- names(test_sites)
 
 # generate predictions for each site
 for(i in 1:length(training_sites)) {
   mod_data <- list(N = nrow(training_sites[[i]]), 
                    y = training_sites[[i]]$resp_M_atx_norm,
+                   cover = training_sites[[i]]$microcoleus,
                    din = training_sites[[i]]$DIN_mg_N_L,
                    ophos = training_sites[[i]]$oPhos_ug_P_L,
                    cond = training_sites[[i]]$cond_uS_cm)
-  model <- stan(file = "./code/model_STAN_files/normalized_chemical.stan", 
+  model <- stan(file = "./code/model_STAN_files/normalized_chemical_w_cover.stan", 
                 data = mod_data,
                 chains = 3, iter = 2000, warmup = 1000)
-  saveRDS(model, paste("./data/predictive_models/M_atx_models/chemical_", 
+  saveRDS(model, paste("./data/predictive_models/M_atx_models/chemical_w_cover_", 
                        names(test_sites)[i], sep = ""))
-  params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3", "b4"))
+  params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3", "b4", "b5"))
   rownames(chemical_param_est) <- rownames(get_posterior_mean(model))
   chemical_param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
-  preds_matrix <- preds_chemical(params, y = predictions$chemical[[i]],
-                                 din = test_sites[[i]]$DIN_mg_N_L,
-                                 ophos = test_sites[[i]]$oPhos_ug_P_L,
-                                 cond = test_sites[[i]]$cond_uS_cm)
-  predictions$chemical[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  preds_matrix <- preds_chemical_w_cover(params, y = predictions$chemical[[i]],
+                                         cover = test_sites[[i]]$microcoleus,
+                                         din = test_sites[[i]]$DIN_mg_N_L,
+                                         ophos = test_sites[[i]]$oPhos_ug_P_L,
+                                         cond = test_sites[[i]]$cond_uS_cm)
+  predictions$chemical_w_cover[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
   nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$resp_M_atx_norm,
                                       site_reach_name = names(test_sites)[i],
-                                      model_name = "chemical")) # calculate nRMSE
+                                      model_name = "chemical_w_cover")) # calculate nRMSE
 }
 
 # looking at how parameter estimates change across all models
 view(chemical_param_est)
 # ranges:
-# b0 / intercept: 11.6, 14.1
-# b1 / autoregressive: 0.32, 0.42
-# b2 / DIN: -1.3, 4.2
-# b3 / ophos: -1.4, 4.8
-# b4 / cond: 11.5, 14.4
+# b0 / intercept: 12.3, 13.3
+# b1 / autoregressive: 0.34, 0.44
+# b2 / cover: -3.2, 5.6
+# b3 / DIN: 1.2, 4.2
+# b4 / ophos: -1.3, 5.1
+# b5 / cond: 10.6, 14.5
 # sigma: 20.5, 24.1
 
-## (d) biological (GPP)
+## (e) biological (GPP)
 
 # empty list to save parameter estimates for each model
-biological_param_est <- data.frame(matrix(NA, nrow = 5, ncol = 5))
+biological_param_est <- data.frame(matrix(NA, nrow = 6, ncol = 5))
 colnames(biological_param_est) <- names(test_sites)
 
 # generate predictions for each site
 for(i in 1:length(training_sites)) {
   mod_data <- list(N = nrow(training_sites[[i]]), 
                    y = training_sites[[i]]$resp_M_atx_norm,
+                   cover = training_sites[[i]]$microcoleus,
                    GPP = training_sites[[i]]$GPP_median_fourdaysprior)
-  model <- stan(file = "./code/model_STAN_files/normalized_biological.stan", 
+  model <- stan(file = "./code/model_STAN_files/normalized_biological_w_cover.stan", 
                 data = mod_data,
                 chains = 3, iter = 2000, warmup = 1000)
-  saveRDS(model, paste("./data/predictive_models/M_atx_models/biological_", 
+  saveRDS(model, paste("./data/predictive_models/M_atx_models/biological_w_cover_", 
                        names(test_sites)[i], sep = ""))
-  params <- rstan::extract(model, c("sigma", "b0", "b1", "b2"))
+  params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3"))
   rownames(biological_param_est) <- rownames(get_posterior_mean(model))
   biological_param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
-  preds_matrix <- preds_biological(params, y = predictions$biological[[i]],
-                                   GPP = test_sites[[i]]$GPP_median_fourdaysprior)
-  predictions$biological[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  preds_matrix <- preds_biological_w_cover(params, y = predictions$biological[[i]],
+                                           cover = test_sites[[i]]$microcoleus,
+                                           GPP = test_sites[[i]]$GPP_median_fourdaysprior)
+  predictions$biological_w_cover[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
   nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$resp_M_atx_norm,
                                       site_reach_name = names(test_sites)[i],
-                                      model_name = "biological")) # calculate nRMSE
+                                      model_name = "biological_w_cover")) # calculate nRMSE
 }
 
 # looking at how parameter estimates change across all models
 view(biological_param_est)
 # ranges:
-# b0 / intercept: 7.1, 9.5
-# b1 / autoregressive: 0.52, 0.69
-# b2 / GPP: -3.6, 2.2
-# sigma: 24.1, 26.7
+# b0 / intercept: 8.5, 12
+# b1 / autoregressive: 0.38, 0.65
+# b2 / cover: 6.5, 10.9
+# b2 / GPP: -1.8, 4.8
+# sigma: 23.7, 26.4
 
-## (e) physicochemical (discharge + temp + DIN + ophos + cond)
+## (f) physicochemical (discharge + temp + DIN + ophos + cond)
 
 # empty list to save parameter estimates for each model
-physicochemical_param_est <- data.frame(matrix(NA, nrow = 9, ncol = 5))
+physicochemical_param_est <- data.frame(matrix(NA, nrow = 10, ncol = 5))
 colnames(physicochemical_param_est) <- names(test_sites)
 
 # generate predictions for each site
 for(i in 1:length(training_sites)) {
   mod_data <- list(N = nrow(training_sites[[i]]), 
                    y = training_sites[[i]]$resp_M_atx_norm,
+                   cover = training_sites[[i]]$microcoleus,
                    dis = training_sites[[i]]$discharge_m3_s,
                    temp = training_sites[[i]]$temp_C,
                    din = training_sites[[i]]$DIN_mg_N_L,
                    ophos = training_sites[[i]]$oPhos_ug_P_L,
                    cond = training_sites[[i]]$cond_uS_cm)
-  model <- stan(file = "./code/model_STAN_files/normalized_physicochemical.stan", 
+  model <- stan(file = "./code/model_STAN_files/normalized_physicochemical_w_cover.stan", 
                 data = mod_data,
                 chains = 3, iter = 2000, warmup = 1000)
-  saveRDS(model, paste("./data/predictive_models/M_atx_models/physicochemical_", 
+  saveRDS(model, paste("./data/predictive_models/M_atx_models/physicochemical_w_cover_", 
                        names(test_sites)[i], sep = ""))
-  params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3", "b4", "b5", "b6"))
+  params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3", "b4", "b5", "b6", "b7"))
   rownames(physicochemical_param_est) <- rownames(get_posterior_mean(model))
   physicochemical_param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
-  preds_matrix <- preds_physicochemical(params, y = predictions$physicochemical[[i]],
-                                        dis = test_sites[[i]]$discharge_m3_s,
-                                        temp = test_sites[[i]]$temp_C,
-                                        din = test_sites[[i]]$DIN_mg_N_L,
-                                        ophos = test_sites[[i]]$oPhos_ug_P_L,
-                                        cond = test_sites[[i]]$cond_uS_cm)
-  predictions$physicochemical[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  preds_matrix <- preds_physicochemical_w_cover(params, y = predictions$physicochemical[[i]],
+                                                cover = test_sites[[i]]$microcoleus,
+                                                dis = test_sites[[i]]$discharge_m3_s,
+                                                temp = test_sites[[i]]$temp_C,
+                                                din = test_sites[[i]]$DIN_mg_N_L,
+                                                ophos = test_sites[[i]]$oPhos_ug_P_L,
+                                                cond = test_sites[[i]]$cond_uS_cm)
+  predictions$physicochemical_w_cover[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
   nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$resp_M_atx_norm,
                                       site_reach_name = names(test_sites)[i],
-                                      model_name = "physicochemical")) # calculate nRMSE
+                                      model_name = "physicochemical_w_cover")) # calculate nRMSE
 }
 
 # looking at how parameter estimates change across all models
 view(physicochemical_param_est)
 # ranges:
-# b0 / intercept: 10.9, 13.5
-# b1 / autoregressive: 0.36, 0.46
-# b2 / discharge: -8.4, -1.4
-# b3 / temperature: 0.95, 3.3
-# b4 / DIN: 2.8, 8.4
-# b5 / ophos: -0.4, 6.9
-# b6 / cond: 2.2, 11.6
-# sigma: 20.6, 24.1
+# b0 / intercept: 11.2, 13.1
+# b1 / autoregressive: 0.36, 0.45
+# b2 / cover: -6.23, 4.7
+# b3 / discharge: -8.8, -2.0
+# b4 / temperature: -1.0, 3.4
+# b5 / DIN: 2.8, 8.5
+# b6 / ophos: -0.5, 7.1
+# b7 / cond: 2.2, 12.4
+# sigma: 20.4, 23.9
 
-## (f) ecohydrological (discharge + temp + GPP)
+## (g) ecohydrological (discharge + temp + GPP)
 
 # empty list to save parameter estimates for each model
-ecohydrological_param_est <- data.frame(matrix(NA, nrow = 7, ncol = 5))
+ecohydrological_param_est <- data.frame(matrix(NA, nrow = 8, ncol = 5))
 colnames(ecohydrological_param_est) <- names(test_sites)
 
 # generate predictions for each site
 for(i in 1:length(training_sites)) {
   mod_data <- list(N = nrow(training_sites[[i]]), 
                    y = training_sites[[i]]$resp_M_atx_norm,
+                   cover = training_sites[[i]]$microcoleus,
                    dis = training_sites[[i]]$discharge_m3_s,
                    temp = training_sites[[i]]$temp_C,
                    GPP = training_sites[[i]]$GPP_median_fourdaysprior)
-  model <- stan(file = "./code/model_STAN_files/normalized_ecohydrological.stan", 
+  model <- stan(file = "./code/model_STAN_files/normalized_ecohydrological_w_cover.stan", 
                 data = mod_data,
                 chains = 3, iter = 2000, warmup = 1000)
-  saveRDS(model, paste("./data/predictive_models/M_atx_models/ecohydrological_", 
+  saveRDS(model, paste("./data/predictive_models/M_atx_models/ecohydrological_w_cover_", 
                        names(test_sites)[i], sep = ""))
-  params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3", "b4"))
+  params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3", "b4", "b5"))
   rownames(ecohydrological_param_est) <- rownames(get_posterior_mean(model))
   ecohydrological_param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
-  preds_matrix <- preds_ecohydrological(params, y = predictions$ecohydrological[[i]],
-                                        dis = test_sites[[i]]$discharge_m3_s,
-                                        temp = test_sites[[i]]$temp_C,
-                                        GPP = test_sites[[i]]$GPP_median_fourdaysprior)
-  predictions$ecohydrological[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  preds_matrix <- preds_ecohydrological_w_cover(params, y = predictions$ecohydrological[[i]],
+                                                cover = test_sites[[i]]$microcoleus,
+                                                dis = test_sites[[i]]$discharge_m3_s,
+                                                temp = test_sites[[i]]$temp_C,
+                                                GPP = test_sites[[i]]$GPP_median_fourdaysprior)
+  predictions$ecohydrological_w_cover[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
   nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$resp_M_atx_norm,
                                       site_reach_name = names(test_sites)[i],
-                                      model_name = "ecohydrological")) # calculate nRMSE
+                                      model_name = "ecohydrological_w_cover")) # calculate nRMSE
 }
 
 # looking at how parameter estimates change across all models
 view(ecohydrological_param_est)
 # ranges:
-# b0 / intercept: 9.1, 10.2
-# b1 / autoregressive: 0.44, 0.57
-# b2 / discharge: -12.3, -9.8
-# b3 / temperature: -2.9, 0.9
-# b4 / GPP: -2.3, 5.7
-# sigma: 22.3, 25.4
+# b0 / intercept: 9.6, 11.4
+# b1 / autoregressive: 0.40, 0.57
+# b2 / cover: -1.0, 6.7
+# b3 / discharge: -12.8, -8.2
+# b4 / temperature: -3.2, 0.2
+# b5 / GPP: -1.2, 6.8
+# sigma: 22.5, 25.7
 
-## (g) biochemical (DIN + ophos + cond + GPP)
+## (h) biochemical (DIN + ophos + cond + GPP)
 
 # empty list to save parameter estimates for each model
-biochemical_param_est <- data.frame(matrix(NA, nrow = 8, ncol = 5))
+biochemical_param_est <- data.frame(matrix(NA, nrow = 9, ncol = 5))
 colnames(biochemical_param_est) <- names(test_sites)
 
 # generate predictions for each site
 for(i in 1:length(training_sites)) {
   mod_data <- list(N = nrow(training_sites[[i]]), 
                    y = training_sites[[i]]$resp_M_atx_norm,
+                   cover = training_sites[[i]]$microcoleus,
                    din = training_sites[[i]]$DIN_mg_N_L,
                    ophos = training_sites[[i]]$oPhos_ug_P_L,
                    cond = training_sites[[i]]$cond_uS_cm,
                    GPP = training_sites[[i]]$GPP_median_fourdaysprior)
-  model <- stan(file = "./code/model_STAN_files/normalized_biochemical.stan", 
+  model <- stan(file = "./code/model_STAN_files/normalized_biochemical_w_cover.stan", 
                 data = mod_data,
                 chains = 3, iter = 2000, warmup = 1000)
-  saveRDS(model, paste("./data/predictive_models/M_atx_models/biochemical_", 
+  saveRDS(model, paste("./data/predictive_models/M_atx_models/biochemical_w_cover_", 
                        names(test_sites)[i], sep = ""))
-  params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3", "b4", "b5"))
+  params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3", "b4", "b5", "b6"))
   rownames(biochemical_param_est) <- rownames(get_posterior_mean(model))
   biochemical_param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
-  preds_matrix <- preds_biochemical(params, y = predictions$biochemical[[i]],
-                                    din = test_sites[[i]]$DIN_mg_N_L,
-                                    ophos = test_sites[[i]]$oPhos_ug_P_L,
-                                    cond = test_sites[[i]]$cond_uS_cm,
-                                    GPP = test_sites[[i]]$GPP_median_fourdaysprior)
-  predictions$biochemical[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  preds_matrix <- preds_biochemical_w_cover(params, y = predictions$biochemical[[i]],
+                                            cover = test_sites[[i]]$microcoleus,
+                                            din = test_sites[[i]]$DIN_mg_N_L,
+                                            ophos = test_sites[[i]]$oPhos_ug_P_L,
+                                            cond = test_sites[[i]]$cond_uS_cm,
+                                            GPP = test_sites[[i]]$GPP_median_fourdaysprior)
+  predictions$biochemical_w_cover[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
   nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$resp_M_atx_norm,
                                       site_reach_name = names(test_sites)[i],
-                                      model_name = "biochemical")) # calculate nRMSE
+                                      model_name = "biochemical_w_cover")) # calculate nRMSE
 }
 
 # looking at how parameter estimates change across all models
 view(biochemical_param_est)
 # ranges:
-# b0 / intercept: 10.9, 12.2
-# b1 / autoregressive: 0.39, 0.49
-# b2 / din: 1.5, 5.2
-# b3 / ophos: 1.1, 6.1
-# b4 / cond: 11.4, 14.3
-# b5 / GPP: 0.69, 6.8
-# sigma: 20.4, 24
+# b0 / intercept: 10.9, 12.3
+# b1 / autoregressive: 0.35, 0.49
+# b2 / cover: -1.8, 5.6
+# b3 / din: 1.7, 5.8
+# b4 / ophos: 1.1, 5.9
+# b5 / cond: 10.4, 12.3
+# b6 / GPP: 1.2, 8.9
+# sigma: 20.6, 23.8
 
-## (h) all (discharge + temp + DIN + ophos + cond + GPP)
+## (i) all (discharge + temp + DIN + ophos + cond + GPP)
 
 # empty list to save parameter estimates for each model
-all_param_est <- data.frame(matrix(NA, nrow = 10, ncol = 5))
+all_param_est <- data.frame(matrix(NA, nrow = 11, ncol = 5))
 colnames(all_param_est) <- names(test_sites)
 
 # generate predictions for each site
 for(i in 1:length(training_sites)) {
   mod_data <- list(N = nrow(training_sites[[i]]), 
                    y = training_sites[[i]]$resp_M_atx_norm,
+                   cover = training_sites[[i]]$microcoleus,
                    dis = training_sites[[i]]$discharge_m3_s,
                    temp = training_sites[[i]]$temp_C,
                    din = training_sites[[i]]$DIN_mg_N_L,
                    ophos = training_sites[[i]]$oPhos_ug_P_L,
                    cond = training_sites[[i]]$cond_uS_cm,
                    GPP = training_sites[[i]]$GPP_median_fourdaysprior)
-  model <- stan(file = "./code/model_STAN_files/normalized_all.stan", 
+  model <- stan(file = "./code/model_STAN_files/normalized_all_w_cover.stan", 
                 data = mod_data,
                 chains = 3, iter = 2000, warmup = 1000)
-  saveRDS(model, paste("./data/predictive_models/M_atx_models/all_", 
+  saveRDS(model, paste("./data/predictive_models/M_atx_models/all_w_cover_", 
                        names(test_sites)[i], sep = ""))
-  params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3", "b4", "b5", "b6", "b7"))
+  params <- rstan::extract(model, c("sigma", "b0", "b1", "b2", "b3", "b4", "b5", "b6", "b7", "b8"))
   rownames(all_param_est) <- rownames(get_posterior_mean(model))
   all_param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
-  preds_matrix <- preds_all(params, y = predictions$all[[i]],
-                            dis = test_sites[[i]]$discharge_m3_s,
-                            temp = test_sites[[i]]$temp_C,
-                            din = test_sites[[i]]$DIN_mg_N_L,
-                            ophos = test_sites[[i]]$oPhos_ug_P_L,
-                            cond = test_sites[[i]]$cond_uS_cm,
-                            GPP = test_sites[[i]]$GPP_median_fourdaysprior)
-  predictions$all[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  preds_matrix <- preds_all_w_cover(params, y = predictions$all[[i]],
+                                    cover = test_sites[[i]]$microcoleus,
+                                    dis = test_sites[[i]]$discharge_m3_s,
+                                    temp = test_sites[[i]]$temp_C,
+                                    din = test_sites[[i]]$DIN_mg_N_L,
+                                    ophos = test_sites[[i]]$oPhos_ug_P_L,
+                                    cond = test_sites[[i]]$cond_uS_cm,
+                                    GPP = test_sites[[i]]$GPP_median_fourdaysprior)
+  predictions$all_w_cover[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
   nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$resp_M_atx_norm,
                                       site_reach_name = names(test_sites)[i],
-                                      model_name = "all")) # calculate nRMSE 
+                                      model_name = "all_w_cover")) # calculate nRMSE 
 }
 
 # looking at how parameter estimates change across all models
 view(all_param_est)
 # ranges:
-# b0 / intercept: 10.8, 12.3
-# b1 / autoregressive: 0.39, 0.48
-# b2 / discharge: -10.1, -3.7
-# b3 / temperature: -2.5, 1.1
-# b4 / din: 2.9, 8.6
-# b5 / ophos: 2.5, 7.9
-# b6 / cond: 1.4, 9.8
-# b7 / GPP: 0.81, 9.8
-# sigma: 20.5, 24.1
+# b0 / intercept: 10.7, 12.5
+# b1 / autoregressive: 0.37, 0.47
+# b2 / cover: -4.8, 4.7
+# b3 / discharge: -9.6, -3.7
+# b4 / temperature: -2.7, 0.6
+# b5 / din: 2.7, 6.8
+# b6 / ophos: 1.7, 7.9
+# b7 / cond: 1.4, 10.1
+# b8 / GPP: 1.1, 11.2
+# sigma: 20.5, 22.4
 
 #### (5) Saving outputs ####
 
 # saving nRMSE table
-write.csv(nrmse %>% na.omit(), "./data/predictive_models/nrmse_M_atx.csv",
+write.csv(nrmse %>% na.omit(), "./data/predictive_models/nrmse_M_atx_w_cover.csv",
           row.names = FALSE)
 
 # adding site_reach and model name information to dataframe
@@ -470,5 +528,5 @@ for(j in 1:length(test_sites)) {
 }
 
 # saving final predictions
-write.csv(final_predictions, "./data/predictive_models/predictions_M_atx.csv",
+write.csv(final_predictions, "./data/predictive_models/predictions_M_atx_w_cover.csv",
           row.names = FALSE)

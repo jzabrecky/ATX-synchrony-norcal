@@ -1,6 +1,6 @@
 #### models to predict cover (truncated norm version)
 ### Jordan Zabrecky
-## last edited: 05.04.2025
+## last edited: 05.05.2025
 
 # This script builds models to predict cover of benthic Microcoleus cover
 # as determined by benthic cover surveys
@@ -67,15 +67,10 @@ for(j in 1:length(model_names)) {
                                         mean = rep(NA, length(test_sites[[i]]$field_date)),
                                         ci_lower = rep(NA, length(test_sites[[i]]$field_date)), # 2.5%; lower bound of 95% interval
                                         ci_upper = rep(NA, length(test_sites[[i]]$field_date))) # 97.5%; upper bound of 95% interval
-    # initialize first spot with 0's
-    predictions[[j]][[i]]$mean[1] = 0
-    predictions[[j]][[i]]$ci_lower[1] = 0
-    predictions[[j]][[i]]$ci_upper[1] = 0
   }
   names(predictions[[j]]) <- names(test_sites)
 }
-names(predictions) <- c("null", "physical", "chemical", "biological", "physicochemical",
-                        "ecohydrological", "biochemical", "all")
+names(predictions) <- model_names
 
 # model names cheat sheet:
 # null = average of all across time
@@ -185,8 +180,8 @@ for(i in 1:length(training_sites)) {
   preds_matrix <- preds_physical(params, y = predictions$physical[[i]],
                                  dis = test_sites[[i]]$discharge_m3_s,
                                  temp = test_sites[[i]]$temp_C)
-  predictions$physical[[i]][-1,2:4] <- preds_summary(preds_matrix) # calculate predictions
-  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$resp_M_cover_norm,
+  predictions$physical[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$resp_M_cover_norm,
                  site_reach_name = names(test_sites)[i],
                  model_name = "physical")) # calculate nRMSE
 }
@@ -225,8 +220,8 @@ for(i in 1:length(training_sites)) {
                                  din = test_sites[[i]]$DIN_mg_N_L,
                                  ophos = test_sites[[i]]$oPhos_ug_P_L,
                                  cond = test_sites[[i]]$cond_uS_cm)
-  predictions$chemical[[i]][-1,2:4] <- preds_summary(preds_matrix) # calculate predictions
-  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$resp_M_cover_norm,
+  predictions$chemical[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$resp_M_cover_norm,
                                       site_reach_name = names(test_sites)[i],
                                       model_name = "chemical")) # calculate nRMSE
 }
@@ -241,7 +236,7 @@ view(chemical_param_est)
 # b4 / cond: 13.9, 16.1
 # sigma: 21.1, 23.8
 
-## (c) biological (GPP)
+## (d) biological (GPP)
 
 # empty list to save parameter estimates for each model
 biological_param_est <- data.frame(matrix(NA, nrow = 5, ncol = 5))
@@ -262,8 +257,8 @@ for(i in 1:length(training_sites)) {
   biological_param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
   preds_matrix <- preds_biological(params, y = predictions$biological[[i]],
                                    GPP = test_sites[[i]]$GPP_median_fourdaysprior)
-  predictions$biological[[i]][-1,2:4] <- preds_summary(preds_matrix) # calculate predictions
-  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$resp_M_cover_norm,
+  predictions$biological[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$resp_M_cover_norm,
                                       site_reach_name = names(test_sites)[i],
                                       model_name = "biological")) # calculate nRMSE
 }
@@ -276,7 +271,7 @@ view(biological_param_est)
 # b2 / GPP: -8.8, -15.7
 # sigma: 22.6, 25.9
 
-## (d) physicochemical (discharge + temp + DIN + ophos + cond)
+## (e) physicochemical (discharge + temp + DIN + ophos + cond)
 
 # empty list to save parameter estimates for each model
 physicochemical_param_est <- data.frame(matrix(NA, nrow = 9, ncol = 5))
@@ -305,8 +300,8 @@ for(i in 1:length(training_sites)) {
                                         din = test_sites[[i]]$DIN_mg_N_L,
                                         ophos = test_sites[[i]]$oPhos_ug_P_L,
                                         cond = test_sites[[i]]$cond_uS_cm)
-  predictions$physicochemical[[i]][-1,2:4] <- preds_summary(preds_matrix) # calculate predictions
-  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$resp_M_cover_norm,
+  predictions$physicochemical[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$resp_M_cover_norm,
                                       site_reach_name = names(test_sites)[i],
                                       model_name = "physicochemical")) # calculate nRMSE
 }
@@ -323,7 +318,7 @@ view(physicochemical_param_est)
 # b6 / cond: -4.1, 0.7 (lot smaller here; looked into it and confirmed it is conductivity...)
 # sigma: 18.1, 22.5
 
-## (e) ecohydrological (discharge + temp + GPP)
+## (f) ecohydrological (discharge + temp + GPP)
 
 # empty list to save parameter estimates for each model
 ecohydrological_param_est <- data.frame(matrix(NA, nrow = 7, ncol = 5))
@@ -348,8 +343,8 @@ for(i in 1:length(training_sites)) {
                                         dis = test_sites[[i]]$discharge_m3_s,
                                         temp = test_sites[[i]]$temp_C,
                                         GPP = test_sites[[i]]$GPP_median_fourdaysprior)
-  predictions$ecohydrological[[i]][-1,2:4] <- preds_summary(preds_matrix) # calculate predictions
-  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$resp_M_cover_norm,
+  predictions$ecohydrological[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$resp_M_cover_norm,
                                       site_reach_name = names(test_sites)[i],
                                       model_name = "ecohydrological")) # calculate nRMSE
 }
@@ -364,7 +359,7 @@ view(ecohydrological_param_est)
 # b4 / GPP: -13.1, -11.0
 # sigma: 16.7, 21.1
 
-## (f) biochemical (DIN + ophos + cond + GPP)
+## (g) biochemical (DIN + ophos + cond + GPP)
 
 # empty list to save parameter estimates for each model
 biochemical_param_est <- data.frame(matrix(NA, nrow = 8, ncol = 5))
@@ -391,8 +386,8 @@ for(i in 1:length(training_sites)) {
                                     ophos = test_sites[[i]]$oPhos_ug_P_L,
                                     cond = test_sites[[i]]$cond_uS_cm,
                                     GPP = test_sites[[i]]$GPP_median_fourdaysprior)
-  predictions$biochemical[[i]][-1,2:4] <- preds_summary(preds_matrix) # calculate predictions
-  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$resp_M_cover_norm,
+  predictions$biochemical[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$resp_M_cover_norm,
                                       site_reach_name = names(test_sites)[i],
                                       model_name = "biochemical")) # calculate nRMSE
 }
@@ -408,7 +403,7 @@ view(biochemical_param_est)
 # b5 / GPP: -11.4, -3.9
 # sigma: 19.6, 23.4
 
-## (g) all (discharge + temp + DIN + ophos + cond + GPP)
+## (h) all (discharge + temp + DIN + ophos + cond + GPP)
 
 # empty list to save parameter estimates for each model
 all_param_est <- data.frame(matrix(NA, nrow = 10, ncol = 5))
@@ -439,8 +434,8 @@ for(i in 1:length(training_sites)) {
                             ophos = test_sites[[i]]$oPhos_ug_P_L,
                             cond = test_sites[[i]]$cond_uS_cm,
                             GPP = test_sites[[i]]$GPP_median_fourdaysprior)
-  predictions$all[[i]][-1,2:4] <- preds_summary(preds_matrix) # calculate predictions
-  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$resp_M_cover_norm,
+  predictions$all[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$resp_M_cover_norm,
                                       site_reach_name = names(test_sites)[i],
                                       model_name = "all")) # calculate nRMSE 
 }
