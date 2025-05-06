@@ -173,7 +173,7 @@ for(i in 1:length(training_sites)) {
   preds_matrix <- preds_w_cover(params, y = predictions$physical[[i]],
                                 cover = test_sites[[i]]$resp_M_cover_stnd)
   predictions$w_cover[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
-  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$anabaena_cylindrospermum,
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$resp_AC_atx_norm,
                                       site_reach_name = names(test_sites)[i],
                                       model_name = "w_cover")) # calculate nRMSE
 }
@@ -212,7 +212,7 @@ for(i in 1:length(training_sites)) {
                                          dis = test_sites[[i]]$discharge_m3_s,
                                          temp = test_sites[[i]]$temp_C)
   predictions$physical_w_cover[[i]][,2:4] <- preds_summary(preds_matrix) # calculate predictions
-  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$anabaena_cylindrospermum,
+  nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix[,-1], test_sites[[i]]$resp_AC_atx_norm,
                                       site_reach_name = names(test_sites)[i],
                                       model_name = "physical_w_cover")) # calculate nRMSE
 }
