@@ -10,7 +10,7 @@
 # loading libraries
 lapply(c("tidyverse"), require, character.only = T)
 
-# loading in normalized data
+# loading in normalized/standardized data
 norm_data <- read.csv("./data/predictive_models/inputs.csv") %>% 
   mutate(field_date = ymd(field_date))
 
@@ -147,3 +147,12 @@ ggplot(data = norm_data, aes(x = field_date, y = resp_AC_cover_stnd)) +
   geom_point(aes(color = site_reach, shape = site_reach)) +
   geom_line(aes(color = site_reach)) +
   ggtitle("Anabaena/Cylindrospermum (standardized per reach)")
+
+#### (4) Checking for covariance ####
+
+# covariance matrix
+cov(norm_data[,4:23] %>% na.omit())
+
+## notes:
+# none appear to be greater than 0.7 except nitrate w/ DIN 
+# this is to be expected; we are just using DIN in place of nitrate
