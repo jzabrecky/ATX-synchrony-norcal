@@ -68,7 +68,7 @@ sfe_m_1s <- ggplot(data = cover_list$`SFE-M-1S`, aes(x = field_date)) +
   ylim(0, 110) +
   scale_x_date(limits = as.Date(c("2023-06-18", "2023-09-27"))) +
   scale_y_reverse(sec.axis = sec_axis(~ ((. - 250)/8) * -1)) +
-  theme(legend.position = "none") # will move over legend via illustrator
+  theme(legend.position = "none", axis.text.x = element_blank()) # will move over legend via illustrator
 sfe_m_1s
 
 ## (b) SFE-M-2
@@ -97,7 +97,7 @@ sfe_m_2 <- ggplot(data = cover_list$`SFE-M-2`, aes(x = field_date)) +
   ylim(0, 250) +
   scale_x_date(limits = as.Date(c("2023-06-18", "2023-09-27"))) +
   scale_y_reverse(sec.axis = sec_axis(~ ((. - 250)/8) * -1)) +
-  theme(legend.position = "none") # will move over legend via illustrator
+  theme(legend.position = "none", axis.text.x = element_blank()) # will move over legend via illustrator
 sfe_m_2
 # WILL COME BACK TO FIX THE SCALE :)
 
@@ -127,7 +127,7 @@ sfe_m_3 <- ggplot(data = cover_list$`SFE-M-3`, aes(x = field_date)) +
   ylim(0, 110) +
   scale_x_date(limits = as.Date(c("2023-06-18", "2023-09-27"))) +
   scale_y_reverse(sec.axis = sec_axis(~ ((. - 250)/8) * -1)) +
-  theme(legend.position = "none") # will move over legend via illustrator
+  theme(legend.position = "none", axis.text.x = element_blank()) # will move over legend via illustrator
 sfe_m_3
 
 ## (d) SFE-M-4
@@ -157,7 +157,7 @@ sfe_m_4 <- ggplot(data = cover_list$`SFE-M-4`, aes(x = field_date)) +
   ylim(0, 250) +
   scale_x_date(limits = as.Date(c("2023-06-18", "2023-09-27"))) +
   scale_y_reverse(sec.axis = sec_axis(~ ((. - 250)/8) * -1)) +
-  theme(legend.position = "none") # will move over legend via illustrator
+  theme(legend.position = "none", axis.text.x = element_blank()) # will move over legend via illustrator
 sfe_m_4
 
 # need to add in 0's for TAC or TM data when there is none so bar stays 1/2 length
@@ -187,7 +187,7 @@ sfe_sh_1s <- ggplot(data = cover_list$`SFE-SH-1S`, aes(x = field_date)) +
   ylim(0, 250) +
   scale_x_date(limits = as.Date(c("2023-06-18", "2023-09-27"))) +
   scale_y_reverse(sec.axis = sec_axis(~ ((. - 250)/8) * -1)) +
-  theme(legend.position = "none") # will move over legend via illustrator
+  theme(legend.position = "none", axis.text.x = element_blank()) # will move over legend via illustrator
 sfe_sh_1s
 
 #### relationships between cover & atx
