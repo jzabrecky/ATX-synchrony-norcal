@@ -61,7 +61,7 @@ cover <- read.csv("./data/field_and_lab/percover_bysite.csv") %>%
   mutate(field_date = ymd(field_date),
          year = year(field_date),
          site_year = case_when(site == "RUS" ~ "russian_2022", # create site_year codes
-                               site == "SFE-SH" ~ "sfkeel_sth_2022",
+                               site == "SFE-SH" ~ "sfkeel_sth_2023",
                                (site == "SFE-M_excl_site2" & year == 2022) ~ "sfkeel_mir_2022",
                                site == "SFE-M_all_sites" ~ "sfkeel_mir_2023",
                                (site == "SAL" & year == 2022) ~ "salmon_2022",

@@ -23,8 +23,10 @@ data/metab_model_inputs/salmon_2023_karuk_modelinputs.csv
 code/old_code_toDEL
 data/misc_to_del/
 data/metab_model_inputs/old
-# ignore .rds and .png files
+# ignore .rds, .png, .pdf, and .svg files for now...
 *.rds
 *.png
+*.pdf
+*.svg
 # ignore figure files for HABs symposium
 figures/HABS_symp_figures
