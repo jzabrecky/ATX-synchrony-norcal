@@ -1,6 +1,6 @@
 #### processing metabolism outputs
 ### Jordan Zabrecky
-## last edited 02.27.2024
+## last edited 05.29.2025
 
 # This code processes metabolism outputs from the "streamMetabolizer" package
 # from script "1e_processing_metabolism_outputs.csv" and saves a csv
@@ -8,7 +8,7 @@
 #### (1) Loading packages and reading in data #### 
 
 # loading packages
-lapply(c("tidyverse", "plyr", "lubridate", "dataRetrieval"), require, character.only = T)
+lapply(c("tidyverse", "plyr", "lubridate"), require, character.only = T)
 
 # function to read in data across subfolders of certain name
 read_metab_data <- function(path, pattern) {
@@ -68,6 +68,13 @@ clean_discharge <- function(df) {
 
 # apply function to data frame
 USGS_daily_discharge <- lapply(USGS_daily_discharge, function(x) clean_discharge(x))
+
+# RUN ONCE: save these in case USGS data goes offline
+#for(i in 1:length(site_names)) {
+#  write.csv(USGS_daily_discharge[[i]], 
+#            paste("./data/USGS/", site_names[i], "_discharge_daily.csv", sep = ""),
+#            row.names = FALSE)
+#}
 
 #### (2) Making depth-discharge relationships ####
 

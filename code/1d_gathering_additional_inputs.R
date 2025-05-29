@@ -1,6 +1,6 @@
 #### gathering all data to model metabolism
 ### Jordan Zabrecky
-## last edited 02.04.2025
+## last edited 05.29.2025
 
 # This code gathers the necessary components for metabolism modeling
 # including the (1) cleaned miniDOT data from "1a_reading_and_cleaning_miniDOT_data.R"
@@ -100,7 +100,6 @@ discharge <- lapply(USGS_gages, function(x) readNWISuv(x, param, "2022-06-15","2
 # adding names of each river to list
 site_names <- c("russian", "salmon", "sfkeel_mir", "sfkeel_sth")
 names(discharge) <- site_names
-
 ## Create 5-minute filled time series to match miniDOT and tidy up dataframes
 
 # use "create_filled_TS" function from other script
@@ -117,6 +116,12 @@ clean_discharge <- function(df) {
 
 # applying function to dataframe list
 discharge <- lapply(discharge, function(x) clean_discharge(x))
+
+# RUN ONCE: save these in case USGS data goes offline
+#for(i in 1:length(site_names)) {
+#  write.csv(discharge[[i]], paste("./data/USGS/", site_names[i], "_discharge_continuous.csv", sep = ""),
+#            row.names = FALSE)
+#}
 
 #### (3) Gathering GLDAS pressure data ####
 
