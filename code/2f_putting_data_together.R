@@ -1,9 +1,10 @@
-#### putting all field and lab data together for south fork eel 2023
+#### putting together field and lab data to answer research questions
 ### Jordan Zabrecky
 ## last edited: 04.25.2025
 
-# This script aggregates all field and lab information for reaches
-# on the South Fork Eel in 2023 for predictive modeling
+# This script aggregates (1) 2022 benthic cyanobacteria and GPP for all rivers
+# to answer Q1, (2) 2023 south fork eel benthic cyanobacteria, GPP, and water
+# quality parameters to answer Q2 and Q3
 
 #### (1) Loading data and libraries ####
 
@@ -23,7 +24,7 @@ metab <- ldply(list.files(path = "./data/metab_model_outputs_processed/", patter
   return(d)
 })
 
-#### (2) Processing, joining data-frames and focusing on SFE 2023 ####
+#### (2) Pivot anatoxins longer and join in with other data ####
 
 # separate out TM and TAC
 microcoleus <- anatoxins %>% 
@@ -55,12 +56,21 @@ all <- left_join(survey, water, by = c("field_date", "site_reach"))
 all <- (list(all, microcoleus, ana_cyl)) %>% 
   join_all(by = c("field_date", "site_reach"), type = "left")
 
-# filter out south fork eel 2023 
-sfkeel23 <- all %>% 
+#### (3) Filtering out data for each question ####
+
+# make some slight adjustments to full dataframe
+all <- all %>% 
   mutate(field_date = ymd(field_date),
          year = year(field_date)) %>% 
   mutate(TM_Chla_Pheo_ratio = TM_Chla_ug_g / TM_Pheo_ug_g,
-         TAC_Chla_Pheo_ratio = TAC_Chla_ug_g / TAC_Pheo_ug_g) %>% 
+         TAC_Chla_Pheo_ratio = TAC_Chla_ug_g / TAC_Pheo_ug_g)
+
+# filter out into 2022 data
+allrivers22 <- all %>% 
+  filter(year == 2022)
+
+# filter out south fork eel 2023 
+sfkeel23 <- all %>% 
   filter(site == "SFE-M" | site == "SFE-SH") %>% 
   filter(year == 2023) %>% 
   select(field_date, site_reach, site, green_algae, microcoleus, anabaena_cylindrospermum,
@@ -77,6 +87,24 @@ sfkeel23 <- all %>%
 
 #### (3) Joining in metabolism data ####
 
+## (a) prepping metabolism data for 2022 all river analyses
+
+# filtering out metabolism data for 2022
+metab_22 <- metab %>% 
+  filter(year == 2022) %>% 
+  # reminder that Russian has GPP from USGS data and Salmon has GPP from Karuk data
+  # in addition to our (biofouled) miniDOT data
+  filter()
+
+# TO DO: calculate median GPP from x days prior???
+# decide later....
+
+# save csv
+write.csv(allrivers22, "./data/field_and_lab/allrivers22_combined.csv", row.names = FALSE)
+
+
+## (b) prepping metabolism data for 2023 modeling purposes
+
 # filtering out metabolism data for SFE-M and SH 2023
 metab_mir <- metab %>% 
   filter(site == "sfkeel_mir" & year == 2023)
@@ -84,6 +112,7 @@ metab_sth <- metab %>%
   filter(site == "sfkeel_sth" & year == 2023)
 
 # need to interpolate missing dates for SFE-SH
+# relevant here because model covariate is median GPP of x days prior
 dates <- data.frame(seq(ymd('2023-06-25'), ymd('2023-09-26'), by = 'day'))
 colnames(dates) <- c("field_date")
 
