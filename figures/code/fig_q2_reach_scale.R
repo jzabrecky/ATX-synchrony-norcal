@@ -104,7 +104,9 @@ atx_detection_ac <- data_bc %>%
                    num_detections = sum(TAC_ATX_all_ug_orgmat_g > 0),
                    percent_detection = num_detections / num_samples * 100)
 
-# duration of anatoxin detection (maybe switch this for full)
+# duration of anatoxin detection 
+# (for additional table, combine w/ presence to distinguish why there was no sample)
+# (aka was it not present OR was there just not enough material)
 duration_atx_m <- data_bc %>% 
   mutate(detection = case_when(TM_ATX_all_ug_orgmat_g > 0 ~ as.character(TM_ATX_all_ug_orgmat_g),
                               TM_ATX_all_ug_orgmat_g == 0.0 ~ "ND",
@@ -138,7 +140,7 @@ atx_ac <- data_bc %>%
                    max_atx = max(TAC_ATX_all_ug_orgmat_g),
                    max_date = field_date[which.max(TAC_ATX_all_ug_orgmat_g)])
 
-## (3) gpp mean and max
+## (e) gpp mean and max
 gpp_max_mean <- gpp %>% 
   dplyr::group_by(site_year) %>% 
   dplyr::summarize(mean_gpp = mean(GPP.mean, na.rm = TRUE),

@@ -29,7 +29,7 @@ anatoxins <- data %>%
   pivot_longer(cols = c(4,5), names_to = "taxa", values_to = "ATX_ug_orgmat_g")
 
 # fill anatoxin NAs with zero
-anatoxins$ATX_ug_orgmat_g <- na.fill(anatoxins$ATX_ug_orgmat_g, 0)
+anatoxins$ATX_ug_orgmat_g <- replace_na(anatoxins$ATX_ug_orgmat_g, 0)
 
 # split based on site_reach
 cover_list <- split(cover, cover$site)
