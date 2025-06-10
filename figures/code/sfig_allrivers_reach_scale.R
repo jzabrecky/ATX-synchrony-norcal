@@ -1,9 +1,11 @@
 #### Taxa-specific cover and anatoxin relationships per reach all rivers (2022 data)
 ### Jordan Zabrecky
-## last edited: 06.02.2025
+## last edited: 06.09.2025
 
 # This script plots a supplemental figure taxa-specific cover and anatoxin concentrations
 # for each reach sampled on each river in 2022
+
+# NOTE: NEED TO DECIDE IF NON DETECTS ARE ZERO OR NA :)
 
 #### (1) Loading in libraries and data ####
 
@@ -91,8 +93,12 @@ wildfire <- data.frame(xmin = as.Date("2022-07-30"),
                        ymax = 5)
 
 # remove anabaena from cover so we don't get a line at 0
+# even though there is anabaena at end of season, it was only very very little
 cover_list$SAL <- cover_list$SAL %>% 
   filter(taxa == "microcoleus")
+# also remove the anabaena sample in anatoxins as to not confuse w/ microcoleus
+atx_list$SAL <- atx_list$SAL %>% 
+  fiter(taxa == "microcoleus")
 
 # add segment column to avoid line being drawn across plot when we weren't taking data
 cover_list$SAL$segment <- 1 # pre-fire
