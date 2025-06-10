@@ -1,6 +1,6 @@
 #### processing metabolism outputs
 ### Jordan Zabrecky
-## last edited 05.29.2025
+## last edited 06.09.2025
 
 # This code processes metabolism outputs from the "streamMetabolizer" package
 # from script "1e_processing_metabolism_outputs.csv" and saves a csv
@@ -71,7 +71,11 @@ USGS_daily_discharge <- lapply(USGS_daily_discharge, function(x) clean_discharge
 
 # RUN ONCE: save these in case USGS data goes offline
 #for(i in 1:length(site_names)) {
-#  write.csv(USGS_daily_discharge[[i]], 
+#  df <- USGS_daily_discharge[[i]] %>% 
+#    mutate(site = site_names[[i]]) %>% 
+#    relocate(site, .before = date)
+#  
+#  write.csv(df, 
 #            paste("./data/USGS/", site_names[i], "_discharge_daily.csv", sep = ""),
 #            row.names = FALSE)
 #}
