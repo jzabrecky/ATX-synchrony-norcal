@@ -1,5 +1,7 @@
 ## predictions figure
 
+library("tidyverse")
+
 preds_M <- read.csv("./data/predictive_models/predictions_M_cover.csv")
 observed <- read.csv("./data/predictive_models/inputs.csv")
 
@@ -14,7 +16,7 @@ for(i in 1:length(preds_M_list)) {
     geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
     geom_point(aes(y = mean), size = 3, color = palette[i]) +
     geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black") +
-    labs(title = paste(preds_M_list[[i]]$model[1])) +
+    labs(title = paste(preds_M_list[[i]]$model[1]), y = "% of max at reach") +
     facet_wrap(~site_reach) +
     theme_bw()
   print(plot)
