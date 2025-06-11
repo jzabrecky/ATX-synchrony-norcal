@@ -1,6 +1,6 @@
 #### Primary figure for taxa-specific cover & anatoxins and GPP on each river
 ### Jordan Zabrecky
-## last edited: 06.09.2025
+## last edited: 06.10.2025
 
 # This script creates a primary figure for Q1 focused on the relationships
 # between benthic cyanobacteria dynamics and GPP across rivers
@@ -114,6 +114,7 @@ bc_sfkeel <- ggplot(data = cover_list$`SFE-M`, aes(x = field_date)) +
   labs(y = NULL, x = NULL) +
   scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
   scale_y_reverse(sec.axis = sec_axis(~ ((. - 110)/4) * -1)) +
+  ggtitle("South Fork Eel River") +
   theme(legend.position = "none") # will move over legend via illustrator
 bc_sfkeel
 
@@ -146,6 +147,7 @@ bc_russian <- ggplot(data = cover_list$RUS, aes(x = field_date)) +
   labs(y = NULL, x = NULL) +
   scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
   scale_y_reverse(sec.axis = sec_axis(~ ((. - 10)/1.25) * -1)) +
+  ggtitle("Russian River") +
   theme(legend.position = "none") # will move over legend via illustrator
 bc_russian
 
@@ -178,7 +180,7 @@ bc_salmon <- ggplot(data = cover_list$SAL) +
                                            ymax = 5 - ((max) * .15),
                                            x = field_date,
                                            color = taxa), 
-                size = 1.25, alpha = 0.7, width = 2) +
+                linewidth = 1.25, alpha = 0.7, width = 2) +
   geom_point(data = cover_list$SAL, aes(y = 5 - (mean * .15), 
                                         x = field_date, color = taxa, 
                                         shape = taxa),
@@ -194,6 +196,7 @@ bc_salmon <- ggplot(data = cover_list$SAL) +
   labs(y = NULL, x = NULL) +
   scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
   scale_y_reverse(limits = c(5,0), sec.axis = sec_axis(~ ((. - 5)/.15) * -1)) +
+  ggtitle("Salmon River") +
   theme(legend.position = "none")
 bc_salmon
 
@@ -215,34 +218,37 @@ gpp_sfkeel <- ggplot(data = gpp_list$sfkeel_mir_2022, aes(x = date)) +
   labs(y = NULL, x = NULL) +
   scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
   scale_y_continuous(sec.axis = sec_axis(~ . / 2)) +
+  ggtitle("South Fork Eel River") +
   coord_cartesian(ylim = c(0, 9))
 gpp_sfkeel
 
 ## Russian River
 
 # plot
-rus22_GPP_dis <- ggplot(data = gpp_list$russian_USGS_2022, aes(x = date)) +
+gpp_russian <- ggplot(data = gpp_list$russian_USGS_2022, aes(x = date)) +
   geom_area(data = disc_list$russian, aes(y = discharge_m3_s * 2.5, x = date), fill = "#d9ecff") +
   geom_ribbon(aes(ymin = GPP.2.5.pct, ymax = GPP.97.5.pct), fill = "#9ced66", alpha = 0.8) +
   geom_point(aes(y = GPP.mean), color = "#397014", size = 2.5, alpha = 1) +
   scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
   scale_y_continuous(sec.axis = sec_axis(~ . / 2.5)) +
   coord_cartesian(ylim = c(0, 13)) +
+  ggtitle("Russian River") +
   labs(y = NULL, x = NULL)
-rus22_GPP_dis
+gpp_russian
 
 ## Salmon River
 
 # plot
-sal22_GPP_dis <- ggplot(data = gpp_list$salmon_karuk_2022, aes(x = date)) +
+gpp_salmon <- ggplot(data = gpp_list$salmon_karuk_2022, aes(x = date)) +
   geom_area(data = disc_list$salmon, aes(y = discharge_m3_s * 0.45, x = date), fill = "#d9ecff") +
   geom_ribbon(aes(ymin = GPP.2.5.pct, ymax = GPP.97.5.pct), fill = "#9ced66", alpha = 0.8) +
   geom_point(aes(y = GPP.mean), color = "#397014", size = 2.5, alpha = 1) +
   scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
   scale_y_continuous(sec.axis = sec_axis(~ . / 0.45)) +
   coord_cartesian(ylim = c(0, 11)) +
+  ggtitle("Salmon River") +
   labs(y = NULL, x = NULL)
-sal22_GPP_dis
+gpp_salmon
 
 #### (4) Making relationships/covariance figures ####
 
@@ -266,7 +272,17 @@ ana_russian <- ggplot(data = bc_dynamics_list$`RUS` %>% filter(taxa == "anabaena
   geom_point(color = "gold", size = 3)
 ana_russian
 
-
 #### (5) Putting figures together
 
-sfkeel <- cowplot
+# putting together
+all <- plot_grid(bc_sfkeel, gpp_sfkeel, bc_russian, 
+                         gpp_russian, bc_salmon, gpp_salmon, 
+                         ncol = 2, align = "hv", scale = 0.98)
+
+final <- grid.arrange(all, left = textGrob("\u03bcg ATX per g OM", 
+                                           gp=gpar(fontsize=14), rot=90),
+                      right = textGrob("percent cover (%)", 
+                                       gp=gpar(fontsize=14), rot = 270))
+# STILL IN PROGRESS
+
+# will edit further in adobe

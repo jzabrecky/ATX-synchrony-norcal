@@ -1,6 +1,6 @@
 #### Q1: Table and Figure for within river reach-scale patterns
 ### Jordan Zabrecky
-## last edited: 06.02.2025
+## last edited: 06.10.2025
 
 # This script creates information for a table describing taxa-specific cover, anatoxins,
 # and GPP across reaches within a single river from 2023 sampling
@@ -140,8 +140,10 @@ atx_ac <- data_bc %>%
                    max_date = field_date[which.max(TAC_ATX_all_ug_orgmat_g)])
 
 ## (e) gpp mean and max
-gpp_max_mean <- gpp %>% 
+gpp_max_min_mean <- gpp %>% 
   dplyr::group_by(site_year) %>% 
   dplyr::summarize(mean_gpp = mean(GPP.mean, na.rm = TRUE),
                    max_gpp = max(GPP.mean),
-                   max_date = date[which.max(GPP.mean)])
+                   max_date = date[which.max(GPP.mean)],
+                   min_gpp = min(GPP.mean),
+                   min_date = date[which.min(GPP.mean)])
