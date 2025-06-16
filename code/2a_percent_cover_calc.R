@@ -1,6 +1,6 @@
 #### calculating percent cover from reach surveys for each reach & site
 ### Jordan Zabrecky
-## last edited: 01.15.2025
+## last edited: 06.16.2025
 
 # This code calculates averages using % cover data for each study reach
 # and additionally each river site (designated by nearby sensors & USGS gage)
@@ -30,7 +30,7 @@ percover$riffle_rapid <- as.numeric(percover$riffle_rapid)
 ## function to calculate % cover averages for each reach on each sampling day
 average_per_reach <- function(data) {
   data %>% 
-    dplyr::group_by(site, field_date, reach) %>% 
+    dplyr::group_by(site, field_date, site_reach) %>% 
     dplyr::mutate(
       green_algae = mean(green_algae),
       microcoleus = mean(Microcoleus),
@@ -48,7 +48,7 @@ average_per_reach <- function(data) {
       median_depth_cm_sampled = median(depth_cm, na.rm = TRUE)
     ) %>% 
     ungroup() %>% 
-    select(field_date, site_reach, site, reach, green_algae, microcoleus,
+    select(field_date, site_reach, site, green_algae, microcoleus,
            anabaena_cylindrospermum, bare_biofilm, other_nfixers, micro_transects, ana_cyl_transects, 
            total_transects, proportion_micro_transects, proportion_ana_cyl_transects,
            proportion_riffle_rapid_transects, average_depth_cm_sampled, median_depth_cm_sampled) %>% 
@@ -81,12 +81,15 @@ average_per_site <- function(data) {
       bare_biofilm_mean = mean(bare_biofilm),
       bare_biofilm_sd = sd(bare_biofilm),
       other_nfixers_mean = mean(other_nfixers),
-      other_nfixers_sd = sd(other_nfixers) # removed all the other stuff for now...
+      other_nfixers_sd = sd(other_nfixers),
+      proportion_micro_transects = mean(proportion_micro_transects),
+      proportion_ana_cyl_transects = mean(proportion_ana_cyl_transects),
     ) %>% 
     ungroup() %>% 
     select(field_date, site, green_algae_mean, green_algae_sd, microcoleus_mean, 
            microcoleus_sd, anabaena_cylindrospermum_mean, anabaena_cylindrospermum_sd, 
-           bare_biofilm_mean, bare_biofilm_sd, other_nfixers_mean, other_nfixers_sd) %>% 
+           bare_biofilm_mean, bare_biofilm_sd, other_nfixers_mean, other_nfixers_sd,
+           proportion_micro_transects, proportion_ana_cyl_transects) %>% 
     distinct() 
 }
 
@@ -106,7 +109,7 @@ percover_site$site[33:47] <- "SFE-M_all_sites"
 # to be able to compare 2022 and 2023, let's recalculate for just those original sites in 2023
 SFE_M_excl_site2 <- percover_reach %>% 
   filter(site == "SFE-M",
-         reach != "2") %>% 
+         site_reach != "SFE-M-2") %>% 
   filter(field_date >= "2023-01-01 00:00:00")
 
 # applying function to just this data

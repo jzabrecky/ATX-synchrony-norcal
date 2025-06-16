@@ -1,6 +1,6 @@
 #### gathering all data to model metabolism
 ### Jordan Zabrecky
-## last edited 06.09.2025
+## last edited 06.16.2025
 
 # This code gathers the necessary components for metabolism modeling
 # including the (1) cleaned miniDOT data from "1a_reading_and_cleaning_miniDOT_data.R"
@@ -120,7 +120,7 @@ discharge <- lapply(discharge, function(x) clean_discharge(x))
 # RUN ONCE: save these in case USGS data goes offline
 #for(i in 1:length(site_names)) {
 #  df <- discharge[[i]] %>% 
-#    mutate(date_time = as.character(date_time), # to avoid 00:00:00 saving issue
+#    mutate(date_time = as.character(format(date_time)), # to avoid 00:00:00 saving issue
 #           site = site_names[[i]]) %>% 
 #    relocate(site, .before = date_time)
 #  write.csv(df, paste("./data/USGS/", site_names[i], "_discharge_continuous.csv", sep = ""),

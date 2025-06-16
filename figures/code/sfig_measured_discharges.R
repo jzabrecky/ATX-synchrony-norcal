@@ -1,6 +1,6 @@
 #### USGS gage discharge vs. our discharge measurements
 ### Jordan Zabrecky
-## last edited: 04.25.2025
+## last edited: 06.16.2025
 
 # This figure shows that our discharge measurements are in rough accordance 
 # with nearby USGS gage discharge measurements
@@ -8,19 +8,23 @@
 #### (1) Loading libraries, our discharge data, and USGS discharge data ####
 
 # Loading libraries
-lapply(c("tidyverse", "lubridate", "dataRetrieval"), require, character.only = T)
+lapply(c("tidyverse", "lubridate", "dataRetrieval", "ldplyr"), require, 
+       character.only = T)
 
 # Loading our discharge data measured with SonTek Flowmeter 2 and calculated
 # using the velocity-area method (NOTE: calculations done externally)
 discharge <- read.csv("./data/EDI_data_package/discharge_measurements.csv")
 
 # Loading USGS discharge data
-USGS_gages <- c("11463000", "11476500", "11475800") # our gages
-param <- "00060" # discharge param for USGS
-USGS_discharge <- lapply(USGS_gages, function(x) 
-  readNWISuv(x, param, "2022-06-23","2023-09-28")) # use dataRetrieval to get discharge
-site_names <- c("RUS", "SFE-M", "SFE-SH") # site names in order of above
-names(USGS_discharge) <- site_names # adding site names to list
+USGS_discharge <- ldply(list.files(path = "./data/USGS/", pattern = "_continuous.csv"), function(filename) {
+  d <- read.csv(paste("data/USGS/", filename, sep = ""))
+  d$site = filename %>% stringr::str_remove("_discharge_continuous.csv")
+  d$date_time = ymd_hms(d$date_time, tz = "America/Los_Angeles")
+  return(d)
+})
+
+# split into list
+USGS_discharge_list <- split(USGS_discharge, USGS_discharge$site)
 
 #### (2) Cleaning dataframes ####
 
@@ -30,33 +34,25 @@ discharge$date_time <- ymd_hms(discharge$date_time, tz = "America/Los_Angeles") 
 # take second measurement (the better one) for SFE-SH on 8/24/2023
 discharge <- discharge[-19,]
 
-# function to clean USGS discharge data frame list
-clean_discharge <- function(df) {
-  df <- df %>% 
-    # convert time zone as data is in UTC
-    mutate(date_time = as_datetime(dateTime, tz = "America/Los_Angeles")) %>% 
-    mutate(discharge_m3_s = X_00060_00000 / 35.31,
-           hour = hour(date_time)) %>% 
-    select(date_time, discharge_m3_s)
-}
-
-# apply function to data frame
-USGS_discharge <- lapply(USGS_discharge, function(x) clean_discharge(x))
-
 # trimming USGS_discharge dataset to fit field season we measured discharge in
-USGS_discharge$`RUS` <- USGS_discharge$RUS %>% 
+USGS_discharge_list$russian <- USGS_discharge_list$russian %>% 
   filter(date_time >= "2022-06-24 00:00:00" & date_time <= "2022-09-16 00:00:00") %>% 
   mutate(site = "RUS")
-USGS_discharge$`SFE-M` <- USGS_discharge$`SFE-M` %>% 
+USGS_discharge_list$sfkeel_mir <- USGS_discharge_list$sfkeel_mir %>% 
   filter(date_time >= "2022-06-29 00:00:00" & date_time <= "2022-09-18 00:00:00") %>% 
   mutate(site = "SFE-M")
-USGS_discharge$`SFE-SH` <- USGS_discharge$`SFE-SH` %>% 
+USGS_discharge_list$sfkeel_sth <- USGS_discharge_list$sfkeel_sth %>% 
   dplyr::filter(date_time >= "2023-06-24 00:00:00" & date_time <= "2023-09-28 00:00:00") %>% 
   mutate(site = "SFE-SH")
 
 # combining all into one data frame
-discharge_all <- rbind(USGS_discharge$RUS, USGS_discharge$`SFE-M`, USGS_discharge$`SFE-SH`)
-
+discharge_all <- rbind(USGS_discharge_list$russian, USGS_discharge_list$sfkeel_mir, 
+                       USGS_discharge_list$sfkeel_sth) %>% 
+  mutate(minute = minute(date_time)) %>% 
+  # only keep 30's and 00's so it doesn't take as long to plot and matches up with our measured
+  filter(minute == 0 | minute == 30) %>% 
+  select(!minute)
+  
 # left joining in our discharge measurements
 discharge_all <- left_join(discharge_all, discharge, by = c("date_time", "site"))
 

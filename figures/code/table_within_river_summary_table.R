@@ -123,18 +123,23 @@ duration_atx_ac <- data_bc %>%
   relocate("SFE-SH-1S", .after = "SFE-M-4")
 
 ## (d) max and mean atx concentrations
-atx_m <- data_bc %>% 
+
+# fill NA's (regardless if from absence or ND) with 0 and to make anatoxin calculations
+data_bc_filled <- data_bc %>% 
+  mutate(TM_ATX_all_ug_orgmat_g = replace_na(TM_ATX_all_ug_orgmat_g, 0),
+         TAC_ATX_all_ug_orgmat_g = replace_na(TAC_ATX_all_ug_orgmat_g, 0))
+
+# calculate mean & max for taxa-specific atx
+atx_m <- data_bc_filled %>% 
   select(site_reach, field_date, TM_ATX_all_ug_orgmat_g) %>% 
   dplyr::group_by(site_reach) %>% 
-  na.omit() %>% # remove NAs (no sample taken but want to include 0's which are NDs)
   dplyr::summarize(mean_atx = mean(TM_ATX_all_ug_orgmat_g),
                    max_atx = max(TM_ATX_all_ug_orgmat_g),
                    max_date = field_date[which.max(TM_ATX_all_ug_orgmat_g)])
 
-atx_ac <- data_bc %>% 
+atx_ac <- data_bc_filled %>% 
   select(site_reach, field_date, TAC_ATX_all_ug_orgmat_g) %>% 
   dplyr::group_by(site_reach) %>% 
-  na.omit() %>% # remove NAs (no sample taken but want to include 0's which are NDs)
   dplyr::summarize(mean_atx = mean(TAC_ATX_all_ug_orgmat_g),
                    max_atx = max(TAC_ATX_all_ug_orgmat_g),
                    max_date = field_date[which.max(TAC_ATX_all_ug_orgmat_g)])

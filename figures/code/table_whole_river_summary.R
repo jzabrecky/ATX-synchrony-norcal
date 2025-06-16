@@ -1,6 +1,6 @@
 #### Q1: Table and Figure for across river (mean behavior) patterns
 ### Jordan Zabrecky
-## last edited: 06.10.2025
+## last edited: 06.16.2025
 
 # This script creates information for a table describing taxa-specific cover, anatoxins,
 # and GPP across rivers from 2022 sampling
@@ -119,34 +119,35 @@ duration_atx_ac <- data_bc %>%
   select(site_reach, field_date, detection) %>%
   pivot_wider(names_from = "site_reach", values_from = "detection")
 
+# fill NA's (regardless if from absence or ND) with 0 and to make anatoxin calculations
+data_bc_filled <- data_bc %>% 
+  mutate(TM_ATX_all_ug_orgmat_g = replace_na(TM_ATX_all_ug_orgmat_g, 0),
+         TAC_ATX_all_ug_orgmat_g = replace_na(TAC_ATX_all_ug_orgmat_g, 0))
+
 # calculate daily average atx at each river
-daily_avg_atx_m <- data_bc %>% 
+daily_avg_atx_m <- data_bc_filled %>% 
   select(site, field_date, TM_ATX_all_ug_orgmat_g) %>% 
   na.omit() %>% # remove when sample is not present from one of the reaches
   dplyr::group_by(site, field_date) %>% 
-  dplyr::summarize(mean_TM_ATX = mean(TM_ATX_all_ug_orgmat_g, na.omit = TRUE))
-daily_avg_atx_ac <- data_bc %>% 
+  dplyr::summarize(mean_TM_ATX = mean(TM_ATX_all_ug_orgmat_g))
+daily_avg_atx_ac <- data_bc_filled %>% 
   select(site, field_date, TAC_ATX_all_ug_orgmat_g) %>% 
   na.omit() %>% # remove when sample is not present from one of the reaches
   dplyr::group_by(site, field_date) %>% 
-  dplyr::summarize(mean_TAC_ATX = mean(TAC_ATX_all_ug_orgmat_g, na.omit = TRUE))
+  dplyr::summarize(mean_TAC_ATX = mean(TAC_ATX_all_ug_orgmat_g))
 
 ## (d) max and mean atx concentrations
-atx_m <- data_bc %>% 
-  select(site, field_date, TM_ATX_all_ug_orgmat_g) %>% 
+atx_m <- daily_avg_atx_m %>% 
   dplyr::group_by(site) %>% 
-  na.omit() %>% # remove NAs (no sample taken but want to include 0's which are NDs)
-  dplyr::summarize(mean_atx = mean(TM_ATX_all_ug_orgmat_g),
-                   max_atx = max(TM_ATX_all_ug_orgmat_g),
-                   max_date = field_date[which.max(TM_ATX_all_ug_orgmat_g)])
+  dplyr::summarize(mean_atx = mean(mean_TM_ATX),
+                   max_atx = max(mean_TM_ATX),
+                   max_date = field_date[which.max(mean_TM_ATX)])
 
-atx_ac <- data_bc %>% 
-  select(site, field_date, TAC_ATX_all_ug_orgmat_g) %>% 
+atx_ac <- daily_avg_atx_ac %>% 
   dplyr::group_by(site) %>% 
-  na.omit() %>% # remove NAs (no sample taken but want to include 0's which are NDs)
-  dplyr::summarize(mean_atx = mean(TAC_ATX_all_ug_orgmat_g),
-                   max_atx = max(TAC_ATX_all_ug_orgmat_g),
-                   max_date = field_date[which.max(TAC_ATX_all_ug_orgmat_g)])
+  dplyr::summarize(mean_atx = mean(mean_TAC_ATX),
+                   max_atx = max(mean_TAC_ATX),
+                   max_date = field_date[which.max(mean_TAC_ATX)])
 
 
 ## (e) gpp mean and max

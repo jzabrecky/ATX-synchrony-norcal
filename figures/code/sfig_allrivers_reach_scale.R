@@ -98,7 +98,7 @@ cover_list$SAL <- cover_list$SAL %>%
   filter(taxa == "microcoleus")
 # also remove the anabaena sample in anatoxins as to not confuse w/ microcoleus
 atx_list$SAL <- atx_list$SAL %>% 
-  fiter(taxa == "microcoleus")
+  filter(taxa == "microcoleus")
 
 # add segment column to avoid line being drawn across plot when we weren't taking data
 cover_list$SAL$segment <- 1 # pre-fire

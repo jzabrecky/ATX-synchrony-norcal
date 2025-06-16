@@ -101,8 +101,8 @@ grad_palette <- c("#080f2b", "#002b50", "#004967", "#00677a", "#008788", "#00aa8
 # making figure
 riffle_fig <- ggplot(data = riffle_exp, aes(x = ATXa_ug_g, y = dhATXa_ug_g)) +
   geom_point(aes(fill = site_reach), shape = 21, size = 6, alpha = 0.9, stroke = 1) +
-  labs(x = expression(paste(mu, "g dhATX-a g"^-1, "dry weight")), 
-       y = expression(paste(mu, "g ATX-a g"^-1, "dry weight"))) +
+  labs(y = expression(paste(mu, "g dhATX-a g"^-1, "dry weight")), 
+       x = expression(paste(mu, "g ATX-a g"^-1, "dry weight"))) +
   scale_x_continuous(labels = label_number(accuracy = 0.01)) +
   scale_fill_manual(values = grad_palette) +
   theme(legend.title=element_blank(), axis.text.x = element_text(size = 12),

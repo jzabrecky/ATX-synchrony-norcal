@@ -124,7 +124,7 @@ quadrat_micro <- ggplot(data = micro_summarized, aes(x = month, y = prop_micro_q
   facet_wrap(~site, labeller =  as_labeller(c(`SAL` = "Salmon River", 
                                               `SFE-M`= "South Fork Eel River at Miranda",
                                               `SFE-SH` = "South Fork Eel River at Standish Hickey"))) +
-  labs(x = NULL, y = "Proportion of Quadrat Presence", title = "*Microcoleus* Cover")
+  labs(x = NULL, y = "Proportion of Survey Quadrats with Presence", title = "*Microcoleus* Cover")
 quadrat_micro
 
 # anabaena
@@ -137,8 +137,5 @@ quadrat_anacyl <- ggplot(data = anacyl_summarized, aes(x = month, y = prop_anacy
   facet_wrap(~site, labeller =  as_labeller(c(`RUS` = "Russian River", 
                                               `SFE-M`= "South Fork Eel River at Miranda",
                                               `SFE-SH` = "South Fork Eel River at Standish Hickey"))) +
-  labs(x = NULL, y = "Proportion of Quadrat Presence", title = "*Anabaena/Cylindrospermum* Cover")
+  labs(x = NULL, y = "Proportion of Survey Quadrats with Presence", title = "*Anabaena/Cylindrospermum* Cover")
 quadrat_anacyl
-
-# need alternative phrase than proportion of quadrat presence...
-# is quadrat detections what is happening here? REVISIT THIS
