@@ -21,7 +21,7 @@ parameters {
 model {
   for(i in 2:N) {
    y[i] ~ normal(b0 + b1*y[i-1] + b2*din[i] + b3*ophos[i] +
-   b4*cond[i], sigma);
+   b4*cond[i], sigma) T[0,100];
   }
 
   // not including priors??

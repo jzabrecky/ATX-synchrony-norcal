@@ -20,13 +20,11 @@ data/external_DO/salmon_2023_karuk.csv
 data/metab_model_inputs/salmon_2022_karuk_modelinputs.csv
 data/metab_model_inputs/salmon_2023_karuk_modelinputs.csv
 # ignore old code & data (that may later be deleted!)
+data/old_StreamLight_and_MODIS
 code/old_code_toDEL
-data/misc_to_del/
 data/metab_model_inputs/old
 # ignore .rds, .png, .pdf, and .svg files for now...
 *.rds
 *.png
 *.pdf
 *.svg
-# ignore figure files for HABs symposium
-figures/HABS_symp_figures

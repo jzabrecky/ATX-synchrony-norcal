@@ -1,12 +1,9 @@
 #### standardizing and normalizing data for predictive moels
 ### Jordan Zabrecky
-## last edited: 04.25.2025
+## last edited: 06.17.2025
 
 # This script standardizes (and, in some cases, normalizes) South Fork
 # Eel 2023 data before predictive modeling
-
-## CAN MAYBE REMOVE STANDARDIZED COLUMN WHEN WE DECIDE FOR SURE NOT TO 
-## DO THAT :)
 
 #### (1) Loading data and libraries ####
 
@@ -66,14 +63,9 @@ cover_rsp <- data %>%
          resp_M_cover_norm = microcoleus / max_microcoleus * 100,
          resp_AC_cover_norm = anabaena_cylindrospermum / max_anacyl * 100)
 
-# standardize responses
-cover_rsp$resp_M_cover_stnd <- ave(data$microcoleus, data$site_reach, FUN = scale)
-cover_rsp$resp_AC_cover_stnd <- ave(data$anabaena_cylindrospermum, data$site_reach, FUN = scale)
-
 # keep response variables only
 cover_rsp <- cover_rsp %>% 
-  select(field_date, site_reach, site, resp_M_cover_norm, resp_AC_cover_norm, 
-         resp_M_cover_stnd, resp_AC_cover_stnd)
+  select(field_date, site_reach, site, resp_M_cover_norm, resp_AC_cover_norm)
 
 ## (b) Transects Present
 
@@ -98,14 +90,9 @@ pres_rsp <- data %>%
          resp_M_pres_norm = proportion_micro_transects / max_microcoleus * 100,
          resp_AC_pres_norm = proportion_ana_cyl_transects / max_anacyl * 100)
 
-# standardize responses
-pres_rsp$resp_M_pres_stnd <- ave(data$proportion_micro_transects, data$site_reach, FUN = scale)
-pres_rsp$resp_AC_pres_stnd <- ave(data$proportion_ana_cyl_transects, data$site_reach, FUN = scale)
-
 # keep response variables only
 pres_rsp <- pres_rsp %>% 
-  select(field_date, site_reach, site, resp_M_pres_norm, resp_AC_pres_norm, 
-         resp_M_pres_stnd, resp_AC_pres_stnd)
+  select(field_date, site_reach, site, resp_M_pres_norm, resp_AC_pres_norm)
 
 ## (c) Anatoxins
 
@@ -136,17 +123,13 @@ atx_rsp <- data %>%
          resp_M_atx_norm = TM_ATX_all_ug_orgmat_g / max_TM_atx * 100,
          resp_AC_atx_norm = TAC_ATX_all_ug_orgmat_g / max_TAC_atx * 100)
 
-# standardize responses
-atx_rsp$resp_M_atx_stnd <- ave(data$TM_ATX_all_ug_orgmat_g, data$site_reach, FUN = scale)
-atx_rsp$resp_AC_atx_stnd <- ave(data$TAC_ATX_all_ug_orgmat_g, data$site_reach, FUN = scale)
-
 # keep response variables only
 atx_rsp <- atx_rsp %>% 
   # also including raw TM & TAC (per organic matter)
   mutate(resp_M_atx_raw = TM_ATX_all_ug_orgmat_g,
          resp_AC_atx_raw = TAC_ATX_all_ug_orgmat_g) %>%
   select(field_date, site_reach, site, resp_M_atx_raw, resp_AC_atx_raw, 
-         resp_M_atx_norm, resp_AC_atx_norm, resp_M_atx_stnd, resp_AC_atx_stnd)
+         resp_M_atx_norm, resp_AC_atx_norm)
 
 #### (4) Join covariates and responses and save ####
 
