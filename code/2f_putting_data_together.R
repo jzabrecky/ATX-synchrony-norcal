@@ -1,6 +1,6 @@
 #### putting together field and lab data to answer research questions
 ### Jordan Zabrecky
-## last edited: 04.25.2025
+## last edited: 06.16.2025
 
 # This script aggregates (1) 2022 benthic cyanobacteria and GPP for all rivers
 # to answer Q1, (2) 2023 south fork eel benthic cyanobacteria, GPP, and water
@@ -85,25 +85,109 @@ sfkeel23 <- all %>%
 # can fill out all NA's with 0's but may do that in the finalizing document
 # sfkeel23 <- sfkeel23 %>% replace(is.na(.), 0)
 
-#### (3) Joining in metabolism data ####
+#### (4) Joining in 2022 metabolism data and saving ####
 
-## (a) prepping metabolism data for 2022 all river analyses
+## (a) getting median of GPP four days prior to match field dates
 
-# filtering out metabolism data for 2022
-metab_22 <- metab %>% 
-  filter(year == 2022) %>% 
-  # reminder that Russian has GPP from USGS data and Salmon has GPP from Karuk data
-  # in addition to our (biofouled) miniDOT data
-  filter()
+# separating out metabolism for each site
+rus_metab_22 <- metab %>% 
+  filter(site_year == "russian_USGS_2022")
+sal_metab_22 <- metab %>% 
+  filter(site_year == "salmon_karuk_2022")
+eel_metab_22 <- metab %>% 
+  filter(site_year == "sfkeel_mir_2022")
 
-# TO DO: calculate median GPP from x days prior???
-# decide later....
+# need to interpolate missing dates for SFE-SH
+# relevant here because model covariate is median GPP of x days prior
+dates_2022_eel <- data.frame(seq(ymd('2022-06-30'), ymd('2022-09-17'), by = 'day'))
+colnames(dates_2022_eel) <- c("field_date")
+eel_metab_22 <- left_join(dates_2022_eel, eel_metab_22, by = "field_date")
+
+# interpolate missing GPP mean for South Fork Eel 2022
+# don't like that there is a lot of missing data here
+# but it is likely this won't be used :)
+eel_metab_22$GPP.mean[-nrow(eel_metab_22)] <- na.approx(eel_metab_22$GPP.mean)
+
+# need to add a couple of extra days to salmon dataframe, but won't
+# be able to interpolate
+dates_2022_sal <- data.frame(seq(ymd('2022-06-27'), ymd('2022-09-22'), by = 'day'))
+colnames(dates_2022_sal) <- c("field_date")
+sal_metab_22 <- left_join(dates_2022_sal, sal_metab_22, by = "field_date")
+
+# get dates of field visits
+visits_eel <- allrivers22 %>% filter(site == "SFE-M") %>% select(field_date) %>% unique()
+visits_rus <- allrivers22 %>% filter(site == "RUS") %>% select(field_date) %>% unique()
+visits_sal <- allrivers22 %>% filter(site == "SAL") %>% select(field_date) %>% unique()
+
+# remove 2022-07-07 date; as stated many times before, supposed to have sampled
+# that reach on 07-06 but ran out of time
+visits_rus <- as.data.frame(visits_rus[-which(visits_rus$field_date == ymd("2022-07-07")),])
+colnames(visits_rus) <- "field_date"
+
+# add column to visit dataframe to indicate visit number
+visits_eel$visit <- seq(1, nrow(visits_eel))
+visits_rus$visit <- seq(1, nrow(visits_rus))
+visits_sal$visit <- seq(1, nrow(visits_sal))
+
+# merge onto metabolism dataframes
+eel_metab_22 <- left_join(eel_metab_22, visits_eel, by = "field_date")
+rus_metab_22 <- left_join(rus_metab_22, visits_rus, by = "field_date")
+sal_metab_22 <- left_join(sal_metab_22, visits_sal, by = "field_date")
+
+# need to get indices of dataframe that have field visits
+# cannot get median of four days prior for first field date, so adjust accordingly
+index_eel <- which(!is.na(eel_metab_22$visit)) # cannot get more than a day before
+index_rus <- which(!is.na(rus_metab_22$visit))[-1] # of GPP from first field visit
+index_sal <- which(!is.na(sal_metab_22$visit))[-1]
+
+# use map in purr to get the four days of GPP before each visit
+map_eel <- index_eel %>% 
+  purrr::map(. , function(x) eel_metab_22$GPP.mean[(x-4):(x-1)])
+map_rus <- index_rus %>% 
+  purrr::map(. , function(x) rus_metab_22$GPP.mean[(x-4):(x-1)])
+map_sal <- index_sal %>% 
+  purrr::map(. , function(x) sal_metab_22$GPP.mean[(x-4):(x-1)])
+
+# take median of four days and put in dataframe with index
+med_eel <- data.frame(unlist(lapply(map_eel, function(x) median(x))))
+med_rus <- data.frame(unlist(lapply(map_rus, function(x) median(x))))
+# have to remove an rm for sal...
+med_sal <- data.frame(unlist(lapply(map_sal, function(x) median(x, na.rm = TRUE))))
+
+# change column name
+colnames(med_eel) <- c("GPP_median_fourdaysprior")
+colnames(med_rus) <- c("GPP_median_fourdaysprior")
+colnames(med_sal) <- c("GPP_median_fourdaysprior")
+
+# put in visit index to GPP average
+med_eel$visit <- visits_eel$visit[-1]
+med_rus$visit <- visits_rus$visit[-1]
+med_sal$visit <- visits_sal$visit[-1]
+
+## (b) joining into final csv and saving
+
+# left merge onto metabolism dataframes & only keep columns that we care about
+eel_metab_22 <- left_join(eel_metab_22, med_eel, by = "visit") %>% 
+  select(field_date, GPP_median_fourdaysprior) %>% 
+  mutate(site = "SFE-M")
+rus_metab_22 <- left_join(rus_metab_22, med_eel, by = "visit") %>% 
+  select(field_date, GPP_median_fourdaysprior) %>% 
+  mutate(site = "RUS")
+sal_metab_22 <- left_join(sal_metab_22, med_eel, by = "visit") %>% 
+  select(field_date, GPP_median_fourdaysprior) %>% 
+  mutate(site = "SAL")
+
+# keep only columns we care about and merge into south fork eel field dataframes
+# left join by field date and site
+allrivers22 <- left_join(allrivers22, rbind(eel_metab_22, rus_metab_22,
+                                            sal_metab_22), by = c("field_date", "site"))
 
 # save csv
 write.csv(allrivers22, "./data/field_and_lab/allrivers22_combined.csv", row.names = FALSE)
 
+#### Joining in 2023 metabolism data and saving ####
 
-## (b) prepping metabolism data for 2023 modeling purposes
+## (a) getting median of GPP four days prior to match field dates
 
 # filtering out metabolism data for SFE-M and SH 2023
 metab_mir <- metab %>% 
@@ -183,15 +267,13 @@ avg_sth$visit <- visits_sth$visit[-1]
 #avg_sth$GPP_change[2:nrow(avg_sth)] <- avg_sth$GPP_mean_fourdaysprior[2:nrow(avg_sth)] -
  # avg_sth$GPP_mean_fourdaysprior[1:(nrow(avg_sth)-1)]
 
-# left merge onto metabolism dataframes
-metab_mir <- left_join(metab_mir, avg_mir, by = "visit")
-metab_sth <- left_join(metab_sth, avg_sth, by = "visit")
+## (b) joining into final csv and saving
 
-# only keep columns from metab that we care about
-metab_mir <- metab_mir %>% 
+# left merge onto metabolism dataframes & only keep columns that we care about
+metab_mir <- left_join(metab_mir, avg_mir, by = "visit") %>% 
   select(field_date, GPP_mean_fourdaysprior, GPP_median_fourdaysprior, discharge_m3_s) %>% 
   mutate(site = "SFE-M")
-metab_sth <- metab_sth %>% 
+metab_sth <- left_join(metab_sth, avg_sth, by = "visit") %>% 
   select(field_date, GPP_mean_fourdaysprior, GPP_median_fourdaysprior, discharge_m3_s) %>% 
   mutate(site = "SFE-SH")
 
