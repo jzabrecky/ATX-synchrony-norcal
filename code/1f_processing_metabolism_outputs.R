@@ -1,6 +1,6 @@
 #### processing metabolism outputs
 ### Jordan Zabrecky
-## last edited 06.09.2025
+## last edited 06.16.2025
 
 # This code processes metabolism outputs from the "streamMetabolizer" package
 # from script "1e_processing_metabolism_outputs.csv" and saves a csv
@@ -8,7 +8,7 @@
 #### (1) Loading packages and reading in data #### 
 
 # loading packages
-lapply(c("tidyverse", "plyr", "lubridate"), require, character.only = T)
+lapply(c("tidyverse", "plyr", "lubridate", "dataRetrieval"), require, character.only = T)
 
 # function to read in data across subfolders of certain name
 read_metab_data <- function(path, pattern) {
