@@ -1,15 +1,14 @@
 #### models to predict cover (truncated norm version)
 ### Jordan Zabrecky
-## last edited: 06.17.2025
+## last edited: 06.19.2025
 
 # This script builds models to predict cover of benthic Microcoleus cover
 # as determined by benthic cover surveys. Each model is built using 4 of 
 # 5 reaches, then the model is tested using the withheld fifth reach
 
-# going through code 6.18.2025- so far so good; think fixing 
-# iterations (i.e. having another column)
-# after biological, trying lower iterations for the next (2000:1000)
-# and seeing how that works
+# looked at predictions 06.20.25-
+# all models converged; however, predictions (prelim_predictions.R),
+# are now very similar across models and are largely just a slow growing lin
 
 #### (1) Loading data and libraries ####
 
@@ -157,7 +156,7 @@ for(i in 1:length(training_sites)) {
   # run STAN model
   model <- stan(file = "./code/model_STAN_files/predicting_cover.stan", 
                 data = mod_data,
-                chains = 3, iter = 4000, warmup = 2000, 
+                chains = 3, iter = 2000, warmup = 1000, 
                 control = list(adapt_delta = 0.95))
   # save STAN model
   saveRDS(model, paste("./data/predictive_models/M_cover_models/physical_", 
@@ -217,7 +216,7 @@ for(i in 1:length(training_sites)) {
   # run STAN model
   model <- stan(file = "./code/model_STAN_files/predicting_cover.stan", 
                 data = mod_data,
-                chains = 3, iter = 4000, warmup = 2000, 
+                chains = 3, iter = 2000, warmup = 1000, 
                 control = list(adapt_delta = 0.95))
   # save STAN model
   saveRDS(model, paste("./data/predictive_models/M_cover_models/chemical_", 
@@ -244,7 +243,7 @@ for(i in 1:length(training_sites)) {
 }
 
 # check all r-hats < 1.05 & save r-hats
-any(chemical_rhats > 1.05) # maybe this code needs to be different?
+any(chemical_rhats > 1.05) # all above 1.05!
 write.csv(chemical_param_est,
           "./data/predictive_models/M_cover_models/model_attributes/chemical_rhats.csv",
           row.names = FALSE)
@@ -277,7 +276,7 @@ for(i in 1:length(training_sites)) {
   # run STAN model
   model <- stan(file = "./code/model_STAN_files/predicting_cover.stan", 
                 data = mod_data,
-                chains = 3, iter = 4000, warmup = 2000, 
+                chains = 3, iter = 2000, warmup = 1000, 
                 control = list(adapt_delta = 0.95))
   # save STAN model
   saveRDS(model, paste("./data/predictive_models/M_cover_models/biological_", 
@@ -304,7 +303,7 @@ for(i in 1:length(training_sites)) {
 }
 
 # check all r-hats < 1.05 & save r-hats
-any(biological_rhats > 1.05) # none!
+any(biological_rhats > 1.05) # all above 1.05!
 write.csv(biological_rhats,
           "./data/predictive_models/M_cover_models/model_attributes/biological_rhats.csv",
           row.names = FALSE)
@@ -338,7 +337,7 @@ for(i in 1:length(training_sites)) {
   # run STAN model
   model <- stan(file = "./code/model_STAN_files/predicting_cover.stan", 
                 data = mod_data,
-                chains = 3, iter = 4000, warmup = 2000, 
+                chains = 3, iter = 2000, warmup = 1000, 
                 control = list(adapt_delta = 0.95))
   # save STAN model
   saveRDS(model, paste("./data/predictive_models/M_cover_models/physicochemical_", 
@@ -367,7 +366,7 @@ for(i in 1:length(training_sites)) {
 }
 
 # check all r-hats < 1.05 & save r-hats
-any(physicochemical_rhats > 1.05) # maybe this code needs to be different?
+any(physicochemical_rhats > 1.05) # all above 1.05!
 write.csv(physicochemical_rhats,
           "./data/predictive_models/M_cover_models/model_attributes/physicochemical_rhats.csv",
           row.names = FALSE)
@@ -401,7 +400,7 @@ for(i in 1:length(training_sites)) {
   # run STAN model
   model <- stan(file = "./code/model_STAN_files/predicting_cover.stan", 
                 data = mod_data,
-                chains = 3, iter = 4000, warmup = 2000, 
+                chains = 3, iter = 2000, warmup = 1000, 
                 control = list(adapt_delta = 0.95))
   # save STAN model
   saveRDS(model, paste("./data/predictive_models/M_cover_models/ecohydrological_", 
@@ -429,7 +428,7 @@ for(i in 1:length(training_sites)) {
 }
 
 # check all r-hats < 1.05 & save r-hats
-any(ecohydrological_rhats > 1.05) # maybe this code needs to be different?
+any(ecohydrological_rhats > 1.05) # all above 1.05!
 write.csv(ecohydrological_rhats,
           "./data/predictive_models/M_cover_models/model_attributes/ecohydrological_rhats.csv",
           row.names = FALSE)
@@ -463,7 +462,7 @@ for(i in 1:length(training_sites)) {
   # run STAN model
   model <- stan(file = "./code/model_STAN_files/predicting_cover.stan", 
                 data = mod_data,
-                chains = 3, iter = 4000, warmup = 2000, 
+                chains = 3, iter = 2000, warmup = 1000, 
                 control = list(adapt_delta = 0.95))
   # save STAN model
   saveRDS(model, paste("./data/predictive_models/M_cover_models/biochemical_", 
@@ -492,7 +491,7 @@ for(i in 1:length(training_sites)) {
 }
 
 # check all r-hats < 1.05 & save r-hats
-any(biochemical_rhats > 1.05) # maybe this code needs to be different?
+any(biochemical_rhats > 1.05) # all above 1.05!
 write.csv(biochemical_rhats,
           "./data/predictive_models/M_cover_models/model_attributes/biochemical_rhats.csv",
           row.names = FALSE)
@@ -527,7 +526,7 @@ for(i in 1:length(training_sites)) {
   # run STAN model
   model <- stan(file = "./code/model_STAN_files/predicting_cover.stan", 
                 data = mod_data,
-                chains = 3, iter = 4000, warmup = 2000, 
+                chains = 3, iter = 2000, warmup = 1000, 
                 control = list(adapt_delta = 0.95))
   # save STAN model
   saveRDS(model, paste("./data/predictive_models/M_cover_models/all_", 
@@ -557,7 +556,7 @@ for(i in 1:length(training_sites)) {
 }
 
 # check all r-hats < 1.05 & save r-hats
-any(all_rhats > 1.05) # maybe this code needs to be different?
+any(all_rhats > 1.05) # all above 1.05!
 write.csv(all_rhats,
           "./data/predictive_models/M_cover_models/model_attributes/all_rhats.csv",
           row.names = FALSE)

@@ -72,3 +72,9 @@ for(i in 1:length(preds_AC_atx_list)) {
     theme_bw()
   print(plot)
 }
+
+# response distribtuions
+hist(observed$resp_M_cover_norm)
+hist(observed$resp_AC_cover_norm)
+hist(observed$resp_M_atx_norm)
+hist(observed$resp_AC_atx_norm)
