@@ -5,7 +5,7 @@
 # This script creates a primary figure for Q1 focused on the relationships
 # between benthic cyanobacteria dynamics and GPP across rivers
 
-# NOTE: NEED TO DECIDE IF NON DETECTS ARE ZERO OR NA :)
+# IN PROGRESS- still trying to determine final symbology for presence
 
 #### (1) Loading libraries and data ####
 
@@ -15,25 +15,35 @@ lapply(c("tidyverse", "lubridate", "plyr", "cowplot", "gridExtra", "grid"),
 
 ## loading in data
 
-# percent cover data
+## percent cover data
 cover <- read.csv("./data/field_and_lab/percover_bysite.csv") %>% 
   mutate(field_date = ymd(field_date),
-         year = year(field_date)) %>% 
+         year = year(field_date),
+         microcoleus_present = 
+           case_when(proportion_micro_transects > 0 ~ "yes",
+                     TRUE ~ "no"),
+         ana_cyl_present = 
+           case_when(proportion_ana_cyl_transects > 0 ~ "yes",
+                     TRUE ~ "no")) %>% 
   filter(year == 2022) %>% 
-  select(field_date, site, microcoleus_mean, microcoleus_sd, anabaena_cylindrospermum_mean, anabaena_cylindrospermum_sd) %>% 
+  select(field_date, site, microcoleus_mean, microcoleus_sd, microcoleus_present,
+         anabaena_cylindrospermum_mean, anabaena_cylindrospermum_sd, ana_cyl_present) %>% 
   mutate(site = case_when(site == "SFE-M_excl_site2" ~ "SFE-M",
                           TRUE ~ site))
 
 # separating instead of mutating longer twice...
 anacyl <- cover %>% 
-  select(field_date, site, anabaena_cylindrospermum_mean, anabaena_cylindrospermum_sd) %>% 
+  select(field_date, site, anabaena_cylindrospermum_mean, anabaena_cylindrospermum_sd,
+         ana_cyl_present) %>% 
   dplyr::rename(mean = anabaena_cylindrospermum_mean,
-                sd = anabaena_cylindrospermum_sd) %>% 
+                sd = anabaena_cylindrospermum_sd,
+                present = ana_cyl_present) %>% 
   mutate(taxa = "anabaena_cylindrospermum")
 microcoleus <- cover %>% 
-  select(field_date, site, microcoleus_mean, microcoleus_sd) %>% 
+  select(field_date, site, microcoleus_mean, microcoleus_sd, microcoleus_present) %>% 
   dplyr::rename(mean = microcoleus_mean,
-                sd = microcoleus_sd) %>% 
+                sd = microcoleus_sd,
+                present = microcoleus_present) %>% 
   mutate(taxa = "microcoleus")
 
 # joining back together cover data and calculating +/- 1 sd
@@ -41,9 +51,12 @@ cover <- rbind(anacyl, microcoleus) %>%
   mutate(max = mean + sd,
          min = case_when(mean - sd > 0 ~ mean - sd,
                          is.na(sd) ~ NA,
-                         TRUE ~ 0))
+                         TRUE ~ 0),
+         # column to indicate it is present and is captured by quadrat survey
+         quadrat = case_when(mean > 0 ~ "yes",
+                             TRUE ~ "no"))
 
-# anatoxin data
+## anatoxin data
 atx <- read.csv("./data/field_and_lab/allrivers22_combined.csv") %>% 
   select(field_date, site_reach, site, TM_ATX_all_ug_orgmat_g, TAC_ATX_all_ug_orgmat_g) %>% 
   dplyr::rename(microcoleus = TM_ATX_all_ug_orgmat_g,
@@ -56,23 +69,26 @@ atx$field_date <- ymd(atx$field_date) # aware that this is redundant but lubrida
 
 # need to calculate average atx per day
 atx <- atx %>% 
-  na.omit() %>% 
+  # replace NAs with 0, using 0 for absence
+  mutate(ATX_ug_orgmat_g = replace_na(ATX_ug_orgmat_g, 0)) %>% 
   dplyr::group_by(field_date, site, taxa) %>% 
   dplyr::summarize(mean_ATX_ug_orgmat_g = mean(ATX_ug_orgmat_g))
 
-# gpp data
+## gpp data
+
+# full time series for each site
 gpp <- rbind(read.csv("./data/metab_model_outputs_processed/sfkeel_mir_2022_metab.csv"),
              read.csv("./data/metab_model_outputs_processed/russian_USGS_2022_metab.csv"),
              read.csv("./data/metab_model_outputs_processed/salmon_karuk_2022_metab.csv")) %>% 
   mutate(date = ymd(date))
 
-# discharge data
+## discharge data
 disc <- rbind(read.csv("./data/USGS/sfkeel_mir_discharge_daily.csv"),
               read.csv("./data/USGS/russian_discharge_daily.csv"),
               read.csv("./data/USGS/salmon_discharge_daily.csv")) %>% 
   mutate(date = ymd(date))
 
-# split all into lists
+## split all into lists
 atx_list <- split(atx, atx$site)
 cover_list <- split(cover, cover$site)
 gpp_list <- split(gpp, gpp$site_year)
@@ -98,8 +114,8 @@ bc_sfkeel <- ggplot(data = cover_list$`SFE-M`, aes(x = field_date)) +
   geom_line(data = cover_list$`SFE-M`, aes(y = 110 - (mean * 4), color = taxa, linetype = taxa),
             linewidth = 1.5) +
   geom_errorbar(data = cover_list$`SFE-M`, aes(ymin = 110 - ((min) * 4),
-                                                       ymax = 110 - ((max) * 4),
-                                                       color = taxa), 
+                                               ymax = 110 - ((max) * 4),
+                                               color = taxa), 
                 linewidth = 1.25, alpha = 0.7, width = 2) +
   geom_point(data = cover_list$`SFE-M`, aes(y = 110 - (mean * 4), color = taxa ,shape = taxa),
              size = 4) +
@@ -118,9 +134,37 @@ bc_sfkeel <- ggplot(data = cover_list$`SFE-M`, aes(x = field_date)) +
   theme(legend.position = "none") # will move over legend via illustrator
 bc_sfkeel
 
+# ver with different symbology
+bc_sfkeel2 <- ggplot(data = cover_list$`SFE-M`, aes(x = field_date)) +
+  geom_bar(data = atx_list$`SFE-M`, position = "dodge", stat = "identity", 
+           aes(y = mean_ATX_ug_orgmat_g, fill = taxa), width = 7, color = "black") +
+  geom_line(data = cover_list$`SFE-M`, aes(y = 110 - (mean * 4), color = taxa, linetype = taxa),
+            linewidth = 1.5) +
+  geom_errorbar(data = cover_list$`SFE-M`, aes(ymin = 110 - ((min) * 4),
+                                                       ymax = 110 - ((max) * 4),
+                                                       color = taxa), 
+                linewidth = 1.25, alpha = 0.7, width = 2, position = position_dodge(width = 1.5)) +
+  geom_point(data = cover_list$`SFE-M`, aes(y = 110 - (mean * 4), color = taxa, 
+                                            shape = interaction(present, quadrat)),
+             size = 3.5, stroke = 2, position = position_dodge(width = 1.5)) +
+  scale_color_manual("Group", values = c("#8f8504","#2871c7"),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_linetype_manual("Group", values = c("dotted", "dashed"),
+                        labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_shape_manual("Present / Quadrat", values = c(4, 19)) +
+  scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
+                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  labs(y = NULL, x = NULL) +
+  scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
+  scale_y_reverse(sec.axis = sec_axis(~ ((. - 110)/4) * -1)) +
+  ggtitle("South Fork Eel River") #+
+  theme(legend.position = "none") # will move over legend via illustrator
+bc_sfkeel2
+
 ## Russian River
 
-# remove microcoleus so line not present
+# remove microcoleus so line not present 
+# don't do this if using second option???
 cover_list$RUS <- cover_list$RUS %>% 
   filter(taxa == "anabaena_cylindrospermum")
 
@@ -131,8 +175,8 @@ bc_russian <- ggplot(data = cover_list$RUS, aes(x = field_date)) +
   geom_line(data = cover_list$RUS, aes(y = 10 - (mean * 1.25), color = taxa, linetype = taxa),
             linewidth = 2) +
   geom_errorbar(data = cover_list$RUS, aes(ymin = 10 - ((min) * 1.25),
-                                          ymax = 10 - ((max) * 1.25),
-                                          color = taxa), 
+                                           ymax = 10 - ((max) * 1.25),
+                                           color = taxa), 
                 size = 1.25, alpha = 0.7, width = 2) +
   geom_point(data = cover_list$RUS, aes(y = 10 - (mean * 1.25), color = taxa, shape = taxa),
              size = 5) +
@@ -151,9 +195,38 @@ bc_russian <- ggplot(data = cover_list$RUS, aes(x = field_date)) +
   theme(legend.position = "none") # will move over legend via illustrator
 bc_russian
 
+# version w/ different symbology
+bc_russian2 <- ggplot(data = cover_list$RUS, aes(x = field_date)) +
+  geom_bar(data = atx_list$RUS, position = "dodge", stat = "identity", 
+           aes(y = mean_ATX_ug_orgmat_g, fill = taxa), width = 6, color = "black") +
+  geom_line(data = cover_list$RUS, aes(y = 10 - (mean * 1.25), color = taxa, linetype = taxa),
+            linewidth = 2) +
+  geom_errorbar(data = cover_list$RUS, aes(ymin = 10 - ((min) * 1.25),
+                                          ymax = 10 - ((max) * 1.25),
+                                          color = taxa), 
+                linewidth = 1.25, alpha = 0.7, width = 2, position = position_dodge(width = 1.5)) +
+  geom_point(data = cover_list$RUS, aes(y = 10 - (mean * 1.25), color = taxa, 
+                                        shape = interaction(present, quadrat)),
+             size = 3.5, stroke = 2, position = position_dodge(width = 1.5)) +
+  scale_color_manual("Group", values = c("#8f8504","#2871c7"),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_linetype_manual("Group", values = c("dotted", "dashed"),
+                        labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_shape_manual("Present / Quadrat", values = c(4, 19)) +
+  scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
+                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  labs(y = NULL, x = NULL) +
+  scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
+  scale_y_reverse(sec.axis = sec_axis(~ ((. - 10)/1.25) * -1)) +
+  ggtitle("Russian River") #+
+  theme(legend.position = "none") # will move over legend via illustrator
+bc_russian2
+
 ## Salmon River
 
 # remove anabaena so line not present
+# only for first version, don't do this for second
+# though consider that anabaena is like .44% present at the end of the season
 cover_list$SAL <- cover_list$SAL %>% 
   filter(taxa == "microcoleus")
 
@@ -163,6 +236,7 @@ wildfire <- data.frame(xmin = as.Date("2022-07-30"),
                        ymin = 0, 
                        ymax = 5)
 
+# if removed anabaena-
 # add segment column to avoid line being drawn across plot when we weren't taking data
 cover_list$SAL$segment <- 1
 cover_list$SAL$segment[4] <- 2
@@ -199,6 +273,45 @@ bc_salmon <- ggplot(data = cover_list$SAL) +
   ggtitle("Salmon River") +
   theme(legend.position = "none")
 bc_salmon
+
+# add segment column to avoid line being drawn across plot when we weren't taking data
+# this set up is specifically for not removing anabaena
+cover_list$SAL$segment <- 1
+cover_list$SAL$segment[c(4)] <- 2
+cover_list$SAL$segment[c(5:7)] <- 3
+cover_list$SAL$segment[c(8)] <- 4
+
+# plot
+bc_salmon2 <- ggplot(data = cover_list$SAL) +
+  geom_bar(data = atx_list$SAL, position = "dodge", stat = "identity", 
+           aes(y = mean_ATX_ug_orgmat_g, x = field_date, fill = taxa), width = 7, color = "black") +
+  geom_rect(data = wildfire, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), 
+            fill = "#ededed") +
+  geom_line(data = cover_list$SAL, aes(y = 5 - (mean * .15), 
+                                       x = field_date, color = taxa, 
+                                       linetype = taxa, group = segment), linewidth = 1.5) +
+  geom_errorbar(data = cover_list$SAL, aes(ymin = 5 - ((min) * .15),
+                                           ymax = 5 - ((max) * .15),
+                                           x = field_date,
+                                           color = taxa), 
+                linewidth = 1.25, alpha = 0.7, width = 2, position = position_dodge(width = 1.5)) +
+  geom_point(data = cover_list$SAL, aes(y = 5 - (mean * .15), 
+                                        x = field_date, color = taxa, 
+                                        shape = interaction(present, quadrat)),
+             size = 3.5, stroke = 2, position = position_dodge(width = 1.5)) +
+  scale_color_manual("Group", values = c("#8f8504", "#2871c7"),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_linetype_manual("Group", values = c("dotted", "dashed"),
+                        labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_shape_manual("Present/Quadrat", values = c(4, 19)) +
+  scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
+                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  labs(y = NULL, x = NULL) +
+  scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
+  scale_y_reverse(limits = c(5,0), sec.axis = sec_axis(~ ((. - 5)/.15) * -1)) +
+  ggtitle("Salmon River") #+
+  theme(legend.position = "none")
+bc_salmon2
 
 #### (3) Making gpp/discharge figures ####
 
@@ -253,18 +366,22 @@ gpp_salmon
 #### (4) Making relationships/covariance figures ####
 
 # left join cover and anatoxins
-bc_dynamics <- left_join(cover, atx, by = c("taxa", "field_date", "site"))
+covary_data <- left_join(cover, atx, by = c("taxa", "field_date", "site"))
+co
 bc_dynamics_list <- split(bc_dynamics, bc_dynamics$site)
 
 ## Benthic Cyanobacterial Dynamics; runningn into problem here....
 micro_sfkeel <- ggplot(data = bc_dynamics_list$`SFE-M` %>% filter(taxa == "microcoleus"), 
                        aes(x = mean, y = mean_ATX_ug_orgmat_g)) +
-  geom_point(color = "blue", size = 3)
+  geom_point(color = "blue", size = 3) +
+  scale_y_continuous(trans = "log")
 micro_sfkeel
+# need to deal with 0's somehow
 
 ana_sfkeel <- ggplot(data = bc_dynamics_list$`SFE-M` %>% filter(taxa == "anabaena_cylindrospermum"), 
                        aes(x = mean, y = mean_ATX_ug_orgmat_g)) +
-  geom_point(color = "gold", size = 3)
+  geom_point(color = "gold", size = 3) +
+  scale_y_continuous(trans = "log")
 ana_sfkeel
 
 ana_russian <- ggplot(data = bc_dynamics_list$`RUS` %>% filter(taxa == "anabaena_cylindrospermum"), 
@@ -284,5 +401,7 @@ final <- grid.arrange(all, left = textGrob("\u03bcg ATX per g OM",
                       right = textGrob("percent cover (%)", 
                                        gp=gpar(fontsize=14), rot = 270))
 # STILL IN PROGRESS
+
+bc <- plot_grid(bc_sfkeel, bc_russian, bc_salmon, align = "hv", ncol = 1)
 
 # will edit further in adobe
