@@ -5,7 +5,7 @@
 # This script creates a primary figure for Q2 focused on the relationships
 # between benthic cyanobacteria dynamics and GPP within the same river
 
-# NOTE: NEED TO DECIDE IF NON DETECTS ARE ZERO OR NA :)
+# IN PROGRESS- still trying to determine final symbology for presence
 
 #### (1) Loading libraries and data ####
 
@@ -17,20 +17,40 @@ lapply(c("tidyverse", "lubridate", "plyr", "cowplot", "gridExtra", "grid"),
 data <- read.csv("./data/field_and_lab/sfkeel23_combined.csv") %>% 
   mutate(field_date = ymd(field_date)) %>% 
   select(field_date, site_reach, microcoleus, anabaena_cylindrospermum, 
-         TM_ATX_all_ug_orgmat_g, TAC_ATX_all_ug_orgmat_g)
+         TM_ATX_all_ug_orgmat_g, TAC_ATX_all_ug_orgmat_g, 
+         proportion_micro_transects, proportion_ana_cyl_transects)
 
 # edit data for plot purposes (pivoting longer)
 cover_longer <- data %>% 
-  select(!c(TM_ATX_all_ug_orgmat_g, TAC_ATX_all_ug_orgmat_g)) %>% 
+  select(!c(TM_ATX_all_ug_orgmat_g, TAC_ATX_all_ug_orgmat_g,
+            proportion_micro_transects, proportion_ana_cyl_transects)) %>% 
   pivot_longer(cols = c("microcoleus", "anabaena_cylindrospermum"),
                names_to = "taxa", values_to = "cover")
 atx_longer <- data %>% 
-  select(!c(microcoleus, anabaena_cylindrospermum)) %>% 
+  select(!c(microcoleus, anabaena_cylindrospermum,
+            proportion_micro_transects, proportion_ana_cyl_transects)) %>% 
   dplyr::rename(microcoleus = TM_ATX_all_ug_orgmat_g,
          anabaena_cylindrospermum = TAC_ATX_all_ug_orgmat_g) %>%
   pivot_longer(cols = c("microcoleus", "anabaena_cylindrospermum"),
              names_to = "taxa", values_to = "ATX_all_ug_orgmat_g")
+presence_longer <- data %>% 
+  select(!c(TM_ATX_all_ug_orgmat_g, TAC_ATX_all_ug_orgmat_g,
+            microcoleus, anabaena_cylindrospermum,)) %>% 
+  # turn presence into binary
+  mutate(microcoleus = case_when(proportion_micro_transects > 0 ~ "yes",
+                                 TRUE ~ "no"),
+         anabaena_cylindrospermum = case_when(proportion_ana_cyl_transects > 0 ~ "yes",
+                                              TRUE ~ "no")) %>% 
+  pivot_longer(cols = c("microcoleus", "anabaena_cylindrospermum"),
+               names_to = "taxa", values_to = "presence") %>% 
+  select(field_date, site_reach, taxa, microcoleus, anabaena_cylindrospermum)
+
+# put all data together
 data_longer <- left_join(cover_longer, atx_longer, by = c("taxa", "field_date", "site_reach"))
+data_longer <- left_join(data_longer, presence_longer, by = c("taxa", "field_date", "site_reach"))
+
+# replace anatoxin NAs with 0's
+data_longer$ATX_all_ug_orgmat_g <- replace_na(data_longer$ATX_all_ug_orgmat_g)
 
 ## gpp data
 gpp <- rbind(read.csv("./data/metab_model_outputs_processed/sfkeel_mir_2023_metab.csv"),
@@ -76,6 +96,7 @@ sfe_all <- ggplot(data = data_longer, aes(x = field_date)) +
   scale_x_date(limits = as.Date(c("2023-06-18", "2023-09-27"))) +
   scale_y_reverse(sec.axis = sec_axis(~ ((. - 260)/8) * -1)) +
   theme(legend.position = "none") # will move over legend via illustrator
+sfe_all
 
 # add segment column to avoid ribbon being drawn across plot when we weren't taking data
 gpp$segment <- 1
