@@ -34,20 +34,22 @@ atx_longer <- data %>%
   pivot_longer(cols = c("microcoleus", "anabaena_cylindrospermum"),
              names_to = "taxa", values_to = "ATX_all_ug_orgmat_g")
 presence_longer <- data %>% 
-  select(!c(TM_ATX_all_ug_orgmat_g, TAC_ATX_all_ug_orgmat_g,
-            microcoleus, anabaena_cylindrospermum,)) %>% 
-  # turn presence into binary
+  select(!c(TM_ATX_all_ug_orgmat_g, TAC_ATX_all_ug_orgmat_g)) %>% 
+  # turn presence into binary if nearby transect of in quadrat
   mutate(microcoleus = case_when(proportion_micro_transects > 0 ~ "yes",
                                  TRUE ~ "no"),
          anabaena_cylindrospermum = case_when(proportion_ana_cyl_transects > 0 ~ "yes",
                                               TRUE ~ "no")) %>% 
   pivot_longer(cols = c("microcoleus", "anabaena_cylindrospermum"),
-               names_to = "taxa", values_to = "presence") %>% 
-  select(field_date, site_reach, taxa, microcoleus, anabaena_cylindrospermum)
+               names_to = "taxa", values_to = "present") %>%  
+  select(field_date, site_reach, taxa, present)
 
 # put all data together
 data_longer <- left_join(cover_longer, atx_longer, by = c("taxa", "field_date", "site_reach"))
-data_longer <- left_join(data_longer, presence_longer, by = c("taxa", "field_date", "site_reach"))
+data_longer <- left_join(data_longer, presence_longer, by = c("taxa", "field_date", "site_reach")) %>% 
+  # add in if it is present in quadrat survey design
+  mutate(quadrat = case_when(cover > 0 ~ "yes",
+                             TRUE ~ "no"))
 
 # replace anatoxin NAs with 0's
 data_longer$ATX_all_ug_orgmat_g <- replace_na(data_longer$ATX_all_ug_orgmat_g)
@@ -97,6 +99,54 @@ sfe_all <- ggplot(data = data_longer, aes(x = field_date)) +
   scale_y_reverse(sec.axis = sec_axis(~ ((. - 260)/8) * -1)) +
   theme(legend.position = "none") # will move over legend via illustrator
 sfe_all
+
+# benthic cyanobacteria plot - trying more advanced symbology
+sfe_all_2 <- ggplot(data = data_longer, aes(x = field_date)) +
+  geom_bar(position = "dodge", stat = "identity", 
+           aes(y = ATX_all_ug_orgmat_g, fill = taxa), width = 5.5, color = "black") +
+  geom_line(aes(y = 260 - (cover * 8), color = taxa, linetype = taxa),
+            linewidth = 1.5) +
+  geom_point(aes(y = 260 - (cover * 8), color = taxa ,
+                 shape = interaction(present, quadrat)),size = 3) +
+  scale_color_manual("Taxa", values = c("#8f8504","#2871c7", "black"),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_linetype_manual("Taxa", values = c("dotted", "dashed"),
+                        labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_shape_manual("Taxa", values = c(4, 1, 19)) +
+  scale_fill_manual("Taxa", values = c("#d1c960","#5a88bf", "black"),
+                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  facet_wrap(~site_reach, ncol = 1) +
+  labs(y = NULL, x = NULL) +
+  ylim(0, 110) +
+  scale_x_date(limits = as.Date(c("2023-06-18", "2023-09-27"))) +
+  scale_y_reverse(sec.axis = sec_axis(~ ((. - 260)/8) * -1)) #+
+  #theme(legend.position = "none") # will move over legend via illustrator
+sfe_all_2
+
+# benthic cyanobacteria plot - trying more advanced symbology; zoomed in on one site
+one_site <- data_longer %>% 
+  filter(site_reach == "SFE-M-3" | site_reach == "SFE-M-4")
+sfe_all_2_zoomed <- ggplot(data = one_site, aes(x = field_date)) +
+  geom_bar(position = "dodge", stat = "identity", 
+           aes(y = ATX_all_ug_orgmat_g, fill = taxa), width = 5.5, color = "black") +
+  geom_line(aes(y = 260 - (cover * 8), color = taxa, linetype = taxa),
+            linewidth = 1.5) +
+  geom_point(aes(y = 260 - (cover * 8), color = taxa ,
+                 shape = interaction(present, quadrat)),size = 3) +
+  scale_color_manual("Taxa", values = c("#8f8504","#2871c7", "black"),
+                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_linetype_manual("Taxa", values = c("dotted", "dashed"),
+                        labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_shape_manual("Taxa", values = c(4, 1, 19)) +
+  scale_fill_manual("Taxa", values = c("#d1c960","#5a88bf", "black"),
+                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  facet_wrap(~site_reach, ncol = 1) +
+  labs(y = NULL, x = NULL) +
+  ylim(0, 110) +
+  scale_x_date(limits = as.Date(c("2023-06-18", "2023-09-27"))) +
+  scale_y_reverse(sec.axis = sec_axis(~ ((. - 260)/8) * -1)) #+
+#theme(legend.position = "none") # will move over legend via illustrator
+sfe_all_2_zoomed
 
 # add segment column to avoid ribbon being drawn across plot when we weren't taking data
 gpp$segment <- 1
