@@ -363,33 +363,7 @@ gpp_salmon <- ggplot(data = gpp_list$salmon_karuk_2022, aes(x = date)) +
   labs(y = NULL, x = NULL)
 gpp_salmon
 
-#### (4) Making relationships/covariance figures ####
-
-# left join cover and anatoxins
-covary_data <- left_join(cover, atx, by = c("taxa", "field_date", "site"))
-co
-bc_dynamics_list <- split(bc_dynamics, bc_dynamics$site)
-
-## Benthic Cyanobacterial Dynamics; runningn into problem here....
-micro_sfkeel <- ggplot(data = bc_dynamics_list$`SFE-M` %>% filter(taxa == "microcoleus"), 
-                       aes(x = mean, y = mean_ATX_ug_orgmat_g)) +
-  geom_point(color = "blue", size = 3) +
-  scale_y_continuous(trans = "log")
-micro_sfkeel
-# need to deal with 0's somehow
-
-ana_sfkeel <- ggplot(data = bc_dynamics_list$`SFE-M` %>% filter(taxa == "anabaena_cylindrospermum"), 
-                       aes(x = mean, y = mean_ATX_ug_orgmat_g)) +
-  geom_point(color = "gold", size = 3) +
-  scale_y_continuous(trans = "log")
-ana_sfkeel
-
-ana_russian <- ggplot(data = bc_dynamics_list$`RUS` %>% filter(taxa == "anabaena_cylindrospermum"), 
-                     aes(x = mean, y = mean_ATX_ug_orgmat_g)) +
-  geom_point(color = "gold", size = 3)
-ana_russian
-
-#### (5) Putting figures together
+#### (4) Putting figures together
 
 # putting together
 all <- plot_grid(bc_sfkeel, gpp_sfkeel, bc_russian, 

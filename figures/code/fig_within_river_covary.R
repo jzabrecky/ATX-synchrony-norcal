@@ -238,12 +238,12 @@ micro_cov_gpp
 #### (4) GPP & ATX figures ####
 
 # all reaches
-ana_cov_gpp <- ggplot(data = data, aes(GPP_median_fourdaysprior, 
-                                       anabaena_cylindrospermum)) +
+ana_atx_gpp <- ggplot(data = data, aes(GPP_median_fourdaysprior, 
+                                       TAC_ATX_all_ug_g)) +
   geom_point(aes(color = site_reach), size = 4.5) +
   geom_segment(data = data, linewidth = 1.2, alpha = 0.8,
                aes(xend = end_GPP,
-                   yend = end_anacyl_cover,
+                   yend = end_TAC_atx,
                    color = site_reach),
                arrow = arrow(type = "open", length = unit(0.15, "inches"))) + 
   scale_color_manual("Reach:", values = c("#302d00", "#6b6404", "#8f8504", 
@@ -252,7 +252,7 @@ ana_cov_gpp <- ggplot(data = data, aes(GPP_median_fourdaysprior,
        x = expression(paste("g O"[2], " m"^-2, " d"^-1))) +
   scale_y_continuous(trans=scales::pseudo_log_trans(base = 10)) +
   theme(legend.position = "top")
-ana_cov_gpp
+ana_atx_gpp
 
 ## microcoleus
 
