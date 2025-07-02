@@ -27,9 +27,9 @@ data <- data %>%
 data_cov <- data %>%  # remove columns that won't be used as covariates
   select(!c(proportion_micro_transects, proportion_ana_cyl_transects,
          proportion_riffle_rapid_transects, TM_ATX_all_ug_g, TM_ATX_all_ug_orgmat_g,
-         TM_ATX_all_ug_chla_ug, TM_Chla_ug_g, TM_Pheo_ug_g, TM_Chla_Pheo_ratio, 
+         TM_ATX_all_ug_chla_ug, TM_Chla_ug_g, TM_Pheo_ug_g,
          TM_percent_organic_matter, TAC_ATX_all_ug_g, TAC_ATX_all_ug_orgmat_g, 
-         TAC_ATX_all_ug_chla_ug, TAC_Chla_ug_g, TAC_Pheo_ug_g, TAC_Chla_Pheo_ratio,
+         TAC_ATX_all_ug_chla_ug, TAC_Chla_ug_g, TAC_Pheo_ug_g,
          TAC_percent_organic_matter))
          
 
