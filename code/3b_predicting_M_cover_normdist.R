@@ -113,7 +113,7 @@ preds_cover_norm <- function(params, y, covar) {
   # make predictions
   for(j in 2:n.pred) {
     for(i in 1:length(params$sigma)) {
-      preds[i,j] <- rtruncnorm(n = 1,
+      preds[i,j] <- rnorm(n = 1,
                                mean = params$b0[i] + params$b1[i] * preds[i,j-1] +
                                  # covariance matrix is missing the first day
                                  # but predictions matrix isn't (hence j-1)

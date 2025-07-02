@@ -1,6 +1,6 @@
 #### models to predict cover (truncated norm version)
 ### Jordan Zabrecky
-## last edited: 06.19.2025
+## last edited: 06.25.2025
 
 # This script builds models to predict cover of benthic Microcoleus cover
 # as determined by benthic cover surveys. Each model is built using 4 of 
@@ -24,10 +24,6 @@ raw_data <- read.csv("./data/predictive_models/inputs.csv")
 # instead lets create autoregressive terms in the same dataframe
 # and remove the first day
 raw_data$prior_M_cover_norm <- c(NA, raw_data$resp_M_cover_norm[-nrow(raw_data)])
-raw_data$prior_AC_cover_norm <- c(NA, raw_data$resp_AC_cover_norm[-nrow(raw_data)])
-# may not do autoregressive for ATX, but just in case
-raw_data$prior_M_atx_norm <- c(NA, raw_data$resp_M_atx_norm[-nrow(raw_data)])
-raw_data$prior_AC_atx_norm <- c(NA, raw_data$resp_AC_atx_norm[-nrow(raw_data)])
 
 # double-check that lines up as if prior is the previous value from resp on same row
 check <- raw_data %>% 
@@ -186,13 +182,13 @@ for(i in 1:length(training_sites)) {
 any(physical_rhats > 1.05) # all above 1.05!
 write.csv(physical_rhats,
           "./data/predictive_models/M_cover_models/model_attributes/physical_rhats.csv",
-          row.names = FALSE)
+          row.names = TRUE)
 
 # looking at how parameter estimates change across all models
 view(physical_param_est)
 write.csv(physical_param_est,
           "./data/predictive_models/M_cover_models/model_attributes/physical_param_est.csv",
-          row.names = FALSE)
+          row.names = TRUE)
 
 ## (c) chemical (DIN + ophos + cond)
 
@@ -246,13 +242,13 @@ for(i in 1:length(training_sites)) {
 any(chemical_rhats > 1.05) # all above 1.05!
 write.csv(chemical_param_est,
           "./data/predictive_models/M_cover_models/model_attributes/chemical_rhats.csv",
-          row.names = FALSE)
+          row.names = TRUE)
 
 # looking at how parameter estimates change across all models
 view(chemical_param_est)
 write.csv(chemical_param_est,
           "./data/predictive_models/M_cover_models/model_attributes/chemical_param_est.csv",
-          row.names = FALSE)
+          row.names = TRUE)
 
 ## (d) biological (GPP)
 
@@ -306,13 +302,13 @@ for(i in 1:length(training_sites)) {
 any(biological_rhats > 1.05) # all above 1.05!
 write.csv(biological_rhats,
           "./data/predictive_models/M_cover_models/model_attributes/biological_rhats.csv",
-          row.names = FALSE)
+          row.names = TRUE)
 
 # looking at how parameter estimates change across all models
 view(biological_param_est)
 write.csv(biological_param_est,
           "./data/predictive_models/M_cover_models/model_attributes/biological_param_est.csv",
-          row.names = FALSE)
+          row.names = TRUE)
 
 ## (e) physicochemical (temp + discharge + DIN + ophos + cond)
 
@@ -369,13 +365,13 @@ for(i in 1:length(training_sites)) {
 any(physicochemical_rhats > 1.05) # all above 1.05!
 write.csv(physicochemical_rhats,
           "./data/predictive_models/M_cover_models/model_attributes/physicochemical_rhats.csv",
-          row.names = FALSE)
+          row.names = TRUE)
 
 # looking at how parameter estimates change across all models
 view(physicochemical_param_est)
 write.csv(physicochemical_param_est,
           "./data/predictive_models/M_cover_models/model_attributes/physicochemical_param_est.csv",
-          row.names = FALSE)
+          row.names = TRUE)
 
 ## (f) ecohydrological (temp + discharge + GPP)
 
@@ -431,13 +427,13 @@ for(i in 1:length(training_sites)) {
 any(ecohydrological_rhats > 1.05) # all above 1.05!
 write.csv(ecohydrological_rhats,
           "./data/predictive_models/M_cover_models/model_attributes/ecohydrological_rhats.csv",
-          row.names = FALSE)
+          row.names = TRUE)
 
 # looking at how parameter estimates change across all models
 view(ecohydrological_param_est)
 write.csv(ecohydrological_param_est,
           "./data/predictive_models/M_cover_models/model_attributes/ecohydrological_param_est.csv",
-          row.names = FALSE)
+          row.names = TRUE)
 
 ## (g) biochemical (DIN + ophos + cond + GPP)
 
@@ -494,13 +490,13 @@ for(i in 1:length(training_sites)) {
 any(biochemical_rhats > 1.05) # all above 1.05!
 write.csv(biochemical_rhats,
           "./data/predictive_models/M_cover_models/model_attributes/biochemical_rhats.csv",
-          row.names = FALSE)
+          row.names = TRUE)
 
 # looking at how parameter estimates change across all models
 view(biochemical_param_est)
 write.csv(biochemical_param_est,
           "./data/predictive_models/M_cover_models/model_attributes/biochemical_rhats.csv",
-          row.names = FALSE)
+          row.names = TRUE)
 
 ## (h) all (temp + discharge + DIN + ophos + cond + GPP)
 
@@ -559,13 +555,13 @@ for(i in 1:length(training_sites)) {
 any(all_rhats > 1.05) # all above 1.05!
 write.csv(all_rhats,
           "./data/predictive_models/M_cover_models/model_attributes/all_rhats.csv",
-          row.names = FALSE)
+          row.names = TRUE)
 
 # looking at how parameter estimates change across all models
 view(all_param_est)
 write.csv(all_param_est,
           "./data/predictive_models/M_cover_models/model_attributes/all_param_est.csv",
-          row.names = FALSE)
+          row.names = TRUE)
 
 #### (5) Saving outputs ####
 

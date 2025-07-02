@@ -15,7 +15,7 @@ parameters {
 // autoregressive model with covariates
 model {
   for(i in 1:N) {
-   y[i] ~ normal(b0 + b1*autoreg[i] + covar*b, sigma) T[0,100];
+   y[i] ~ normal(b0 + covar*b, sigma) T[0,100];
   }
 
   // prior for sigma
