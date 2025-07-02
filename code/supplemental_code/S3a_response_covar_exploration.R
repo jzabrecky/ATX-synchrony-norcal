@@ -1,6 +1,6 @@
 #### predictive modeling covariate exploration
 ### Jordan Zabrecky
-## last edited: 06.17.2025
+## last edited: 07.02.2025
 
 # This code explores response variables covariates that may be used in 
 # predictive models
@@ -288,7 +288,7 @@ TDC
 # very variable? likely will not use this data
 
 # dissolved organic carbon (DOC)
-GPP <- ggplot(data = norm_data, aes(x = field_date, y = GPP_median_fourdaysprior)) +
+GPP <- ggplot(data = norm_data, aes(x = field_date, y = GPP_median_tofourdaysprior)) +
   geom_point(aes(color = site_reach, shape = site_reach, fill = site_reach), 
              size = 4.5, alpha = 0.8) +
   geom_line(aes(color = site_reach), alpha = 0.8, linewidth = 1.25) +
