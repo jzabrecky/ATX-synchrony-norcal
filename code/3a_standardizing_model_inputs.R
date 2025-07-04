@@ -1,6 +1,6 @@
 #### standardizing and normalizing data for predictive moels
 ### Jordan Zabrecky
-## last edited: 06.17.2025
+## last edited: 07.02.2025
 
 # This script standardizes (and, in some cases, normalizes) South Fork
 # Eel 2023 data before predictive modeling

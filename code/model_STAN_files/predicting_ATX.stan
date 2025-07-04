@@ -1,8 +1,9 @@
 data {
   int<lower=0> N; // number of visits to each site reach
   int<lower=0> c; // number of covariates
-  array[N] real<lower=0, upper=100> y; // response or % cover bounded by 0 and 100
+  array[N] real<lower=0, upper=100> future; // response/anatoxins we are predicting
   matrix[N, c] covar; // covariate matrix with N (row length) * number of covariates
+  // covariates are all at current time step (time step prior to future we are predicting)
 }
 
 
@@ -15,7 +16,7 @@ parameters {
 // autoregressive model with covariates
 model {
   for(i in 1:N) {
-   y[i] ~ normal(b0 + covar*b, sigma) T[0,100];
+   future[i] ~ normal(b0 + covar[i,]*b, sigma) T[0,100];
   }
 
   // prior for sigma

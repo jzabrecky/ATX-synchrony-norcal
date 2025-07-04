@@ -1,12 +1,17 @@
 #### functions to make predictions with STAN models
 ### Jordan Zabrecky
-## last edited: 06.17.2025
+## last edited: 07.03.2025
 
 # This script hosts function to make predictions using STAN
 # models and returns predictions (mean, lower bound of 95% confidence 
 # interval, and upper bound of 95% confidence interval)
 
 #### (1) Functions to generate predictions matrix ####
+
+# for predictions functions...
+# params = parameters extracted from STAN model
+# y = empty predictions dataframe
+# covar = matrix of covariates for test site
 
 # for predictions involving cover (i.e. includes an autoregressive term)
 preds_cover <- function(params, y, covar) {
@@ -19,8 +24,8 @@ preds_cover <- function(params, y, covar) {
     for(i in 1:length(params$sigma)) {
       preds[i,j] <- rtruncnorm(n = 1, a = 0, b = 100,
                                mean = params$b0[i] + params$b1[i] * preds[i,j-1] +
-                                # covariance matrix is missing the first day
-                                 # but predictions matrix isn't (hence j-1)
+                                # using previous prediction and covariates (j-1)
+                                # to predict next time step
                                  covar[j-1,]%*%params$b[i,],
                                sd = params$sigma[i]) # process error
     }
@@ -42,8 +47,8 @@ preds_atx <- function(params, y, covar) {
     for(i in 1:length(params$sigma)) {
       preds[i,j] <- rtruncnorm(n = 1, a = 0, b = 100,
                                mean = params$b0[i] + # removed autoregressive term
-                                 # covariance matrix is missing the first day
-                                 # but predictions matrix isn't (hence j-1)
+                                 # using previous covariates (j-1)
+                                 # to predict next time step
                                  covar[j-1,]%*%params$b[i,],
                                sd = params$sigma[i]) # process error
     }

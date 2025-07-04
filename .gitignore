@@ -8,12 +8,8 @@
 data/GLDAS/
 data/NLDAS/
 data/metab_model_outputs/
-data/predictive_models/M_cover_models/
-data/predictive_models/AC_cover_models/
-data/predictive_models/M_atx_models/
-data/predictive_models/AC_atx_models/
-data/EDI_data_package/site_reach_locations.csv
-data/predictive_models/normal_test/M_cover_models/
+# just keeping out predictive model stuff for now...
+data/predictive_models/
 # cannot publicly release data collected by karuk tribe
 data/karuk_tribe_data
 data/external_DO/salmon_2022_karuk.csv
