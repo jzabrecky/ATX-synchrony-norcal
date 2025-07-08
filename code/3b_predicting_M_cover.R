@@ -6,12 +6,6 @@
 # as determined by benthic cover surveys. Each model is built using 4 of 
 # 5 reaches, then the model is tested using the withheld fifth reach
 
-# code redo/todo:
-# -use prior covariates
-# -check matrix math & fix matrix stuff
-# -set b1 prior to unif
-# -function for all; modularize code
-
 #### (1) Loading data and libraries ####
 
 # loading libraries
@@ -106,37 +100,8 @@ names(predictions) <- model_names
 # get prediction functions
 source("./code/supplemental_code/S3b_pred_functions.R")
 
-model_name <- "physical"
-covariates <- list()
-for(i in 1:length(training_sites)) {
-  covariates[[i]] <- as.matrix(training_sites[[i]] %>% 
-                                 select(temp_C, discharge_m3_s))
-}
-i <- 1
-
-#### mini test
-i <- 2
-covariates <- as.matrix(training_sites[[i]] %>% 
-                          select(temp_C, discharge_m3_s))
-mod_data <- list(N = nrow(training_sites[[i]]),
-                 c = ncol(covariates),
-                 future = training_sites[[i]]$future_M_cover_norm,
-                 present = training_sites[[i]]$resp_M_cover_norm,
-                 covar = covariates)
-# run STAN model
-model <- stan(file = "./code/model_STAN_files/predicting_cover.stan", 
-              data = mod_data,
-              chains = 3, iter = 2000, warmup = 1000, 
-              control = list(adapt_delta = 0.95))
-
-
-# function to build all five predictive models for each model
-# model_name = string of model name
-# covariates = list of matrices for each reach test
-
-## LEFT OFF HERE- go through it and make sure it makes sense for a test case!!!
-
-predict_all(model_name, covariates) {
+# function to make models, predictions, and save r-hats and parameter estimates
+predict_all <- function(model_name, covariates) {
   
   # empty list to save parameter estimates for each model
   # and parameter r-hats for each model
@@ -150,8 +115,9 @@ predict_all(model_name, covariates) {
   colnames(rhats) <- names(test_sites)
   
   # get index of list of predictions dataframe that corresponds to model name
-  j <- which(names(predictions) == model_name) 
+  j <- as.numeric(which(names(predictions) == model_name))
   
+  # build models and make predictions for each reach
   for(i in 1:length(training_sites)) {
     # gather data
     mod_data <- list(N = nrow(training_sites[[i]]),
@@ -180,8 +146,8 @@ predict_all(model_name, covariates) {
                                 y = predictions$physical[[i]],
                                 covar = as.matrix(test_sites[[i]] %>% 
                                                     select(temp_C, discharge_m3_s)))
-    # save summary of predictions
-    predictions[j][[i]][,2:4] <- preds_summary(preds_matrix)
+    # save summary of prediction
+    predictions[[j]][[i]][,2:4] <- preds_summary(preds_matrix)
     # calculate nRMSE of model
     nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$future_M_cover_norm,
                                         site_reach_name = names(test_sites)[i],
@@ -203,7 +169,7 @@ predict_all(model_name, covariates) {
 
 ## (a) null - mean of all cover data
 
-# calculate mean (ignoring first day which we are not predicting)
+# calculate mean to use for null model (this ignores first day which we are not predicting)
 mean_cover <- mean(data$future_M_cover_norm)
 
 # add to predictions for each site and calculate nRMSE
@@ -217,17 +183,135 @@ for(i in 1:length(test_sites)) {
 for(i in 1:length(test_sites)) {
   new <- data.frame(site_reach = names(test_sites)[i],
                     model = "null")
-  new$mean <- calc_nRMSE(predictions$null[[i]]$mean[-1], test_sites[[i]]$resp_M_cover_norm,
-                         max(test_sites[[i]]$resp_M_cover_norm), min(test_sites[[i]]$resp_M_cover_norm))
-  new$ci_lower <- calc_nRMSE(predictions$null[[i]]$ci_lower[-1], test_sites[[i]]$resp_M_cover_norm,
-                             max(test_sites[[i]]$resp_M_cover_norm), min(test_sites[[i]]$resp_M_cover_norm))
-  new$ci_upper <- calc_nRMSE(predictions$null[[i]]$ci_upper[-1], test_sites[[i]]$resp_M_cover_norm,
-                             max(test_sites[[i]]$resp_M_cover_norm), min(test_sites[[i]]$resp_M_cover_norm))
+  new$mean <- calc_nRMSE(predictions$null[[i]]$mean[-1], test_sites[[i]]$future_M_cover_norm,
+                         max(test_sites[[i]]$future_M_cover_norm), min(test_sites[[i]]$future_M_cover_norm))
+  new$ci_lower <- calc_nRMSE(predictions$null[[i]]$ci_lower[-1], test_sites[[i]]$future_M_cover_norm,
+                             max(test_sites[[i]]$future_M_cover_norm), min(test_sites[[i]]$future_M_cover_norm))
+  new$ci_upper <- calc_nRMSE(predictions$null[[i]]$ci_upper[-1], test_sites[[i]]$future_M_cover_norm,
+                             max(test_sites[[i]]$future_M_cover_norm), min(test_sites[[i]]$future_M_cover_norm))
   nrmse <- rbind(nrmse, new)
 }
 
 ## (b) physical (temp + discharge)
 
+# make list of covariates for model
+physical_covariates <- list()
+for(i in 1:length(training_sites)) {
+  physical_covariates[[i]] <- as.matrix(training_sites[[i]] %>% 
+                                          select(temp_C, discharge_m3_s))
+}
+
+# run function
+predict_all(model_name = "physical",
+            covariates = physical_covariates)
+
+## (b) chemical (din + ophos + conductivity)
+
+# make list of covariates for model
+chemical_covariates <- list()
+for(i in 1:length(training_sites)) {
+  chemical_covariates[[i]] <- as.matrix(training_sites[[i]] %>% 
+                                          select(DIN_mg_N_L, oPhos_ug_P_L, cond_uS_cm))
+}
+
+# run function
+predict_all(model_name = "chemical",
+            covariates = chemical_covariates)
+
+## (d) biological (GPP)
+
+# make list of covariates for model
+biological_covariates <- list()
+for(i in 1:length(training_sites)) {
+  biological_covariates[[i]] <- as.matrix(training_sites[[i]] %>% 
+                                          select(GPP_median_tofourdaysprior))
+}
+
+# run function
+predict_all(model_name = "biological",
+            covariates = biological_covariates)
+
+## (e) physicochemical (temp + flow + din + ophos + cond)
+
+# make list of covariates for physical model
+physicochemical_covariates <- list()
+for(i in 1:length(training_sites)) {
+  physicochemical_covariates[[i]] <- as.matrix(training_sites[[i]] %>% 
+                                            select(temp_C, discharge_m3_s, DIN_mg_N_L,
+                                                   oPhos_ug_P_L, cond_uS_cm))
+}
+
+# run function
+predict_all(model_name = "physicochemical",
+            covariates = physicochemical_covariates)
+
+## (f) ecohydrological (temp + disc + gpp)
+
+# make list of covariates for physical model
+ecohydrological_covariates <- list()
+for(i in 1:length(training_sites)) {
+  ecohydrological_covariates[[i]] <- as.matrix(training_sites[[i]] %>% 
+                                                 select(temp_C, discharge_m3_s, 
+                                                        GPP_median_tofourdaysprior))
+}
+
+# run function
+predict_all(model_name = "ecohydrological",
+            covariates = ecohydrological_covariates)
+
+## (g) biochemical (din + ophos + cond + GPP)
+
+# make list of covariates for physical model
+biochemical_covariates <- list()
+for(i in 1:length(training_sites)) {
+  biochemical_covariates[[i]] <- as.matrix(training_sites[[i]] %>% 
+                                                 select(DIN_mg_N_L, oPhos_ug_P_L, cond_uS_cm, 
+                                                        GPP_median_tofourdaysprior))
+}
+
+# run function
+predict_all(model_name = "biochemical",
+            covariates = biochemical_covariates)
+
+## (h) all (temp + dis + din + ophos + cond + GPP)
+
+# make list of covariates for physical model
+all_covariates <- list()
+for(i in 1:length(training_sites)) {
+  all_covariates[[i]] <- as.matrix(training_sites[[i]] %>% 
+                                             select(temp_C, discharge_m3_s,
+                                                    DIN_mg_N_L, oPhos_ug_P_L, cond_uS_cm, 
+                                                    GPP_median_tofourdaysprior))
+}
+
+# run function
+predict_all(model_name = "all",
+            covariates = all_covariates)
+
 #### (5) Saving Outputs
 
-# need to save nRMSE table and predictions
+# saving nRMSE table
+write.csv(nrmse %>% na.omit(), "./data/predictive_models/nrmse_M_cover.csv",
+          row.names = FALSE)
+
+# adding site_reach and model name information to dataframe
+for(j in 1:length(test_sites)) {
+  for(i in 1:length(model_names)) {
+    predictions[[i]][[j]]$model <- names(predictions)[i]
+    predictions[[i]][[j]]$site_reach <- names(predictions[[i]])[j]
+  }
+}
+
+# create empty vector for all sites
+final_predictions <- data.frame()
+
+# creating final predictions list
+for(j in 1:length(test_sites)) {
+  for(i in 1:length(model_names)) {
+    final_predictions <- rbind(final_predictions, predictions[[i]][[j]])
+  }
+}
+
+# saving final predictions
+write.csv(final_predictions, "./data/predictive_models/predictions_M_cover.csv",
+          row.names = FALSE)
