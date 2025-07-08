@@ -1,6 +1,6 @@
 #### models to predict cover (truncated norm version)
 ### Jordan Zabrecky
-## last edited: 07.02.2025
+## last edited: 07.08.2025
 
 # This script builds models to predict cover of benthic Microcoleus cover
 # as determined by benthic cover surveys. Each model is built using 4 of 
@@ -95,77 +95,31 @@ names(predictions) <- model_names
 # biochemical = autoregressive w/ GPP, nutrients, and conductivity
 # all = autoregressive w/ all covariates
 
+# function to make list of covariates training and testing for each model
+make_covariates <- function(covariates) {
+  
+  # create empty lists
+  training_list = list()
+  testing_list = list()
+  
+  # assign covariates for each reach grouping
+  for(i in 1:length(test_sites)) {
+    training_list[[i]] = as.matrix(training_sites[[i]] %>% 
+                                     select(all_of(covariates)))
+    testing_list[[i]] = as.matrix(test_sites[[i]] %>% 
+                                    select(all_of(covariates)))
+  }
+  
+  # create and return final list of the two combined
+  final_list = list(training_list, testing_list)
+  names(final_list) = c("training", "testing")
+  return(final_list)
+}
+
 #### (4) Predicting Microcoleus Cover ####
 
 # get prediction functions
 source("./code/supplemental_code/S3b_pred_functions.R")
-
-# function to make models, predictions, and save r-hats and parameter estimates
-predict_all <- function(model_name, covariates) {
-  
-  # empty list to save parameter estimates for each model
-  # and parameter r-hats for each model
-  # number of covariates plus 4 (for b0, b1, sigma, and lp)
-  # ncol = 5 (hard-coded; number of reaches)
-  param_est <- data.frame(matrix(NA, nrow = ncol(covariates[[1]]) + 4, 
-                                 ncol = 5))
-  rhats <- data.frame(matrix(NA, nrow = ncol(covariates[[1]]) + 4, 
-                            ncol = 5))
-  colnames(param_est) <- names(test_sites)
-  colnames(rhats) <- names(test_sites)
-  
-  # get index of list of predictions dataframe that corresponds to model name
-  j <- as.numeric(which(names(predictions) == model_name))
-  
-  # build models and make predictions for each reach
-  for(i in 1:length(training_sites)) {
-    # gather data
-    mod_data <- list(N = nrow(training_sites[[i]]),
-                     c = ncol(covariates[[i]]),
-                     future = training_sites[[i]]$future_M_cover_norm,
-                     present = training_sites[[i]]$resp_M_cover_norm,
-                     covar = as.matrix(covariates[[i]]))
-    # run STAN model
-    model <- stan(file = "./code/model_STAN_files/predicting_cover.stan", 
-                  data = mod_data,
-                  chains = 3, iter = 2000, warmup = 1000, 
-                  control = list(adapt_delta = 0.95))
-    # save STAN model
-    saveRDS(model, paste("./data/predictive_models/M_cover_models/", model_name, 
-                         "_", names(test_sites)[i], sep = ""))
-    # extract parameters
-    params <- rstan::extract(model, c("sigma", "b0", "b1", "b"))
-    # add mean parameter estimates to dataframe
-    rownames(param_est) <- rownames(get_posterior_mean(model))
-    param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
-    # add r-hats to dataframe
-    rownames(rhats) <- names(summary(model)$summary[,"Rhat"])
-    rhats[i] <- summary(model)$summary[,"Rhat"]
-    # make predictions matrix
-    preds_matrix <- preds_cover(params = params,
-                                y = predictions$physical[[i]],
-                                covar = as.matrix(test_sites[[i]] %>% 
-                                                    select(temp_C, discharge_m3_s)))
-    # save summary of prediction
-    predictions[[j]][[i]][,2:4] <- preds_summary(preds_matrix)
-    # calculate nRMSE of model
-    nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$future_M_cover_norm,
-                                        site_reach_name = names(test_sites)[i],
-                                        model_name = model_name))
-  }
-  
-  # save rhats and mean parameter estimates
-  write.csv(rhats, paste("./data/predictive_models/M_cover_models/model_attributes/",
-                         model_name, "_rhats.csv", sep = ""), row.names = TRUE)
-  write.csv(param_est, paste("./data/predictive_models/M_cover_models/model_attributes/",
-                         model_name, "_param_est.csv", sep = ""), row.names = TRUE)
-  
-  # lastly, print if all models converged <1.05 or not!
-  if(any(rhats > 1.05)) {
-    print("models did not converge :(")} else {
-      print("models did converge!! :)")
-    }
-}
 
 ## (a) null - mean of all cover data
 
@@ -192,101 +146,115 @@ for(i in 1:length(test_sites)) {
   nrmse <- rbind(nrmse, new)
 }
 
-## (b) physical (temp + discharge)
+## (b) all others (putting data together and then run through big for loop)
 
-# make list of covariates for model
-physical_covariates <- list()
-for(i in 1:length(training_sites)) {
-  physical_covariates[[i]] <- as.matrix(training_sites[[i]] %>% 
-                                          select(temp_C, discharge_m3_s))
+# indexes cheat code:
+# i = training/test sites
+# j = model type according to predictions list (i.e. 1 = null, 2 = physical, 3 = chemical)
+
+# empty list for covariates
+covariates <- list()
+covariates[[1]] <- NA # holder for null model
+
+# make list of covariates for physical (temp + discharge)
+covariates[[2]] <- make_covariates(c("temp_C", "discharge_m3_s"))
+
+# make list of covariates for chemical (din + ophos + conductivity)
+covariates[[3]] <- make_covariates(c("DIN_mg_N_L", "oPhos_ug_P_L", "cond_uS_cm"))
+
+# make list of covariates for biological (GPP)
+covariates[[4]] <- make_covariates(c("GPP_median_tofourdaysprior"))
+
+# make list of covariates for physicochemical (temp + flow + din + ophos + cond)
+covariates[[5]] <- make_covariates(c("temp_C", "discharge_m3_s",
+                                                "DIN_mg_N_L", "oPhos_ug_P_L",
+                                                "cond_uS_cm"))
+
+# make list of covariates for ecohydrological (temp + disc + gpp)
+covariates[[6]] <- make_covariates(c("temp_C", "discharge_m3_s",
+                                                "GPP_median_tofourdaysprior"))
+
+# make list of covariates for biochemical (din + ophos + cond + GPP)
+covariates[[7]] <- make_covariates(c("DIN_mg_N_L", "oPhos_ug_P_L",
+                                            "cond_uS_cm", "GPP_median_tofourdaysprior"))
+
+# make list of covariates for all (temp + dis + din + ophos + cond + GPP)
+covariates[[8]] <- make_covariates(c("temp_C", "discharge_m3_s", "DIN_mg_N_L", 
+                                    "oPhos_ug_P_L", "cond_uS_cm", "GPP_median_tofourdaysprior"))
+
+# giving list names for clarification
+names(covariates) <- names(predictions)
+
+# run through for loop to run all models; start with j for models
+# start at 2 because we did null model separately
+for(j in 2:length(predictions)) {
+  
+  # empty list to save parameter estimates for each model
+  # and parameter r-hats for each model
+  # number of covariates plus 4 (for b0, b1, sigma, and lp)
+  # ncol = 5 (hard-coded; number of reaches)
+  param_est <- data.frame(matrix(NA, nrow = ncol(covariates[[j]]$training[[1]]) 
+                                 # just using reach 1, all will have same number of columns 
+                                 + 4, ncol = 5)) # plus 4 includes b0, b1, sigma, & lp
+  rhats <- data.frame(matrix(NA, nrow = ncol(covariates[[j]]$training[[1]]) 
+                             + 4, ncol = 5))
+  colnames(param_est) = names(test_sites)
+  colnames(rhats) = names(test_sites)
+  
+  # get model name string (for saving files)
+  model_name <- names(covariates)[j]
+  
+  # build models and make predictions for each reach
+  for(i in 1:length(training_sites)) {
+    # gather data
+    mod_data = list(N = nrow(training_sites[[i]]),
+                    c = ncol(covariates[[j]]$training[[i]]),
+                    future = training_sites[[i]]$future_M_cover_norm,
+                    present = training_sites[[i]]$resp_M_cover_norm,
+                    covar = as.matrix(covariates[[j]]$training[[i]]))
+    # run STAN model
+    # if there are warning issues, code may stop if running through whole script 
+    # (if using cntl+shift+enter)
+    model <- stan(file = "./code/model_STAN_files/predicting_cover.stan", 
+                 data = mod_data,
+                 chains = 3, iter = 2000, warmup = 1000, 
+                 control = list(adapt_delta = 0.95))
+    # save STAN model
+    saveRDS(model, paste("./data/predictive_models/M_cover_models/", model_name, 
+                         "_", names(test_sites)[i], sep = ""))
+    # extract parameters
+    params <- rstan::extract(model, c("sigma", "b0", "b1", "b"))
+    # add mean parameter estimates to dataframe
+    rownames(param_est) <- rownames(get_posterior_mean(model))
+    param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
+    # add r-hats to dataframe
+    rownames(rhats) <- names(summary(model)$summary[,"Rhat"])
+    rhats[i] <- summary(model)$summary[,"Rhat"]
+    # make predictions matrix
+    preds_matrix <- preds_cover(params = params,
+                               y = predictions[[j]][[i]],
+                               covar = as.matrix(covariates[[j]]$testing[[i]]))
+    # save summary of prediction; make sure to assign globally
+    predictions[[j]][[i]][,2:4] <- preds_summary(preds_matrix)
+    # calculate nRMSE of model
+    nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$future_M_cover_norm,
+                                        site_reach_name = names(test_sites)[i],
+                                        model_name = model_name))
+  }
+  
+  # save rhats and mean parameter estimates
+  write.csv(rhats, paste("./data/predictive_models/M_cover_models/model_attributes/",
+                         model_name, "_rhats.csv", sep = ""), row.names = TRUE)
+  write.csv(param_est, paste("./data/predictive_models/M_cover_models/model_attributes/",
+                             model_name, "_param_est.csv", sep = ""), row.names = TRUE)
+  
+  # lastly, print if all models converged <1.05 or not!
+  if(any(rhats > 1.05)) {
+    print(paste(model_name, " models did not converge :(", sep = ""))} else {
+      print(paste(model_name, " models did converge :)", sep = ""))
+    }
+  
 }
-
-# run function
-predict_all(model_name = "physical",
-            covariates = physical_covariates)
-
-## (b) chemical (din + ophos + conductivity)
-
-# make list of covariates for model
-chemical_covariates <- list()
-for(i in 1:length(training_sites)) {
-  chemical_covariates[[i]] <- as.matrix(training_sites[[i]] %>% 
-                                          select(DIN_mg_N_L, oPhos_ug_P_L, cond_uS_cm))
-}
-
-# run function
-predict_all(model_name = "chemical",
-            covariates = chemical_covariates)
-
-## (d) biological (GPP)
-
-# make list of covariates for model
-biological_covariates <- list()
-for(i in 1:length(training_sites)) {
-  biological_covariates[[i]] <- as.matrix(training_sites[[i]] %>% 
-                                          select(GPP_median_tofourdaysprior))
-}
-
-# run function
-predict_all(model_name = "biological",
-            covariates = biological_covariates)
-
-## (e) physicochemical (temp + flow + din + ophos + cond)
-
-# make list of covariates for physical model
-physicochemical_covariates <- list()
-for(i in 1:length(training_sites)) {
-  physicochemical_covariates[[i]] <- as.matrix(training_sites[[i]] %>% 
-                                            select(temp_C, discharge_m3_s, DIN_mg_N_L,
-                                                   oPhos_ug_P_L, cond_uS_cm))
-}
-
-# run function
-predict_all(model_name = "physicochemical",
-            covariates = physicochemical_covariates)
-
-## (f) ecohydrological (temp + disc + gpp)
-
-# make list of covariates for physical model
-ecohydrological_covariates <- list()
-for(i in 1:length(training_sites)) {
-  ecohydrological_covariates[[i]] <- as.matrix(training_sites[[i]] %>% 
-                                                 select(temp_C, discharge_m3_s, 
-                                                        GPP_median_tofourdaysprior))
-}
-
-# run function
-predict_all(model_name = "ecohydrological",
-            covariates = ecohydrological_covariates)
-
-## (g) biochemical (din + ophos + cond + GPP)
-
-# make list of covariates for physical model
-biochemical_covariates <- list()
-for(i in 1:length(training_sites)) {
-  biochemical_covariates[[i]] <- as.matrix(training_sites[[i]] %>% 
-                                                 select(DIN_mg_N_L, oPhos_ug_P_L, cond_uS_cm, 
-                                                        GPP_median_tofourdaysprior))
-}
-
-# run function
-predict_all(model_name = "biochemical",
-            covariates = biochemical_covariates)
-
-## (h) all (temp + dis + din + ophos + cond + GPP)
-
-# make list of covariates for physical model
-all_covariates <- list()
-for(i in 1:length(training_sites)) {
-  all_covariates[[i]] <- as.matrix(training_sites[[i]] %>% 
-                                             select(temp_C, discharge_m3_s,
-                                                    DIN_mg_N_L, oPhos_ug_P_L, cond_uS_cm, 
-                                                    GPP_median_tofourdaysprior))
-}
-
-# run function
-predict_all(model_name = "all",
-            covariates = all_covariates)
 
 #### (5) Saving Outputs
 
