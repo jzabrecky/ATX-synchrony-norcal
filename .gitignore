@@ -24,4 +24,5 @@ data/metab_model_inputs/old
 *.rds
 *.png
 *.pdf
+*.tiff
 *.svg

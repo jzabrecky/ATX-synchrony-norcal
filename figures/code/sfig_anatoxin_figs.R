@@ -1,12 +1,10 @@
 #### Supplemental figures related to anatoxin concentrations
 ### Jordan Zabrecky
-## last edited: 04.30.2025
+## last edited: 07.01.2025
 
 # These figures show (1) the proportion of anatoxin congeners for each sample,
 # (2) the difference between anatoxins normalized per organic matter vs. chl-a,
 # (3) the difference in mat concentrations on our single day riffle experiment
-
-## WANT TO EVENTUALLY MOVE THEME-ING TO THE TOP HERE
 
 #### (1) Loading libraries and anatoxins data ####
 
@@ -24,14 +22,21 @@ anatoxins$year <- year(anatoxins$field_date)
 
 # create character column that includes site, reach, and field date information
 anatoxins <- anatoxins %>%
-  mutate(site_reach_date = paste(site_reach, field_date, sep = " "))
+  # need to mutate to get new site reach name
+  mutate(new_site_reach = case_when(site_reach == "SFE-M-1S" ~ "SFE-Lower-1S",
+                                    site_reach == "SFE-M-2" ~ "SFE-Lower-2",
+                                    site_reach == "SFE-M-3" ~ "SFE-Lower-3",
+                                    site_reach == "SFE-M-4" ~ "SFE-Lower-4",
+                                    site_reach == "SFE-SH-1S" ~ "SFE-Upper-1S",
+                                    TRUE ~ site_reach)) %>% 
+  mutate(site_reach_date = paste(new_site_reach, field_date, sep = " "))
 
 # set universal theme for all plots
 theme_set(theme_bw() + theme(legend.position = "top",
                              panel.grid.minor = element_blank(),
                              panel.border = element_rect(linewidth = 1.2), axis.ticks = element_line(linewidth = 1.2),
-                             text = element_text(size = 15), axis.ticks.length=unit(.25, "cm"),
-                             axis.text.y = element_text(size = 10)))
+                             text = element_text(size = 10), axis.ticks.length=unit(.25, "cm"),
+                             axis.text.y = element_text(size = 9), axis.text.x = element_text(size = 10)))
 
 #### (2) Proportion of congeners ####
 
@@ -75,22 +80,29 @@ anatoxins_edit_long <- pivot_longer(anatoxins_edit, cols = c(16, 12),
 normalize_fig <- ggplot(anatoxins_edit_long, aes(x = values, y = site_reach_date, 
                                             fill = normalized_type)) +
   geom_bar(position = "dodge", stat = "identity") +
-  scale_x_continuous(expression(paste(mu, "g ATX per g OM"), sep = ""), 
+  scale_x_continuous(expression(paste(mu, "g anatoxins per g OM"), sep = ""), 
                      trans = pseudo_log_trans(base = 10),
                      breaks = c(0, 5, 10, 25, 50, 100, 200),
                      sec.axis = sec_axis(~.x/12, 
-                                         name = expression(paste(mu, "g ATX per mg chl-a"), sep = ""),
+                                         name = expression(paste(mu, "g anatoxins per mg chl-a"), sep = ""),
                                          breaks = c(0, 1, 2.5, 5, 10, 20))) +
-  scale_fill_manual(NULL, labels = c("ATX normalized to chl-a", "ATX normalized to OM"),
+  scale_fill_manual(NULL, labels = c("anatoxins normalized to chl-a", "anatoxins normalized to OM"),
                     values = c("#ebdf38", "#62a7f8")) +
   facet_wrap(~sample_type, scales = "free_y",
              labeller =  as_labeller(c(`TM` = "*Microcoleus* samples", 
                                        `TAC`= "*Anabaena/Cylindrospermum* samples"))) +
-  labs(y = "Reach & Date") +
+  labs(y = "Reach & Date of Sample") +
   theme(strip.background = element_blank()) + # get rid of gray background for facet title
-  theme(strip.text = ggtext::element_markdown()) + # to get only genus name italicized
-  theme(strip.placement = "outside") # move facet wrap title above y-values
+  theme(strip.text = element_blank()) + # to get only genus name italicized
+  # old with label.. ggtext::element_markdown()
+  #theme(strip.placement = "outside") + # move facet wrap title above y-values
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), # rotate numbers
+        axis.text.y = element_text(size = 9)) # make sample reach & date smaller to fit
 normalize_fig
+
+# save figure
+ggsave("./figures/sfig_atx_normalized_notfinal.tiff", dpi = 600, 
+       width=18, height=22, unit="cm")
 
 #### (3) Riffle experiment ####
 
