@@ -1,6 +1,6 @@
 #### Simple model testing
 ### Jordan Zabrecky
-## last edited: 07.03.2025
+## last edited: 07.09.2025
 
 # This code tests models comparing a simple STAN file and one using a 
 # covariance matrix to make sure parameter estimates are roughly the 
@@ -252,3 +252,83 @@ launch_shinystan(model6)
 params6 <- rstan::extract(model6, c("sigma", "b0", "b1", "b"))
 param_est[,4] <- get_posterior_mean(model6)[,"mean-all chains"]
 names(param_est)[4] <- "matrix, normal dist"
+
+### (8) Truncated Normal bounded [0,1] ####
+
+## remove this section after 
+
+# bound data to 0,1
+bound_data <- training_sites[[z]]
+bound_data$resp_M_cover_norm <- bound_data$resp_M_cover_norm / 100
+bound_data$future_M_cover_norm <- bound_data$future_M_cover_norm / 100
+
+# model data for model 8
+mod_data8 <- list(N = nrow(bound_data),
+                  c = ncol(training_covariates),
+                  future =bound_data$future_M_cover_norm,
+                  present = bound_data$resp_M_cover_norm,
+                  covar = training_covariates)
+
+model8 <- stan(file = "./code/model_STAN_files/predicting_cover_boundzeroone.stan", 
+               data = mod_data8,
+               chains = 3, iter = 2000, warmup = 1000, 
+               control = list(adapt_delta = 0.95))
+
+# get parameter estimates
+params8 <- rstan::extract(model8, c("sigma", "b0", "b1", "b"))
+param_est[,5] <- get_posterior_mean(model8)[,"mean-all chains"]
+names(param_est)[5] <- "bounded zero one"
+
+# compare parameter estimates between matrix from 0-100 and 0-1 truncation
+comparison2 <- param_est[,c(2,5)]
+colnames(comparison2)[1] <- "bounded zero one hundred"
+
+# make empty dataframe for predictions
+predictions[[3]] <- data.frame(field_date = field_dates[[z]]$field_date,
+                               mean = rep(NA, length(field_dates[[z]]$field_date)),
+                               ci_lower = rep(NA, length(field_dates[[z]]$field_date)), # 2.5%; lower bound of 95% interval
+                               ci_upper = rep(NA, length(field_dates[[z]]$field_date))) # 97.5%; upper bound of 95% interval
+names(predictions)[3] <- "bounded"
+
+# predictions bounded 0,1
+preds_cover_bounded <- function(params, y, covar) {
+  n.pred <- nrow(y) # includes initial day where we used 0
+  preds <- matrix(NA, length(params$sigma), n.pred) # empty prediction matrix
+  preds[,1] <- 0 # assign first values to zero (hard-coded because we start all w/ zero)
+  
+  # make predictions
+  for(j in 2:n.pred) {
+    for(i in 1:length(params$sigma)) {
+      preds[i,j] <- rtruncnorm(n = 1, a = 0, b = 1,
+                               mean = params$b0[i] + params$b1[i] * preds[i,j-1] +
+                                 # using previous prediction and covariates (j-1)
+                                 # to predict next time step
+                                 covar[j-1,]%*%params$b[i,],
+                               sd = params$sigma[i]) # process error
+    }
+  }
+  
+  # return filled predictions matrix
+  return(preds)
+  
+}
+
+# making predictions for no matrix model
+bounded_predictions <- preds_cover_bounded(params = params8,
+                                              y = predictions$bounded,
+                                           covar = testing_covariates)
+
+# summarize predictions
+predictions$bounded <- preds_summary(bounded_predictions)
+
+# compare predictions
+comparison3 <- data.frame(bounded_zero_100 = predictions$matrix$mean,
+                          bounded_zero_one = predictions$bounded$mean)
+
+# trying more chains and higher tree depths
+model9 <- stan(file = "./code/model_STAN_files/predicting_cover_boundzeroone.stan", 
+               data = mod_data8,
+               chains = 3, iter = 10000, warmup = 5000, 
+               control = list(max_treedepth=12, adapt_delta = 0.95))
+
+shinystan::launch_shinystan(model9)
