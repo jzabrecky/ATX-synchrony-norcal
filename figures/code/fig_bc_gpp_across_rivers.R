@@ -1,11 +1,11 @@
 #### Primary figure for taxa-specific cover & anatoxins and GPP on each river
 ### Jordan Zabrecky
-## last edited: 06.10.2025
+## last edited: 07.21.2025
 
 # This script creates a primary figure for Q1 focused on the relationships
 # between benthic cyanobacteria dynamics and GPP across rivers
 
-# IN PROGRESS- still trying to determine final symbology for presence
+# Using option 2 (so commented out some code that is required for option 1)
 
 #### (1) Loading libraries and data ####
 
@@ -97,128 +97,121 @@ disc_list <- split(disc, disc$site)
 #### (2) Making benthic cyanobacterial dynamics figures ####
 
 # set theme for all plots
-theme_set(theme_bw() +
-            theme(panel.grid.minor = element_blank(), strip.background = element_blank(),
-                  panel.grid.major = element_blank(), panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
-                  text = element_text(size = 20), strip.text = element_text(size = 15),
-                  plot.margin = unit(c(.5, 0, 0, 0), "cm"),
-                  axis.ticks.length=unit(.25, "cm"), 
-                  plot.title = element_text(size = 15, face = "bold", hjust = 0.5)))
+theme_set(theme_bw() + theme(legend.position = "bottom", 
+      panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+      panel.border = element_rect(linewidth = 1.5), axis.ticks = element_line(linewidth = 1.5),
+      text = element_text(size = 10), axis.ticks.length=unit(.25, "cm")))
 
 ## South Fork Eel River
 
 # plot
-bc_sfkeel <- ggplot(data = cover_list$`SFE-M`, aes(x = field_date)) +
-  geom_bar(data = atx_list$`SFE-M`, position = "dodge", stat = "identity", 
-           aes(y = mean_ATX_ug_orgmat_g, fill = taxa), width = 7, color = "black") +
-  geom_line(data = cover_list$`SFE-M`, aes(y = 110 - (mean * 4), color = taxa, linetype = taxa),
-            linewidth = 1.5) +
-  geom_errorbar(data = cover_list$`SFE-M`, aes(ymin = 110 - ((min) * 4),
-                                               ymax = 110 - ((max) * 4),
-                                               color = taxa), 
-                linewidth = 1.25, alpha = 0.7, width = 2) +
-  geom_point(data = cover_list$`SFE-M`, aes(y = 110 - (mean * 4), color = taxa ,shape = taxa),
-             size = 4) +
-  scale_color_manual("Group", values = c("#8f8504","#2871c7"),
-                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_linetype_manual("Group", values = c("dotted", "dashed"),
-                        labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_shape_manual("Group", values = c(16, 15),
-                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
-                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  labs(y = NULL, x = NULL) +
-  scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
-  scale_y_reverse(sec.axis = sec_axis(~ ((. - 110)/4) * -1)) +
-  ggtitle("South Fork Eel River") +
-  theme(legend.position = "none") # will move over legend via illustrator
-bc_sfkeel
+# bc_sfkeel <- ggplot(data = cover_list$`SFE-M`, aes(x = field_date)) +
+#   geom_bar(data = atx_list$`SFE-M`, position = "dodge", stat = "identity", 
+#            aes(y = mean_ATX_ug_orgmat_g, fill = taxa), width = 7, color = "black") +
+#   geom_line(data = cover_list$`SFE-M`, aes(y = 110 - (mean * 4), color = taxa, linetype = taxa),
+#             linewidth = 1.5) +
+#   geom_errorbar(data = cover_list$`SFE-M`, aes(ymin = 110 - ((min) * 4),
+#                                                ymax = 110 - ((max) * 4),
+#                                                color = taxa), 
+#                 linewidth = 1.25, alpha = 0.7, width = 2) +
+#   geom_point(data = cover_list$`SFE-M`, aes(y = 110 - (mean * 4), color = taxa ,shape = taxa),
+#              size = 3) +
+#   scale_color_manual("Group", values = c("#8f8504","#2871c7"),
+#                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+#   scale_linetype_manual("Group", values = c("dotted", "dashed"),
+#                         labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+#   scale_shape_manual("Group", values = c(16, 15),
+#                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+#   scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
+#                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+#   labs(y = NULL, x = NULL) +
+#   scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
+#   scale_y_reverse(sec.axis = sec_axis(~ ((. - 110)/4) * -1)) +
+#   theme(legend.position = "none") # will move over legend via illustrator
+# bc_sfkeel
 
 # ver with different symbology
 bc_sfkeel2 <- ggplot(data = cover_list$`SFE-M`, aes(x = field_date)) +
   geom_bar(data = atx_list$`SFE-M`, position = "dodge", stat = "identity", 
-           aes(y = mean_ATX_ug_orgmat_g, fill = taxa), width = 7, color = "black") +
+           aes(y = mean_ATX_ug_orgmat_g, fill = taxa, color = taxa), width = 7.5) +
   geom_line(data = cover_list$`SFE-M`, aes(y = 110 - (mean * 4), color = taxa, linetype = taxa),
-            linewidth = 1.5) +
+            linewidth = 1.25) +
   geom_errorbar(data = cover_list$`SFE-M`, aes(ymin = 110 - ((min) * 4),
                                                        ymax = 110 - ((max) * 4),
                                                        color = taxa), 
-                linewidth = 1.25, alpha = 0.7, width = 2, position = position_dodge(width = 1.5)) +
+                linewidth = 1.25, alpha = 0.7, width = 6, position = position_dodge(width = 1.5)) +
   geom_point(data = cover_list$`SFE-M`, aes(y = 110 - (mean * 4), color = taxa, 
                                             shape = interaction(present, quadrat)),
-             size = 3.5, stroke = 2, position = position_dodge(width = 1.5)) +
+             size = 2, stroke = 1.5, position = position_dodge(width = 1.5)) +
   scale_color_manual("Group", values = c("#8f8504","#2871c7"),
                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
   scale_linetype_manual("Group", values = c("dotted", "dashed"),
                         labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_shape_manual("Present / Quadrat", values = c(4, 19)) +
+  scale_shape_manual("Present / Quadrat", values = c(4, 16)) +
   scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
   labs(y = NULL, x = NULL) +
   scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
   scale_y_reverse(sec.axis = sec_axis(~ ((. - 110)/4) * -1)) +
-  ggtitle("South Fork Eel River") #+
-  theme(legend.position = "none") # will move over legend via illustrator
+  theme(legend.position = "none")
 bc_sfkeel2
 
 ## Russian River
 
 # remove microcoleus so line not present 
 # don't do this if using second option???
-cover_list$RUS <- cover_list$RUS %>% 
-  filter(taxa == "anabaena_cylindrospermum")
+#cover_list$RUS <- cover_list$RUS %>% 
+#  filter(taxa == "anabaena_cylindrospermum")
 
 # plot
-bc_russian <- ggplot(data = cover_list$RUS, aes(x = field_date)) +
-  geom_bar(data = atx_list$RUS, position = "dodge", stat = "identity", 
-           aes(y = mean_ATX_ug_orgmat_g, fill = taxa), width = 6, color = "black") +
-  geom_line(data = cover_list$RUS, aes(y = 10 - (mean * 1.25), color = taxa, linetype = taxa),
-            linewidth = 2) +
-  geom_errorbar(data = cover_list$RUS, aes(ymin = 10 - ((min) * 1.25),
-                                           ymax = 10 - ((max) * 1.25),
-                                           color = taxa), 
-                size = 1.25, alpha = 0.7, width = 2) +
-  geom_point(data = cover_list$RUS, aes(y = 10 - (mean * 1.25), color = taxa, shape = taxa),
-             size = 5) +
-  scale_color_manual("Group", values = c("#8f8504"),
-                     labels = c("Anabaena & Cylindrospermum")) +
-  scale_linetype_manual("Group", values = c("dotted", "dashed"),
-                        labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_shape_manual("Group", values = c(16, 18),
-                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
-                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  labs(y = NULL, x = NULL) +
-  scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
-  scale_y_reverse(sec.axis = sec_axis(~ ((. - 10)/1.25) * -1)) +
-  ggtitle("Russian River") +
-  theme(legend.position = "none") # will move over legend via illustrator
-bc_russian
+# bc_russian <- ggplot(data = cover_list$RUS, aes(x = field_date)) +
+#   geom_bar(data = atx_list$RUS, position = "dodge", stat = "identity", 
+#            aes(y = mean_ATX_ug_orgmat_g, fill = taxa), width = 6, color = "black") +
+#   geom_line(data = cover_list$RUS, aes(y = 10 - (mean * 1.25), color = taxa, linetype = taxa),
+#             linewidth = 2) +
+#   geom_errorbar(data = cover_list$RUS, aes(ymin = 10 - ((min) * 1.25),
+#                                            ymax = 10 - ((max) * 1.25),
+#                                            color = taxa), 
+#                 size = 1.25, alpha = 0.7, width = 2) +
+#   geom_point(data = cover_list$RUS, aes(y = 10 - (mean * 1.25), color = taxa, shape = taxa),
+#              size = 3) +
+#   scale_color_manual("Group", values = c("#8f8504"),
+#                      labels = c("Anabaena & Cylindrospermum")) +
+#   scale_linetype_manual("Group", values = c("dotted", "dashed"),
+#                         labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+#   scale_shape_manual("Group", values = c(16, 18),
+#                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+#   scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
+#                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+#   labs(y = NULL, x = NULL) +
+#   scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
+#   scale_y_reverse(sec.axis = sec_axis(~ ((. - 10)/1.25) * -1)) +
+#   theme(legend.position = "none") # will move over legend via illustrator
+# bc_russian
 
 # version w/ different symbology
 bc_russian2 <- ggplot(data = cover_list$RUS, aes(x = field_date)) +
   geom_bar(data = atx_list$RUS, position = "dodge", stat = "identity", 
-           aes(y = mean_ATX_ug_orgmat_g, fill = taxa), width = 6, color = "black") +
+           aes(y = mean_ATX_ug_orgmat_g, fill = taxa, color = taxa), width = 7.5) +
   geom_line(data = cover_list$RUS, aes(y = 10 - (mean * 1.25), color = taxa, linetype = taxa),
-            linewidth = 2) +
+            linewidth = 1.25) +
   geom_errorbar(data = cover_list$RUS, aes(ymin = 10 - ((min) * 1.25),
                                           ymax = 10 - ((max) * 1.25),
                                           color = taxa), 
-                linewidth = 1.25, alpha = 0.7, width = 2, position = position_dodge(width = 1.5)) +
+                linewidth = 1.25, alpha = 0.7, width = 6, position = position_dodge(width = 1.5)) +
   geom_point(data = cover_list$RUS, aes(y = 10 - (mean * 1.25), color = taxa, 
                                         shape = interaction(present, quadrat)),
-             size = 3.5, stroke = 2, position = position_dodge(width = 1.5)) +
+             size = 2, stroke = 1.5, position = position_dodge(width = 1.5)) +
   scale_color_manual("Group", values = c("#8f8504","#2871c7"),
                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
   scale_linetype_manual("Group", values = c("dotted", "dashed"),
                         labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_shape_manual("Present / Quadrat", values = c(4, 19)) +
+  scale_shape_manual("Present / Quadrat", values = c(4, 16)) +
   scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
   labs(y = NULL, x = NULL) +
   scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
   scale_y_reverse(sec.axis = sec_axis(~ ((. - 10)/1.25) * -1)) +
-  ggtitle("Russian River") #+
   theme(legend.position = "none") # will move over legend via illustrator
 bc_russian2
 
@@ -227,8 +220,8 @@ bc_russian2
 # remove anabaena so line not present
 # only for first version, don't do this for second
 # though consider that anabaena is like .44% present at the end of the season
-cover_list$SAL <- cover_list$SAL %>% 
-  filter(taxa == "microcoleus")
+#cover_list$SAL <- cover_list$SAL %>% 
+#  filter(taxa == "microcoleus")
 
 # create gray box for wildfire (when sampling was not taking place!) 
 wildfire <- data.frame(xmin = as.Date("2022-07-30"),
@@ -238,41 +231,40 @@ wildfire <- data.frame(xmin = as.Date("2022-07-30"),
 
 # if removed anabaena-
 # add segment column to avoid line being drawn across plot when we weren't taking data
-cover_list$SAL$segment <- 1
-cover_list$SAL$segment[4] <- 2
-
-# plot
-bc_salmon <- ggplot(data = cover_list$SAL) +
-  geom_bar(data = atx_list$SAL, position = "dodge", stat = "identity", 
-           aes(y = mean_ATX_ug_orgmat_g, x = field_date, fill = taxa), width = 7, color = "black") +
-  geom_rect(data = wildfire, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), 
-            fill = "#ededed") +
-  geom_line(data = cover_list$SAL, aes(y = 5 - (mean * .15), 
-                                       x = field_date, color = taxa, 
-                                       linetype = taxa, group = segment), linewidth = 1.5) +
-  geom_errorbar(data = cover_list$SAL, aes(ymin = 5 - ((min) * .15),
-                                           ymax = 5 - ((max) * .15),
-                                           x = field_date,
-                                           color = taxa), 
-                linewidth = 1.25, alpha = 0.7, width = 2) +
-  geom_point(data = cover_list$SAL, aes(y = 5 - (mean * .15), 
-                                        x = field_date, color = taxa, 
-                                        shape = taxa),
-             size = 4) +
-  scale_color_manual("Group", values = c("#2871c7"),
-                     labels = c("Microcoleus")) +
-  scale_linetype_manual("Group", values = c("dashed"),
-                        labels = c("Microcoleus")) +
-  scale_shape_manual("Group", values = c(18),
-                     labels = c("Microcoleus")) +
-  scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
-                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  labs(y = NULL, x = NULL) +
-  scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
-  scale_y_reverse(limits = c(5,0), sec.axis = sec_axis(~ ((. - 5)/.15) * -1)) +
-  ggtitle("Salmon River") +
-  theme(legend.position = "none")
-bc_salmon
+# cover_list$SAL$segment <- 1
+# cover_list$SAL$segment[4] <- 2
+# 
+# # plot
+# bc_salmon <- ggplot(data = cover_list$SAL) +
+#   geom_bar(data = atx_list$SAL, position = "dodge", stat = "identity", 
+#            aes(y = mean_ATX_ug_orgmat_g, x = field_date, fill = taxa), width = 7, color = "black") +
+#   geom_rect(data = wildfire, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), 
+#             fill = "#ededed") +
+#   geom_line(data = cover_list$SAL, aes(y = 5 - (mean * .15), 
+#                                        x = field_date, color = taxa, 
+#                                        linetype = taxa, group = segment), linewidth = 1.5) +
+#   geom_errorbar(data = cover_list$SAL, aes(ymin = 5 - ((min) * .15),
+#                                            ymax = 5 - ((max) * .15),
+#                                            x = field_date,
+#                                            color = taxa), 
+#                 linewidth = 1.25, alpha = 0.7, width = 2) +
+#   geom_point(data = cover_list$SAL, aes(y = 5 - (mean * .15), 
+#                                         x = field_date, color = taxa, 
+#                                         shape = taxa),
+#              size = 3) +
+#   scale_color_manual("Group", values = c("#2871c7"),
+#                      labels = c("Microcoleus")) +
+#   scale_linetype_manual("Group", values = c("dashed"),
+#                         labels = c("Microcoleus")) +
+#   scale_shape_manual("Group", values = c(18),
+#                      labels = c("Microcoleus")) +
+#   scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
+#                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+#   labs(y = NULL, x = NULL) +
+#   scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
+#   scale_y_reverse(limits = c(5,0), sec.axis = sec_axis(~ ((. - 5)/.15) * -1)) +
+#   theme(legend.position = "none")
+# bc_salmon
 
 # add segment column to avoid line being drawn across plot when we weren't taking data
 # this set up is specifically for not removing anabaena
@@ -284,32 +276,31 @@ cover_list$SAL$segment[c(8)] <- 4
 # plot
 bc_salmon2 <- ggplot(data = cover_list$SAL) +
   geom_bar(data = atx_list$SAL, position = "dodge", stat = "identity", 
-           aes(y = mean_ATX_ug_orgmat_g, x = field_date, fill = taxa), width = 7, color = "black") +
+           aes(y = mean_ATX_ug_orgmat_g, x = field_date, fill = taxa, color = taxa), width = 7.5) +
   geom_rect(data = wildfire, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), 
             fill = "#ededed") +
   geom_line(data = cover_list$SAL, aes(y = 5 - (mean * .15), 
                                        x = field_date, color = taxa, 
-                                       linetype = taxa, group = segment), linewidth = 1.5) +
+                                       linetype = taxa, group = segment), linewidth = 1.25) +
   geom_errorbar(data = cover_list$SAL, aes(ymin = 5 - ((min) * .15),
                                            ymax = 5 - ((max) * .15),
                                            x = field_date,
                                            color = taxa), 
-                linewidth = 1.25, alpha = 0.7, width = 2, position = position_dodge(width = 1.5)) +
+                linewidth = 1.25, alpha = 0.7, width = 6, position = position_dodge(width = 1.5)) +
   geom_point(data = cover_list$SAL, aes(y = 5 - (mean * .15), 
                                         x = field_date, color = taxa, 
                                         shape = interaction(present, quadrat)),
-             size = 3.5, stroke = 2, position = position_dodge(width = 1.5)) +
+             size = 2, stroke = 1.5, position = position_dodge(width = 1.5)) +
   scale_color_manual("Group", values = c("#8f8504", "#2871c7"),
                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
   scale_linetype_manual("Group", values = c("dotted", "dashed"),
                         labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_shape_manual("Present/Quadrat", values = c(4, 19)) +
+  scale_shape_manual("Present/Quadrat", values = c(4, 16)) +
   scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
   labs(y = NULL, x = NULL) +
   scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
   scale_y_reverse(limits = c(5,0), sec.axis = sec_axis(~ ((. - 5)/.15) * -1)) +
-  ggtitle("Salmon River") #+
   theme(legend.position = "none")
 bc_salmon2
 
@@ -327,11 +318,10 @@ gpp_sfkeel <- ggplot(data = gpp_list$sfkeel_mir_2022, aes(x = date)) +
             fill = "#d9ecff") +
   geom_ribbon(aes(ymin = GPP.2.5.pct, ymax = GPP.97.5.pct, group = segment),
               fill = "#9ced66", alpha = 0.8) +
-  geom_point(aes(y = GPP.mean), color = "#397014", size = 2.5, alpha = 1) +
+  geom_point(aes(y = GPP.mean), color = "#397014", size = 1.2, alpha = 1) +
   labs(y = NULL, x = NULL) +
   scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
   scale_y_continuous(sec.axis = sec_axis(~ . / 2)) +
-  ggtitle("South Fork Eel River") +
   coord_cartesian(ylim = c(0, 9))
 gpp_sfkeel
 
@@ -341,11 +331,10 @@ gpp_sfkeel
 gpp_russian <- ggplot(data = gpp_list$russian_USGS_2022, aes(x = date)) +
   geom_area(data = disc_list$russian, aes(y = discharge_m3_s * 2.5, x = date), fill = "#d9ecff") +
   geom_ribbon(aes(ymin = GPP.2.5.pct, ymax = GPP.97.5.pct), fill = "#9ced66", alpha = 0.8) +
-  geom_point(aes(y = GPP.mean), color = "#397014", size = 2.5, alpha = 1) +
+  geom_point(aes(y = GPP.mean), color = "#397014", size = 1.2, alpha = 1) +
   scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
   scale_y_continuous(sec.axis = sec_axis(~ . / 2.5)) +
   coord_cartesian(ylim = c(0, 13)) +
-  ggtitle("Russian River") +
   labs(y = NULL, x = NULL)
 gpp_russian
 
@@ -355,27 +344,20 @@ gpp_russian
 gpp_salmon <- ggplot(data = gpp_list$salmon_karuk_2022, aes(x = date)) +
   geom_area(data = disc_list$salmon, aes(y = discharge_m3_s * 0.45, x = date), fill = "#d9ecff") +
   geom_ribbon(aes(ymin = GPP.2.5.pct, ymax = GPP.97.5.pct), fill = "#9ced66", alpha = 0.8) +
-  geom_point(aes(y = GPP.mean), color = "#397014", size = 2.5, alpha = 1) +
+  geom_point(aes(y = GPP.mean), color = "#397014", size = 1.2, alpha = 1) +
   scale_x_date(limits = as.Date(c("2022-06-20", "2022-09-26"))) +
   scale_y_continuous(sec.axis = sec_axis(~ . / 0.45)) +
   coord_cartesian(ylim = c(0, 11)) +
-  ggtitle("Salmon River") +
   labs(y = NULL, x = NULL)
 gpp_salmon
 
 #### (4) Putting figures together
 
-# putting together
-all <- plot_grid(bc_sfkeel, gpp_sfkeel, bc_russian, 
-                         gpp_russian, bc_salmon, gpp_salmon, 
-                         ncol = 2, align = "hv", scale = 0.98)
+# putting together plots using cowplot
+all <- plot_grid(bc_sfkeel2, gpp_sfkeel, bc_russian2, 
+                         gpp_russian, bc_salmon2, gpp_salmon, 
+                         ncol = 2, align = "hv", scale = 0.97)
+all # will edit further in inkscape...
 
-final <- grid.arrange(all, left = textGrob("\u03bcg ATX per g OM", 
-                                           gp=gpar(fontsize=14), rot=90),
-                      right = textGrob("percent cover (%)", 
-                                       gp=gpar(fontsize=14), rot = 270))
-# STILL IN PROGRESS
-
-bc <- plot_grid(bc_sfkeel, bc_russian, bc_salmon, align = "hv", ncol = 1)
-
-# will edit further in adobe
+ggsave("./figures/fig_gpp_bc_acrossrivers_notfinal.tiff", dpi = 600, 
+       width=18, height=12, unit="cm")

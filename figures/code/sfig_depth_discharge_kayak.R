@@ -1,6 +1,6 @@
 #### Kayak Measured depths on Log Discharge-Log Depth plots
 ### Jordan Zabrecky
-## last edited: 02.04.2025
+## last edited: 07.21.2025
 
 # This figure shows our depth-discharge relationships for each river
 # and plots our kayak measurements over it
@@ -44,25 +44,38 @@ kayak <- rbind(kayak_miranda, kayak_standish, kayak_russian, kayak_salmon)
 
 #### (2) Making figure ####
 
+# use factoring to control order of sites in ggplot
+kayak$site_f <- factor(kayak$site, levels = c("sfkeel_mir", "sfkeel_sth",
+                                              "russian", "salmon"))
+discharge_all$site_f <- factor(discharge_all$site, levels = c("sfkeel_mir",
+                                                              "sfkeel_sth",
+                                                              "russian",
+                                                              "salmon"))
+
+# make figure
 figure <- ggplot() +
   geom_point(data = discharge_all,
              aes(x = discharge_m3_s, y = depth_m), color = "skyblue", size = 3) +
   geom_point(data = kayak,
-             aes(x = discharge_m3_s, y = mean_depth_m, fill = site,
-                 shape = site), color = "black", size = 4, alpha = 0.9, stroke = 1.2) +
-  facet_wrap(~site, scales = "free",
+             aes(x = discharge_m3_s, y = mean_depth_m, fill = site), 
+             color = "black", size = 4, alpha = 0.9, stroke = 1.2, shape = 21) +
+  facet_wrap(~site_f, scales = "free",
              labeller = as_labeller(c(`russian` = "Russian River (RUS)", 
                                       `salmon`= "Salmon River (SAL)",
-                                      `sfkeel_mir` = "South Fork Eel River at Miranda (SFE-M)",
-                                      `sfkeel_sth` = "South Fork Eel River at Standish Hickey (SFE-SH)"))) +
+                                      `sfkeel_mir` = "South Fork Eel River Lower (SFE-Lower)",
+                                      `sfkeel_sth` = "South Fork Eel River Upper (SFE-Upper)"))) +
   scale_fill_manual(values = c("#bdb000", "#62a7f8", "#416f16", "#a8ff82")) +
   #scale_color_manual(values = c("#7d7400", "darkblue", "#32590d", "#71d446")) +
-  scale_shape_manual(values = c(24, 21, 22, 23)) +
+  #scale_shape_manual(values = c(24, 21, 22, 23)) +
   labs(x = expression("Discharge (m"^3~"s"^-1*")"), y = "Depth (m)") +
   theme_bw() +
   theme(strip.background = element_blank()) +
-  theme(legend.position = "none",
+  theme(legend.position = "bottom",
         panel.grid.minor = element_blank(),
         panel.border = element_rect(linewidth = 1.2), axis.ticks = element_line(linewidth = 1.2),
-        text = element_text(size = 20), axis.ticks.length=unit(.25, "cm"))
+        text = element_text(size = 10), axis.ticks.length=unit(.25, "cm"))
 figure
+
+# save figure
+ggsave("./figures/sfig_kayak_depths_notfinal.tiff", dpi = 600, 
+       width=18, height=12, unit="cm")
