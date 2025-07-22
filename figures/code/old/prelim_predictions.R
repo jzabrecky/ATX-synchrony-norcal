@@ -21,6 +21,10 @@ atx_M_nomatrix_fixed_reg <- read.csv("./data/predictive_models/no_matrix_test/pr
   mutate(field_date = ymd(field_date))
 atx_norm_autoreg <- read.csv("./data/predictive_models/M_atx_normaltest_w_autoregressive/predictions_M_atx.csv") %>% 
   mutate(field_date = ymd(field_date))
+preds_M_logged_0.1 <- read.csv("./data/predictive_models/add_0.1_withtruncation/predictions_M_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
+preds_AC_logged_0.1 <- read.csv("./data/predictive_models/add_0.1_withtruncation/predictions_AC_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
 
 # plot colors
 palette <- c("#523939", "#528b87", "#416f16", "#62a7f8", "#8b9609", "gray", "#bdb000", "#90ac7c")
@@ -36,6 +40,22 @@ for(i in 1:length(preds_M_list)) {
     geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
                shape = 18) +
     labs(title = paste(preds_M_list[[i]]$model[1], "-- Microcoleus cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+# logged (changing as i go for latest predictions)
+preds_M_logged_list <- split(preds_M_logged_0.1, preds_M_logged_0.1$model) # split into list
+
+for(i in 1:length(preds_M_logged_list)) {
+  plot <- ggplot(data = preds_M_logged_list[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
+               shape = 18) +
+    ylim(0,100) +
+    labs(title = paste(preds_M_logged_list[[i]]$model[1], "-- Microcoleus cover (added 0.1 to 0"), y = "% of max at reach") +
     facet_wrap(~site_reach) +
     theme_bw()
   print(plot)
@@ -85,6 +105,20 @@ for(i in 1:length(preds_AC_list)) {
     geom_point(aes(y = mean), size = 3, color = palette[i]) +
     geom_point(data = observed, aes(y = resp_AC_cover_norm), color = "black") +
     labs(title = paste(preds_AC_list[[i]]$model[1], "-- Anabaena Cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+# logged anabaena/cylindrospermum cover predictions version
+preds_AC_list_logged <- split(preds_AC_logged_0.1, preds_AC_logged_0.1$model) # split into list
+
+for(i in 1:length(preds_AC_list_logged)) {
+  plot <- ggplot(data = preds_AC_list_logged[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_AC_cover_norm), color = "black") +
+    labs(title = paste(preds_AC_list_logged[[i]]$model[1], "-- Anabaena Cover with 0.1 added to 0's"), y = "% of max at reach") +
     facet_wrap(~site_reach) +
     theme_bw()
   print(plot)
@@ -160,6 +194,8 @@ for(i in 1:length(preds_AC_atx_list)) {
     theme_bw()
   print(plot)
 }
+
+# logged anabaena cover version
 
 # response distribtuions
 hist(observed$resp_M_cover_norm)
