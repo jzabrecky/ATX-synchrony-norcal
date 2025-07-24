@@ -25,6 +25,12 @@ preds_M_logged_0.1 <- read.csv("./data/predictive_models/add_0.1_withtruncation/
   mutate(field_date = ymd(field_date))
 preds_AC_logged_0.1 <- read.csv("./data/predictive_models/add_0.1_withtruncation/predictions_AC_cover.csv") %>% 
   mutate(field_date = ymd(field_date))
+option2_M <- read.csv("./data/predictive_models/option2/predictions_M_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
+option2_AC <- read.csv("./data/predictive_models/option2/predictions_AC_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
+debug_trial <- read.csv("./data/predictive_models/option2/debug_trial/predictions_M_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
 
 # plot colors
 palette <- c("#523939", "#528b87", "#416f16", "#62a7f8", "#8b9609", "gray", "#bdb000", "#90ac7c")
@@ -40,6 +46,36 @@ for(i in 1:length(preds_M_list)) {
     geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
                shape = 18) +
     labs(title = paste(preds_M_list[[i]]$model[1], "-- Microcoleus cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+# debug trial
+debug_M_list <- split(debug_trial, debug_trial$model)
+
+for(i in 1:length(debug_M_list)) {
+  plot <- ggplot(data = debug_M_list[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(debug_M_list[[i]]$model[1], "-- Microcoleus cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+# microcoleus cover predictions (option 2)
+preds_M_list_opt2 <- split(option2_M, option2_M$model) # split into list
+
+for(i in 1:length(preds_M_list_opt2)) {
+  plot <- ggplot(data = preds_M_list_opt2[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_M_list_opt2[[i]]$model[1], "-- Microcoleus cover"), y = "% of max at reach") +
     facet_wrap(~site_reach) +
     theme_bw()
   print(plot)
