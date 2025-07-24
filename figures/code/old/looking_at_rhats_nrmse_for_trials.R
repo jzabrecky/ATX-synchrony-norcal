@@ -34,3 +34,17 @@ rhats_anacyl <- ldply(list.files(path = "./data/predictive_models/add_0.1_withtr
                                  d$model = filename %>% stringr::str_remove("_rhats.csv")
                                  return(d)
                                })
+
+nrmse_opt2_m <- read.csv("./data/predictive_models/option2/nrmse_M_cover.csv")
+
+nrmse_opt2_m_grouped <- nrmse_opt2_m %>% 
+  dplyr::group_by(model) %>% 
+  dplyr::summarize(mean_nrmse = mean(mean))
+
+rhats_M_opt2 <- ldply(list.files(path = "./data/predictive_models/option2/M_cover_models/model_attributes",
+                                 pattern = "_rhats.csv"), function(filename) {
+                                   d <- read.csv(paste("./data/predictive_models/option2/M_cover_models/model_attributes/",
+                                                       filename, sep = ""))
+                                   d$model = filename %>% stringr::str_remove("_rhats.csv")
+                                   return(d)
+                                 })
