@@ -1,13 +1,13 @@
 #### Supplemental figures related to habitat occupied by benthic cyanobacteria
 ### Jordan Zabrecky
-## last edited: 04.25.2025
+## last edited: 07.21.2025
 
 # This figure shows the amount of 
 
 #### (1) Loading libraries and anatoxins data ####
 
 # loading libraries
-lapply(c("tidyverse", "lubridate"), require, character.only = T)
+lapply(c("tidyverse", "lubridate", "ggtext", "cowplot"), require, character.only = T)
 
 # loading survey data including each transect 
 # (y if present within 7.5-m of transect where habitat was recorded)
@@ -65,12 +65,12 @@ summarized <- na.omit(summarized)
 ##### (3) Making figures ####
 
 # set universal theme for all plots
-theme_set(theme_bw() + theme(legend.position = "right",
+theme_set(theme_bw() + theme(legend.position = "bottom",
                              panel.grid.minor = element_blank(),
                              panel.border = element_rect(linewidth = 1.2), axis.ticks = element_line(linewidth = 1.2),
-                             text = element_text(size = 15), axis.ticks.length=unit(.25, "cm"),
+                             axis.text.x = element_text(size = 10), axis.ticks.length=unit(.25, "cm"),
                              axis.text.y = element_text(size = 10), strip.background = element_blank(),
-                             plot.title = element_markdown()))
+                             plot.title = element_markdown(hjust = 0.5)))
 
 # need to make month a character
 summarized$month <- as.character(summarized$month)
@@ -110,9 +110,16 @@ presence_ana
 
 # I think that since this presence/absence includes up to ~7.5-m
 # out from where quadrat was placed and habitat was recorded
-# a less clear message is conveyed than using quadrat presence/absence
+# so habitat could have changed and overall it sends a
+# less clear message than conveyed than using quadrat presence/absence
 
 ## Trying with quadrat presence absence data
+
+# factor to get preferred ordering for ggplot
+micro_summarized$site_f <- factor(micro_summarized$site, levels = c("SFE-M", "SFE-SH",
+                                                                    "SAL"))
+anacyl_summarized$site_f <- factor(anacyl_summarized$site, levels = c("SFE-M", "SFE-SH",
+                                                                      "RUS"))
 
 # microcoleus
 quadrat_micro <- ggplot(data = micro_summarized, aes(x = month, y = prop_micro_quadrat, fill = riffle_rapid)) +
@@ -121,10 +128,10 @@ quadrat_micro <- ggplot(data = micro_summarized, aes(x = month, y = prop_micro_q
   scale_y_continuous(limits = c(0, 0.4)) +
   scale_fill_manual("Habitat:", labels = c("Pool or Run", "Riffle or Rapid"),
                     values = c("#ebdf38", "#62a7f8")) +
-  facet_wrap(~site, labeller =  as_labeller(c(`SAL` = "Salmon River", 
-                                              `SFE-M`= "South Fork Eel River at Miranda",
-                                              `SFE-SH` = "South Fork Eel River at Standish Hickey"))) +
-  labs(x = NULL, y = "Proportion of Survey Quadrats with Presence", title = "*Microcoleus* Cover")
+  facet_wrap(~site_f, labeller =  as_labeller(c(`SAL` = "Salmon River", 
+                                              `SFE-M`= "South Fork Eel River Lower",
+                                              `SFE-SH` = "South Fork Eel River Upper"))) +
+  labs(x = NULL, y = NULL, title = "*Microcoleus*")
 quadrat_micro
 
 # anabaena
@@ -134,8 +141,24 @@ quadrat_anacyl <- ggplot(data = anacyl_summarized, aes(x = month, y = prop_anacy
   scale_y_continuous(limits = c(0, 0.4)) +
   scale_fill_manual("Habitat:", labels = c("Pool or Run", "Riffle or Rapid"),
                     values = c("#ebdf38", "#62a7f8")) +
-  facet_wrap(~site, labeller =  as_labeller(c(`RUS` = "Russian River", 
-                                              `SFE-M`= "South Fork Eel River at Miranda",
-                                              `SFE-SH` = "South Fork Eel River at Standish Hickey"))) +
-  labs(x = NULL, y = "Proportion of Survey Quadrats with Presence", title = "*Anabaena/Cylindrospermum* Cover")
+  facet_wrap(~site_f, labeller =  as_labeller(c(`RUS` = "Russian River", 
+                                              `SFE-M`= "South Fork Eel River Lower",
+                                              `SFE-SH` = "South Fork Eel River Upper"))) +
+  labs(x = NULL, y = NULL, title = "*Anabaena* / *Cylindrospermum*")
 quadrat_anacyl
+
+# putting togther plots
+final <- plot_grid(quadrat_micro, quadrat_anacyl, ncol = 1)
+final
+
+# save
+ggsave("./figures/sfig_habitats_notfinal.tiff", dpi = 600, 
+       width=16, height=14, unit="cm")
+
+#### (4) Misc. Q ####
+
+## Q: how much of riffle is covered by Microcoleus?
+q <- surveys %>% 
+  filter(site == "SFE-M" & riffle_rapid == "y") %>% 
+  dplyr::group_by(field_date) %>% 
+  dplyr::summarize(micro_cover = mean(Microcoleus))
