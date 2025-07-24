@@ -1,6 +1,6 @@
 #### Primary figure for taxa-specific cover & anatoxins and GPP on each river
 ### Jordan Zabrecky
-## last edited: 07.21.2025
+## last edited: 07.23.2025
 
 # This script creates a primary figure for Q1 focused on the relationships
 # between benthic cyanobacteria dynamics and GPP across rivers
@@ -10,7 +10,7 @@
 #### (1) Loading libraries and data ####
 
 # loading libraries
-lapply(c("tidyverse", "lubridate", "plyr", "cowplot", "gridExtra", "grid"), 
+lapply(c("tidyverse", "lubridate", "plyr", "cowplot"), 
        require, character.only = T)
 
 ## loading in data
@@ -356,8 +356,9 @@ gpp_salmon
 # putting together plots using cowplot
 all <- plot_grid(bc_sfkeel2, gpp_sfkeel, bc_russian2, 
                          gpp_russian, bc_salmon2, gpp_salmon, 
-                         ncol = 2, align = "hv", scale = 0.97)
+                         ncol = 2, align = "hv", scale = 0.97) +
+  theme(plot.background = element_rect(fill = "white", color = NA)) # white background
 all # will edit further in inkscape...
 
 ggsave("./figures/fig_gpp_bc_acrossrivers_notfinal.tiff", dpi = 600, 
-       width=18, height=12, unit="cm")
+       width=18, height=12, unit="cm") 

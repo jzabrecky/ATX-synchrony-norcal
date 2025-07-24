@@ -1,6 +1,6 @@
-#### Q1: Table and Figure for across river (mean behavior) patterns
+#### Q1: Table for across river (mean behavior) patterns
 ### Jordan Zabrecky
-## last edited: 06.16.2025
+## last edited: 07.24.2025
 
 # This script creates information for a table describing taxa-specific cover, anatoxins,
 # and GPP across rivers from 2022 sampling
@@ -8,7 +8,7 @@
 #### (1) Loading in libraries and data ####
 
 # loading libraries
-lapply(c("tidyverse", "lubridate", "plyr", "cowplot", "gridExtra", "grid"), 
+lapply(c("tidyverse", "lubridate", "plyr"), 
        require, character.only = T)
 
 ##  loading in data
@@ -28,6 +28,10 @@ surveys <- read.csv("./data/EDI_data_package/benthic_surveys.csv") %>%
 gpp <- rbind(read.csv("./data/metab_model_outputs_processed/sfkeel_mir_2022_metab.csv"),
              read.csv("./data/metab_model_outputs_processed/russian_USGS_2022_metab.csv"),
              read.csv("./data/metab_model_outputs_processed/salmon_karuk_2022_metab.csv"))
+
+# anatoxins only for a supplemental table
+atx <- data_bc %>% 
+  select(field_date, site_reach, TM_ATX_all_ug_orgmat_g, TAC_ATX_all_ug_orgmat_g)
 
 #### (2) Creating descriptive table
 

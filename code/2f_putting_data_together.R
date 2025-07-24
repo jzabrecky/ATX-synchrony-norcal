@@ -1,6 +1,6 @@
 #### putting together field and lab data to answer research questions
 ### Jordan Zabrecky
-## last edited: 07.02.2025
+## last edited: 07.024.2025
 
 # This script aggregates (1) 2022 benthic cyanobacteria and GPP for all rivers
 # to answer Q1, (2) 2023 south fork eel benthic cyanobacteria, GPP, and water
@@ -23,6 +23,10 @@ metab <- ldply(list.files(path = "./data/metab_model_outputs_processed/", patter
   d$year = year(d$field_date)
   return(d)
 })
+
+# adjust date of anatoxin sample (9/08/2022) that was incorrectly taken two 
+# days before while I was gone (on 9/06/2022)
+anatoxins$field_date[which(anatoxins$field_date == "2022-09-08")] <- "2022-09-06"
 
 #### (2) Pivot anatoxins longer and join in with other data ####
 
@@ -54,7 +58,19 @@ ana_cyl <- rename_cols(ana_cyl, "TAC")
 # joining dataframes
 all <- left_join(survey, water, by = c("field_date", "site_reach"))
 all <- (list(all, microcoleus, ana_cyl)) %>% 
-  join_all(by = c("field_date", "site_reach"), type = "left")
+  join_all(by = c("field_date", "site_reach"), type = "left") %>% 
+  mutate(field_date = ymd(field_date),
+         year = year(field_date))
+
+#### (3) Put together 2022 data for summary statistics
+
+# filter out into 2022 data
+allrivers22 <- all %>% 
+  filter(year == 2022)
+
+# save dataframe
+write.csv(allrivers22, "./data/field_and_lab/allrivers22_combined.csv",
+          row.names = FALSE)
 
 #### (3) Filter 2023 data and calculate median GPP for each observation ####
 
