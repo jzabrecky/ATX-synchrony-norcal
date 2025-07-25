@@ -1,16 +1,14 @@
 #### Primary figure for taxa-specific cover & anatoxins and GPP on each river
 ### Jordan Zabrecky
-## last edited: 06.28.2025
+## last edited: 07.25.2025
 
 # This script creates a primary figure for Q2 focused on the relationships
 # between benthic cyanobacteria dynamics within the same river
 
-# IN PROGRESS- still trying to determine final symbology for presence
-
 #### (1) Loading libraries and data ####
 
 # loading libraries
-lapply(c("tidyverse", "lubridate", "plyr", "cowplot", "gridExtra", "grid"), 
+lapply(c("tidyverse", "lubridate", "plyr", "cowplot"), 
        require, character.only = T)
 
 # loading in data
@@ -57,91 +55,45 @@ data_longer$ATX_all_ug_orgmat_g <- replace_na(data_longer$ATX_all_ug_orgmat_g)
 #### (2) Making figure ####
 
 # set theme for all plots
-theme_set(theme_bw() +
-            theme(panel.grid.minor = element_blank(), strip.background = element_blank(),
-                  panel.grid.major = element_blank(), panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
-                  text = element_text(size = 20), strip.text = element_text(size = 15),
-                  plot.margin = unit(c(.5, 0, 0, 0), "cm"),
-                  axis.ticks.length=unit(.25, "cm"), 
-                  plot.title = element_text(size = 15, face = "bold", hjust = 0.5)))
+theme_set(theme_bw() + theme(legend.position = "bottom", 
+                             panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
+                             panel.border = element_rect(linewidth = 1.5), axis.ticks = element_line(linewidth = 1.5),
+                             text = element_text(size = 10), axis.ticks.length=unit(.25, "cm"),
+                             strip.background = element_blank()))
 
 # benthic cyanobacteria plot
 sfe_all <- ggplot(data = data_longer, aes(x = field_date)) +
   geom_bar(position = "dodge", stat = "identity", 
-           aes(y = ATX_all_ug_orgmat_g, fill = taxa), width = 5.5, color = "black") +
+           aes(y = ATX_all_ug_orgmat_g, fill = taxa, color = taxa), 
+           width = 5) +
   geom_line(aes(y = 260 - (cover * 8), color = taxa, linetype = taxa),
-            linewidth = 1.5) +
-  geom_point(aes(y = 260 - (cover * 8), color = taxa ,shape = taxa),size = 3) +
+            linewidth = 0.8) +
+  geom_point(aes(y = 260 - (cover * 8), color = taxa, shape = present),
+             size = 1.5, stroke = 1, position = position_dodge(width = 1.8)) +
   scale_color_manual("Taxa", values = c("#8f8504","#2871c7"),
                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
   scale_linetype_manual("Taxa", values = c("dotted", "dashed"),
                         labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_shape_manual("Taxa", values = c(16, 15),
-                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
+  scale_shape_manual("Present / Quadrat", values = c(4, 16)) +
   scale_fill_manual("Taxa", values = c("#d1c960","#5a88bf"),
                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  facet_wrap(~site_reach, ncol = 1) +
-  labs(y = NULL, x = NULL) +
+  facet_wrap(~site_reach, ncol = 1, 
+             labeller =  as_labeller(c(`SFE-M-1S` = "SFE-Lower-1S", 
+                                       `SFE-M-2`= "SFE-Lower-2",
+                                       `SFE-M-3` = "SFE-Lower-3",
+                                       `SFE-M-4` = "SFE-Lower-4",
+                                       `SFE-SH-1S` = "SFE-Upper-1S"))) +
+  labs(#y = expression(paste("Anatoxins (", mu, "g g"^-1, "OM)")), 
+       y = NULL, x = NULL) +
   ylim(0, 110) +
   scale_x_date(limits = as.Date(c("2023-06-18", "2023-09-27"))) +
-  scale_y_reverse(sec.axis = sec_axis(~ ((. - 260)/8) * -1)) +
+  scale_y_reverse(sec.axis = sec_axis(~ ((. - 260)/8) * -1, 
+                                      #name = "Cover (%)")) +
+                                          ))+
+  theme(strip.text = element_text(size = 8, face = "bold")) +
   theme(legend.position = "none") # will move over legend via illustrator
 sfe_all
 
-# benthic cyanobacteria plot - trying more advanced symbology
-sfe_all_2 <- ggplot(data = data_longer, aes(x = field_date)) +
-  geom_bar(position = "dodge", stat = "identity", 
-           aes(y = ATX_all_ug_orgmat_g, fill = taxa), width = 5.5, color = "black") +
-  geom_line(aes(y = 260 - (cover * 8), color = taxa, linetype = taxa),
-            linewidth = 1.5) +
-  geom_point(aes(y = 260 - (cover * 8), color = taxa ,
-                 shape = interaction(present, quadrat)),size = 3) +
-  scale_color_manual("Taxa", values = c("#8f8504","#2871c7", "black"),
-                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_linetype_manual("Taxa", values = c("dotted", "dashed"),
-                        labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_shape_manual("Taxa", values = c(4, 1, 19)) +
-  scale_fill_manual("Taxa", values = c("#d1c960","#5a88bf", "black"),
-                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  facet_wrap(~site_reach, ncol = 1) +
-  labs(y = NULL, x = NULL) +
-  ylim(0, 110) +
-  scale_x_date(limits = as.Date(c("2023-06-18", "2023-09-27"))) +
-  scale_y_reverse(sec.axis = sec_axis(~ ((. - 260)/8) * -1)) #+
-  #theme(legend.position = "none") # will move over legend via illustrator
-sfe_all_2
-
-# benthic cyanobacteria plot - trying more advanced symbology; zoomed in on one site
-one_site <- data_longer %>% 
-  filter(site_reach == "SFE-M-3" | site_reach == "SFE-M-4")
-sfe_all_2_zoomed <- ggplot(data = one_site, aes(x = field_date)) +
-  geom_bar(position = "dodge", stat = "identity", 
-           aes(y = ATX_all_ug_orgmat_g, fill = taxa), width = 5.5, color = "black") +
-  geom_line(aes(y = 260 - (cover * 8), color = taxa, linetype = taxa),
-            linewidth = 1.5) +
-  geom_point(aes(y = 260 - (cover * 8), color = taxa ,
-                 shape = interaction(present, quadrat)),size = 3) +
-  scale_color_manual("Taxa", values = c("#8f8504","#2871c7", "black"),
-                     labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_linetype_manual("Taxa", values = c("dotted", "dashed"),
-                        labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_shape_manual("Taxa", values = c(4, 1, 19)) +
-  scale_fill_manual("Taxa", values = c("#d1c960","#5a88bf", "black"),
-                    labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  facet_wrap(~site_reach, ncol = 1) +
-  labs(y = NULL, x = NULL) +
-  ylim(0, 110) +
-  scale_x_date(limits = as.Date(c("2023-06-18", "2023-09-27"))) +
-  scale_y_reverse(sec.axis = sec_axis(~ ((. - 260)/8) * -1)) #+
-#theme(legend.position = "none") # will move over legend via illustrator
-sfe_all_2_zoomed
-
-# make a little smaller in grid before adding y-axis labels 
-temp <- plot_grid(sfe_all, scale = 0.95)
-# may also want to add in a, b, c, d
-
-# add y-axis labels
-final <- grid.arrange(temp, left = textGrob("\u03bcg ATX per g OM", 
-                                           gp=gpar(fontsize=13), rot=90),
-                      right = textGrob("percent cover (%)", 
-                                       gp=gpar(fontsize=13), rot = 270))
+# save figure
+ggsave("./figures/fig_bc_withinrivers_notfinal.tiff", dpi = 600, 
+       width=8.1, height=12, unit="cm") 

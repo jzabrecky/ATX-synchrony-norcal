@@ -61,6 +61,10 @@ congener_fig <- ggplot(anatoxins_long, aes(fill = congener, y = site_reach_date,
   theme(strip.text = ggtext::element_markdown()) # to get only genus name italicized
 congener_fig
 
+# save figure
+ggsave("./figures/sfig_atx_congeners_notfinal.tiff", dpi = 600, 
+       width=18, height=22, unit="cm")
+
 #### (2) Normalizing by OM vs. chl-a figure ####
 
 # scale normalization to chl-a to match that of 
@@ -69,7 +73,8 @@ anatoxins_edit <- anatoxins %>%
          ATX_all_ug_chla_mg_scaled = ATX_all_ug_chla_mg * 12)
 
 # separate out TAC and TM
-anatoxins_edit_long <- pivot_longer(anatoxins_edit, cols = c(16, 12),
+anatoxins_edit_long <- pivot_longer(anatoxins_edit, cols = c("ATX_all_ug_orgmat_g", 
+                                                             "ATX_all_ug_chla_mg_scaled"),
                                     values_to = "values",
                                     names_to = "normalized_type") %>% 
   select(site_reach_date, sample_type, normalized_type, values) %>% 
@@ -82,7 +87,7 @@ normalize_fig <- ggplot(anatoxins_edit_long, aes(x = values, y = site_reach_date
   geom_bar(position = "dodge", stat = "identity") +
   scale_x_continuous(expression(paste(mu, "g anatoxins per g OM"), sep = ""), 
                      trans = pseudo_log_trans(base = 10),
-                     breaks = c(0, 5, 10, 25, 50, 100, 200),
+                     breaks = c(0, 5, 10, 25, 50, 100, 150, 250),
                      sec.axis = sec_axis(~.x/12, 
                                          name = expression(paste(mu, "g anatoxins per mg chl-a"), sep = ""),
                                          breaks = c(0, 1, 2.5, 5, 10, 20))) +

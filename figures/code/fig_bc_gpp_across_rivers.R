@@ -1,6 +1,6 @@
 #### Primary figure for taxa-specific cover & anatoxins and GPP on each river
 ### Jordan Zabrecky
-## last edited: 07.23.2025
+## last edited: 07.25.2025
 
 # This script creates a primary figure for Q1 focused on the relationships
 # between benthic cyanobacteria dynamics and GPP across rivers
@@ -69,10 +69,21 @@ atx$field_date <- ymd(atx$field_date) # aware that this is redundant but lubrida
 
 # need to calculate average atx per day
 atx <- atx %>% 
-  # replace NAs with 0, using 0 for absence
+  # replace NAs with 0 for calculations purposes
   mutate(ATX_ug_orgmat_g = replace_na(ATX_ug_orgmat_g, 0)) %>% 
   dplyr::group_by(field_date, site, taxa) %>% 
   dplyr::summarize(mean_ATX_ug_orgmat_g = mean(ATX_ug_orgmat_g))
+
+# in cases where no sample was taken from any reach on the river, use NA
+# (referencing figure S8 to do this!)
+atx$mean_ATX_ug_orgmat_g[which(atx$site == "RUS" & atx$taxa == "microcoleus")] <- NA
+atx$mean_ATX_ug_orgmat_g[which(atx$site == "SAL" & atx$field_date == as.Date("2022-06-27"))] <- NA
+atx$mean_ATX_ug_orgmat_g[which(atx$site == "SAL" & atx$taxa == "anabaena_cylindrospermum" &
+                                 atx$field_date != as.Date("2022-09-22"))] <- NA
+atx$mean_ATX_ug_orgmat_g[which(atx$site == "SFE-M" & atx$taxa == "anabaena_cylindrospermum"
+                               & atx$field_date == "2022-06-29")] <- NA
+atx$mean_ATX_ug_orgmat_g[which(atx$site == "SAL" & atx$taxa == "microcoleus"
+                               & atx$field_date == "2022-09-22")] <- NA
 
 ## gpp data
 
