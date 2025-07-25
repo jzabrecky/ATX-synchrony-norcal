@@ -1,9 +1,11 @@
 #### standardizing and normalizing data for predictive moels
 ### Jordan Zabrecky
-## last edited: 07.02.2025
+## last edited: 07.24.2025
 
 # This script standardizes (and, in some cases, normalizes) South Fork
-# Eel 2023 data before predictive modeling
+# Eel 2023 data before predictive modeling and makes an additional column for
+# "future" response variables and removes last day of observations (as there
+# is no "future" to forecast for those observations)
 
 #### (1) Loading data and libraries ####
 
@@ -67,34 +69,7 @@ cover_rsp <- data %>%
 cover_rsp <- cover_rsp %>% 
   select(field_date, site_reach, site, resp_M_cover_norm, resp_AC_cover_norm)
 
-## (b) Transects Present
-
-# get max proportion of transects for each reach
-max_pres <- data %>% 
-  dplyr::group_by(site_reach) %>% 
-  dplyr::summarize(max_microcoleus = max(proportion_micro_transects),
-                   max_anacyl = max(proportion_ana_cyl_transects))
-
-# normalizing for max microcoleus and anabaena/cylindrospermum
-pres_rsp <- data %>% 
-  mutate(max_microcoleus = case_when(site_reach == "SFE-M-1S" ~ max_pres$max_microcoleus[1],
-                                     site_reach == "SFE-M-2" ~ max_pres$max_microcoleus[2],
-                                     site_reach == "SFE-M-3" ~ max_pres$max_microcoleus[3],
-                                     site_reach == "SFE-M-4" ~ max_pres$max_microcoleus[4],
-                                     site_reach == "SFE-SH-1S" ~ max_pres$max_microcoleus[5],),
-         max_anacyl = case_when(site_reach == "SFE-M-1S" ~ max_pres$max_anacyl[1],
-                                site_reach == "SFE-M-2" ~ max_pres$max_anacyl[2],
-                                site_reach == "SFE-M-3" ~ max_pres$max_anacyl[3],
-                                site_reach == "SFE-M-4" ~ max_pres$max_anacyl[4],
-                                site_reach == "SFE-SH-1S" ~ max_pres$max_anacyl[5]),
-         resp_M_pres_norm = proportion_micro_transects / max_microcoleus * 100,
-         resp_AC_pres_norm = proportion_ana_cyl_transects / max_anacyl * 100)
-
-# keep response variables only
-pres_rsp <- pres_rsp %>% 
-  select(field_date, site_reach, site, resp_M_pres_norm, resp_AC_pres_norm)
-
-## (c) Anatoxins
+## (b) Anatoxins
 
 # modeling with anatoxins normalized to ash-free dry mass % of sample
 
@@ -125,18 +100,46 @@ atx_rsp <- data %>%
 
 # keep response variables only
 atx_rsp <- atx_rsp %>% 
-  # also including raw TM & TAC (per organic matter)
+  # also including raw TM & TAC (per organic matter) just in case
   mutate(resp_M_atx_raw = TM_ATX_all_ug_orgmat_g,
          resp_AC_atx_raw = TAC_ATX_all_ug_orgmat_g) %>%
   select(field_date, site_reach, site, resp_M_atx_raw, resp_AC_atx_raw, 
          resp_M_atx_norm, resp_AC_atx_norm)
 
-#### (4) Join covariates and responses and save ####
+#### (4) Join covariates and responses, create "future" column, & save! ####
+
+## (a) join together covariates and responses
 
 # left join in responses to standardized covariates
 final <- left_join(data_cov, cover_rsp, by = c("field_date", "site_reach", "site"))
-final <- left_join(final, pres_rsp, by = c("field_date", "site_reach", "site"))
 final <- left_join(final, atx_rsp, by = c("field_date", "site_reach", "site"))
+
+## (b) create future column and remove last day of observations
+
+# (because we are training one model with data from multiple sites,
+# if we do t-1, when we iterate to the next, it will cross sites
+# instead lets create a future response column and delete the last days)
+first_resp <- which(colnames(final) == "resp_M_cover_norm") # getting indexes
+last_resp <- which(colnames(final) == "resp_AC_atx_norm")
+add_new_col_index <- last_resp - first_resp + 1
+for(i in first_resp:last_resp) {
+  final[,i+add_new_col_index] <- c(final[,i][-1], NA)
+  colnames(final)[i+add_new_col_index] <- sub("resp", "future", colnames(final[i]))
+}
+
+# remove final day (have no future values after that date)
+final <- final[-which(final$field_date == "2023-09-24"),]
+
+# do two checks to make sure indexes lined up correctly
+# check to make sure it's both the future value and the reaches don't cross data
+check1 <- final %>% 
+  select(field_date, site_reach, resp_M_cover_norm, future_M_cover_norm)
+view(check1)
+check2 <- final %>% 
+  select(field_date, site_reach, resp_AC_atx_norm, future_AC_atx_norm)
+view(check2)
+
+## (c) save
 
 # save csv
 write.csv(final, "./data/predictive_models/inputs.csv", row.names = FALSE)

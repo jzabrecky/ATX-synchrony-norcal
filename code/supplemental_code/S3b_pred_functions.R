@@ -13,31 +13,30 @@
 # y = empty predictions dataframe
 # covar = matrix of covariates for test site
 
-# for predictions involving cover (i.e. includes an autoregressive term)
+# for predictions of cover (autoregressive, starting value of 0.05)
 preds_cover <- function(params, y, covar) {
   n.pred <- nrow(y) # includes initial day where we used 0
   preds <- matrix(NA, length(params$sigma), n.pred) # empty prediction matrix
-  preds[,1] <- 0 # assign first values to zero (hard-coded because we start all w/ zero)
+  preds[,1] <- 0.05 # assign first values to our version of 0; hard-coded bc all predictions start with 0
+  # again, our zero here is >0 as when making the model we need a number >0 to make it increase
   
   # make predictions
   for(j in 2:n.pred) {
     for(i in 1:length(params$sigma)) {
-      preds[i,j] <- rtruncnorm(n = 1, a = 0, b = 100,
-                               mean = params$b0[i] + params$b1[i] * preds[i,j-1] +
-                                # using previous prediction and covariates (j-1)
-                                # to predict next time step
-                                 covar[j-1,]%*%params$b[i,],
+      preds[i,j] <- rtruncnorm(n = 1, a = 0, b = 100, mean = (params$b0[i] + covar[j-1,]%*%params$b[i,]) 
+                               * preds[i,j-1],
+                               # using previous prediction and covariates (j-1)
+                               # to predict next time step
                                sd = params$sigma[i]) # process error
     }
   }
   
   # return filled predictions matrix
   return(preds)
-  
 }
 
-# for predictions involving cover (i.e. includes an autoregressive term)
-preds_atx <- function(params, y, covar) {
+# for predictions of anatoxins (i.e. does not include autoregressive term)
+preds_autoregressive <- function(params, y, covar) {
   n.pred <- nrow(y) # includes initial day where we used 0
   preds <- matrix(NA, length(params$sigma), n.pred) # empty prediction matrix
   preds[,1] <- 0 # assign first values to zero (hard-coded because we start all w/ zero)
@@ -45,18 +44,15 @@ preds_atx <- function(params, y, covar) {
   # make predictions
   for(j in 2:n.pred) {
     for(i in 1:length(params$sigma)) {
-      preds[i,j] <- rtruncnorm(n = 1, a = 0, b = 100,
-                               mean = params$b0[i] + # removed autoregressive term
-                                 # using previous covariates (j-1)
-                                 # to predict next time step
-                                 covar[j-1,]%*%params$b[i,],
+      preds[i,j] <- rtruncnorm(n = 1, a = 0, b = 100, mean = (params$b0[i] + covar[j-1,]%*%params$b[i,]),
+                               # using previous prediction and covariates (j-1)
+                               # to predict next time step
                                sd = params$sigma[i]) # process error
     }
   }
   
   # return filled predictions matrix
   return(preds)
-  
 }
 
 #### (2) Functions to get predictions and nRMSE summaries ####
@@ -82,7 +78,7 @@ calc_nRMSE <- function(predicted, observed, max, min) {
 
 # calculate mean and 95% confidence interval nRMSE's
 nRMSE_summary <- function(preds_matrix, observed, site_reach_name, model_name) {
-  # observed should not include the initial value, 
+  # calculation of nRMSE of predictions should not include initial value as that was pre-set
   # so remove first column from preds_matrix
   preds_matrix <- preds_matrix[,-1]
   
