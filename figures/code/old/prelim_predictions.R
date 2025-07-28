@@ -1,6 +1,104 @@
 ## predictions figure
 
 library("tidyverse")
+library("lubridate")
+
+
+
+
+# plot colors
+palette <- c("#523939", "#528b87", "#416f16", "#62a7f8", "#8b9609", "gray", "#bdb000", "#90ac7c")
+ribbon_palette <- c("#c9a3a3", "#aed4d1", "#c7e3ac", "#c7e1ff", "#dee3a1", "gray", "#ebe7b0", "#d6edc5")
+
+observed <- read.csv("./data/predictive_models/inputs.csv") %>% 
+  mutate(field_date = ymd(field_date))
+M_cover_final <- read.csv("./data/predictive_models/predictions_M_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
+M_cover_0.01_test <- read.csv("./data/predictive_models/compare_zero_sub_values/0.01/predictions_M_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
+M_cover_log_test <- read.csv("./data/predictive_models/log_ver/predictions_M_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
+M_cover_oldlinear <- read.csv("./data/predictive_models/july_stuff/predictions_M_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
+M_cover_oddreachout <- read.csv("./data/predictive_models/predictions_M_cover_oddreachout.csv") %>% 
+  mutate(field_date = ymd(field_date))
+
+# microcoleus cover predictions (final model?)
+preds_M_list <- split(M_cover_final, M_cover_final$model) # split into list
+
+for(i in 1:length(preds_M_list)) {
+  plot <- ggplot(data = preds_M_list[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_M_list[[i]]$model[1], "-- Microcoleus cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+# log test; microcoleus cover predictions
+preds_M_list_log <- split(M_cover_log_test, M_cover_log_test$model) # split into list
+
+for(i in 1:length(preds_M_list_log)) {
+  plot <- ggplot(data = preds_M_list_log[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_M_list_log[[i]]$model[1], "-- Microcoleus cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+# old linear predictions
+preds_M_list_linear <- split(M_cover_oldlinear, M_cover_oldlinear$model)
+
+for(i in 1:length(preds_M_list_linear)) {
+  plot <- ggplot(data = preds_M_list_linear[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_M_list_linear[[i]]$model[1], "-- Microcoleus cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+preds_M_list_oddreachout <- split(M_cover_oddreachout, M_cover_oddreachout$model) # split into list
+
+for(i in 1:length(preds_M_list_oddreachout)) {
+  plot <- ggplot(data = preds_M_list_oddreachout[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_M_list_oddreachout[[i]]$model[1], "-- Microcoleus cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##### older stuff below
+
 
 preds_M <- read.csv("./data/predictive_models/predictions_M_cover.csv") %>% 
   mutate(field_date = ymd(field_date))

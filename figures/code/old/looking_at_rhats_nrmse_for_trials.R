@@ -48,3 +48,12 @@ rhats_M_opt2 <- ldply(list.files(path = "./data/predictive_models/option2/M_cove
                                    d$model = filename %>% stringr::str_remove("_rhats.csv")
                                    return(d)
                                  })
+
+# 7/25/2025
+nrmse_old_linear <- read.csv("./data/predictive_models/july_stuff/nrmse_M_cover.csv") %>% 
+  dplyr::group_by(model) %>% 
+  dplyr::summarize(mean_nrmse = mean(mean))
+
+nrmse_new_model <- read.csv("./data/predictive_models/nrmse_M_cover.csv") %>% 
+  dplyr::group_by(model) %>% 
+  dplyr::summarize(mean_nrmse = mean(mean))
