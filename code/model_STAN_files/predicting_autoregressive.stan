@@ -22,6 +22,6 @@ model {
   }
 
   // prior for sigma
-  sigma~normal(0,5)T[0,];
+  sigma~normal(0,10)T[0,];
 
 }

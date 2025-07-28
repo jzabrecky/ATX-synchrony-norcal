@@ -1,12 +1,10 @@
 #### models to predict cover
 ### Jordan Zabrecky
-## last edited: 07.24.2025
+## last edited: 07.28.2025
 
 # This script builds models to predict cover of benthic Microcoleus cover
 # as determined by benthic cover surveys. Each model is built using 4 of 
 # 5 reaches, then the model is tested using the withheld fifth reach
-
-# want to try sigma test
 
 #### (1) Loading data and libraries ####
 
