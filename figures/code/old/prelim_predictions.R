@@ -14,7 +14,7 @@ observed <- read.csv("./data/predictive_models/inputs.csv") %>%
   mutate(field_date = ymd(field_date))
 M_cover_final <- read.csv("./data/predictive_models/predictions_M_cover.csv") %>% 
   mutate(field_date = ymd(field_date))
-M_cover_0.01_test <- read.csv("./data/predictive_models/compare_zero_sub_values/0.01/predictions_M_cover.csv") %>% 
+M_cover_0.05_test <- read.csv("./data/predictive_models/compare_zero_sub_values/0.05/predictions_M_cover.csv") %>% 
   mutate(field_date = ymd(field_date))
 M_cover_log_test <- read.csv("./data/predictive_models/log_ver/predictions_M_cover.csv") %>% 
   mutate(field_date = ymd(field_date))
@@ -82,6 +82,19 @@ for(i in 1:length(preds_M_list_oddreachout)) {
   print(plot)
 }
 
+preds_M_list_0.05 <- split(M_cover_0.05_test, M_cover_0.05_test$model) # split into list
+
+for(i in 1:length(preds_M_list_0.05)) {
+  plot <- ggplot(data = preds_M_list_0.05[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_M_list_0.05[[i]]$model[1], "-- Microcoleus cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
 
 
 

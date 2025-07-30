@@ -57,3 +57,22 @@ nrmse_old_linear <- read.csv("./data/predictive_models/july_stuff/nrmse_M_cover.
 nrmse_new_model <- read.csv("./data/predictive_models/nrmse_M_cover.csv") %>% 
   dplyr::group_by(model) %>% 
   dplyr::summarize(mean_nrmse = mean(mean))
+
+## sigma test
+
+nrmse_0_5 <- read.csv("./data/predictive_models/compare_sigma_prior/0_5/nrmse_M_cover.csv")
+nrmse_0_10 <- read.csv("./data/predictive_models/compare_sigma_prior/0_10/M_cover/nrmse_M_cover.csv")
+nrmse_0_15 <- read.csv("./data/predictive_models/compare_sigma_prior/0_15/nrmse_M_cover.csv")
+
+
+nrmse_0_5_grouped <- nrmse_0_5 %>% 
+  dplyr::group_by(model) %>% 
+  dplyr::summarize(mean_nrmse = mean(mean))
+
+nrmse_0_10_grouped <- nrmse_0_10 %>% 
+  dplyr::group_by(model) %>% 
+  dplyr::summarize(mean_nrmse = mean(mean))
+
+nrmse_0_15_grouped <- nrmse_0_15 %>% 
+  dplyr::group_by(model) %>% 
+  dplyr::summarize(mean_nrmse = mean(mean))
