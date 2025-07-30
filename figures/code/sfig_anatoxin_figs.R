@@ -125,6 +125,7 @@ riffle_fig <- ggplot(data = riffle_exp, aes(y = ATXa_ug_g, x = dhATXa_ug_g)) +
   theme(legend.title=element_blank(), axis.text.x = element_text(size = 12),
         axis.text.y = element_text(size = 12), legend.position = "top")
 riffle_fig
+
 # pair with photo in editing program
 # also use scale from blue to yellow because I think when it goes back it overlaps some colors
 # save figure; unsure about x and y axes at present
