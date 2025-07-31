@@ -32,9 +32,9 @@ options(scipen=10000)
 
 # plot
 fig <- ggplot(data = data, aes(x = date, y = ATXa_ug_L)) +
-  geom_point(aes(fill = habitat), shape = 21, size = 6, alpha = 0.8, stroke = 0.8) +
+  geom_point(aes(fill = habitat), shape = 21, size = 4, alpha = 0.8, stroke = 0.8) +
   scale_y_continuous(trans='log10') +
-  scale_fill_manual("Habitat:", 
+  scale_fill_manual(NULL, 
                    labels = c("epiphyte in pool", "cobble in riffle"),
                    values = c("#ebdf38", "#62a7f8")) +
   labs(x = NULL, y = NULL) + 
@@ -43,5 +43,5 @@ fig
 
 # pair with photo of epiphyte in pool habitat
 # make sure it's not a photo we want to use with chapter 2!
-ggsave("./figures/sfig_atx_riffle_notfinal.tiff", dpi = 600, 
+ggsave("./figures/sfig_atx_epiphyte_cobble_notfinal.tiff", dpi = 600, 
        width=9, height=9, unit="cm")

@@ -61,10 +61,15 @@ write.csv(landcover_summary, "./data/NLCD19_landcover/landcover_summary.csv",
 # when we were sampling
 
 # south fork eel miranda
-disc_sfkeel_mir <- discharge %>% 
+disc_sfkeel_mir_2022 <- discharge %>% 
   filter(site == "sfkeel_mir") %>% 
-  filter(date_time > "2022-06-29 00:00:00" & date_time < "2023-09-24 11:59:00") %>% 
-  filter(date_time < "2022-09-17 11:59:00" | date_time > "2023-06-20 00:00:00")
+  filter(date_time > "2022-06-29 00:00:00" & date_time < "2022-09-17 11:59:00")
+median(disc_sfkeel_mir_2022$discharge_m3_s)
+
+disc_sfkeel_mir_2023 <- discharge %>% 
+  filter(site == "sfkeel_mir") %>% 
+  filter(date_time > "2023-06-20 00:00:00" & date_time < "2023-09-24 11:59:00")
+median(disc_sfkeel_mir_2023$discharge_m3_s)
 
 # south fork eel standish hickey
 disc_sfkeel_sth <- discharge %>% 
@@ -75,16 +80,19 @@ disc_sfkeel_sth <- discharge %>%
 disc_russian <- discharge %>% 
   filter(site == "russian") %>% 
   filter(date_time > "2022-06-24 00:00:00" & date_time < "2022-09-15 11:59:00")
+median(disc_russian$discharge_m3_s)
 
 # salmon (for this study only using 2022 data)
 disc_salmon <- discharge %>% 
   filter(site == "salmon") %>% 
   filter(date_time > "2022-06-27 00:00:00" & date_time < "2022-09-22 11:59:00")
+median(disc_salmon$discharge_m3_s)
 
 #### (4) Water Quality Parameters ####
 
 water_quality_summary <- nutrients %>% 
-  dplyr::group_by(site) %>% 
+  mutate(year = year(field_date)) %>% 
+  dplyr::group_by(site, year) %>% 
   dplyr::summarize(temp_C_min = min(temp_C),
                    temp_C_max = max(temp_C),
                    pH_min = min(pH, na.rm = TRUE),
