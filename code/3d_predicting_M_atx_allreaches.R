@@ -1,36 +1,10 @@
 #### models to predict cover
 ### Jordan Zabrecky
-## last edited: 07.29.2025
+## last edited: 07.30.2025
 
-# This script builds models to predict cover of benthic Anabaena/Cylindrospermum cover
-# as determined by benthic cover surveys. Each model is built using 4 of 
+# This script builds models to predict cover of benthic Microcoleus anatoxins
+# as determined by benthic anatoxins surveys. Each model is built using 4 of 
 # 5 reaches, then the model is tested using the withheld fifth reach
-
-# LOGGED VERSION!!!!
-
-# temporary predictions function
-preds_cover_trunc_for_log <- function(params, y, covar) {
-  n.pred <- nrow(y) # includes initial day where we used 0
-  preds <- matrix(NA, length(params$sigma), n.pred) # empty prediction matrix
-  preds[,1] <- 0.01 # assign first values to zero (hard-coded because we start all w/ zero)
-  
-  # make predictions
-  for(j in 2:n.pred) {
-    for(i in 1:length(params$sigma)) {
-      # exponetiated to convert back to 0,100 scale!
-      preds[i,j] <- exp(rtruncnorm(n = 1, b = log(100),mean = params$b0[i] + 
-                                     params$b1[i] * preds[i,j-1] +
-                                 # using previous prediction and covariates (j-1)
-                                 # to predict next time step
-                                 covar[j-1,]%*%params$b[i,],
-                               sd = params$sigma[i])) # process error
-    }
-  }
-  
-  # return filled predictions matrix
-  return(preds)
-  
-}
 
 #### (1) Loading data and libraries ####
 
@@ -40,22 +14,12 @@ lapply(c("tidyverse", "rstan", "StanHeaders", "truncnorm", "Metrics"),
 
 # loading in data and select only columns we care about
 raw_data <- read.csv("./data/predictive_models/inputs.csv") %>% 
-  select(field_date, site_reach, resp_M_cover_norm, future_M_cover_norm, temp_C,
+  select(field_date, site_reach, resp_M_atx_norm, future_M_atx_norm, temp_C,
          discharge_m3_s, DIN_mg_N_L, oPhos_ug_P_L, cond_uS_cm,
-         GPP_median_tofourdaysprior)
+         GPP_median_tofourdaysprior, microcoleus)
 
 # make another data frame for edited data
 data <- raw_data
-
-# when cover = 0, add 0.05 (so model can increase as we multiply by this value)
-data <- data %>%
-  mutate(resp_M_cover_norm = case_when(resp_M_cover_norm == 0 ~ 0.01,
-                                       TRUE ~ resp_M_cover_norm),
-         future_M_cover_norm = case_when(future_M_cover_norm == 0 ~ 0.01,
-                                         TRUE ~ future_M_cover_norm)) %>% 
-  # log values
-  mutate(resp_M_cover_norm = log(resp_M_cover_norm),
-         future_M_cover_norm = log(future_M_cover_norm))
 
 # lastly, double check there is no NA for STAN purposes
 any(is.na(data)) # nope!
@@ -91,8 +55,10 @@ nrmse <- data.frame(site_reach = NA,
                     ci_upper = NA)
 
 # empty dataframes for predictions (list of model types and then list within per reach)
-model_names <- c("null", "physical", "chemical", "biological", "physicochemical",
-                 "ecohydrological", "biochemical", "all")
+model_names <- c("null", "physical", "physical_w_cover", "chemical", "chemical_w_cover", 
+                 "biological", "biological_w_cover", "physicochemical", "physicochemical_w_cover",
+                 "ecohydrological", "ecohydrological_w_cover", "biochemical", "biochemical_w_cover", 
+                 "all", "all_w_cover")
 predictions <- list() # empty list, excludes first day as we are not making predictions for that day
 for(j in 1:length(model_names)) {
   # for each model (j) create a list for each reach (i)
@@ -118,7 +84,9 @@ names(predictions) <- model_names
 # ecohydrological = autoregressive w/ temperature, flow, and GPP
 # biochemical = autoregressive w/ GPP, nutrients, and conductivity
 # all = autoregressive w/ all covariates
+# w_cover includes the addition of cover at the end!!
 
+# ADD THIS TO SUPPLEMENTAL SCRIPTS LATER
 # function to make list of covariates training and testing for each model
 make_covariates <- function(covariates) {
   
@@ -140,21 +108,21 @@ make_covariates <- function(covariates) {
   return(final_list)
 }
 
-#### (4) Predicting Microcoleus Cover ####
+#### (4) Predicting Microcoleus Mat Anatoxins ####
 
 # get prediction functions
 source("./code/supplemental_code/S3b_pred_functions.R")
 
-## (a) null - mean of all cover data
+## (a) null - mean of all Microcoleus atx data
 
 # calculate mean to use for null model (this ignores first day which we are not predicting)
-mean_cover <- mean(exp(data$future_M_cover_norm)) # need to exponential for % on 0,100 scale
+mean_atx <- mean(data$future_M_atx_norm)
 
 # add to predictions for each site and calculate nRMSE
 for(i in 1:length(test_sites)) {
-  predictions$null[[i]]$mean <- rep(mean_cover, nrow(predictions$null[[i]]))
-  predictions$null[[i]]$ci_lower <- rep(mean_cover, nrow(predictions$null[[i]]))
-  predictions$null[[i]]$ci_upper <- rep(mean_cover, nrow(predictions$null[[i]]))
+  predictions$null[[i]]$mean <- rep(mean_atx, nrow(predictions$null[[i]]))
+  predictions$null[[i]]$ci_lower <- rep(mean_atx, nrow(predictions$null[[i]]))
+  predictions$null[[i]]$ci_upper <- rep(mean_atx, nrow(predictions$null[[i]]))
 }
 
 # calculate nRMSE 
@@ -162,13 +130,12 @@ for(i in 1:length(test_sites)) {
   new <- data.frame(site_reach = names(test_sites)[i],
                     model = "null")
   # (removing first row of prediction which is first day that we are not predicting!)
-  new$mean <- calc_nRMSE(predictions$null[[i]]$mean[-1], test_sites[[i]]$future_M_cover_norm,
-                         # predictions values are on 0-100% scale so also need to exponentiate normalization
-                         max(exp(test_sites[[i]]$future_M_cover_norm)), min(exp(test_sites[[i]]$future_M_cover_norm)))
-  new$ci_lower <- calc_nRMSE(predictions$null[[i]]$ci_lower[-1], test_sites[[i]]$future_M_cover_norm,
-                             max(exp(test_sites[[i]]$future_M_cover_norm)), min(exp(test_sites[[i]]$future_M_cover_norm)))
-  new$ci_upper <- calc_nRMSE(predictions$null[[i]]$ci_upper[-1], test_sites[[i]]$future_M_cover_norm,
-                             max(exp(test_sites[[i]]$future_M_cover_norm)), min(exp(test_sites[[i]]$future_M_cover_norm)))
+  new$mean <- calc_nRMSE(predictions$null[[i]]$mean[-1], test_sites[[i]]$future_M_atx_norm,
+                         max(test_sites[[i]]$future_M_atx_norm), min(test_sites[[i]]$future_M_atx_norm))
+  new$ci_lower <- calc_nRMSE(predictions$null[[i]]$ci_lower[-1], test_sites[[i]]$future_M_atx_norm,
+                             max(test_sites[[i]]$future_M_atx_norm), min(test_sites[[i]]$future_M_atx_norm))
+  new$ci_upper <- calc_nRMSE(predictions$null[[i]]$ci_upper[-1], test_sites[[i]]$future_M_atx_norm,
+                             max(test_sites[[i]]$future_M_atx_norm), min(test_sites[[i]]$future_M_atx_norm))
   nrmse <- rbind(nrmse, new)
 }
 
@@ -185,28 +152,57 @@ covariates[[1]] <- NA # holder for null model
 # make list of covariates for physical (temp + discharge)
 covariates[[2]] <- make_covariates(c("temp_C", "discharge_m3_s"))
 
+# make list of covariates for physical w/cover (temp + discharge + cover)
+covariates[[3]] <- make_covariates(c("temp_C", "discharge_m3_s", "microcoleus"))
+
 # make list of covariates for chemical (din + ophos + conductivity)
-covariates[[3]] <- make_covariates(c("DIN_mg_N_L", "oPhos_ug_P_L", "cond_uS_cm"))
+covariates[[4]] <- make_covariates(c("DIN_mg_N_L", "oPhos_ug_P_L", "cond_uS_cm"))
+
+# make list of covariates for chemical w/ cover (din + ophos + conductivity + cover)
+covariates[[5]] <- make_covariates(c("DIN_mg_N_L", "oPhos_ug_P_L", "cond_uS_cm", "microcoleus"))
 
 # make list of covariates for biological (GPP)
-covariates[[4]] <- make_covariates(c("GPP_median_tofourdaysprior"))
+covariates[[6]] <- make_covariates(c("GPP_median_tofourdaysprior"))
+
+# make list of covariates for biological (GPP) w/ cover
+covariates[[7]] <- make_covariates(c("GPP_median_tofourdaysprior", "microcoleus"))
 
 # make list of covariates for physicochemical (temp + flow + din + ophos + cond)
-covariates[[5]] <- make_covariates(c("temp_C", "discharge_m3_s",
+covariates[[8]] <- make_covariates(c("temp_C", "discharge_m3_s",
                                                 "DIN_mg_N_L", "oPhos_ug_P_L",
                                                 "cond_uS_cm"))
 
+# make list of covariates for physicochemical w/ cover (temp + flow + din + ophos + cond + cover)
+covariates[[9]] <- make_covariates(c("temp_C", "discharge_m3_s",
+                                     "DIN_mg_N_L", "oPhos_ug_P_L",
+                                     "cond_uS_cm", "microcoleus"))
+
 # make list of covariates for ecohydrological (temp + disc + gpp)
-covariates[[6]] <- make_covariates(c("temp_C", "discharge_m3_s",
+covariates[[10]] <- make_covariates(c("temp_C", "discharge_m3_s",
                                                 "GPP_median_tofourdaysprior"))
 
+# make list of covariates for ecohydrological w/ cover (temp + disc + gpp + cover)
+covariates[[11]] <- make_covariates(c("temp_C", "discharge_m3_s",
+                                     "GPP_median_tofourdaysprior", "microcoleus"))
+
 # make list of covariates for biochemical (din + ophos + cond + GPP)
-covariates[[7]] <- make_covariates(c("DIN_mg_N_L", "oPhos_ug_P_L",
+covariates[[12]] <- make_covariates(c("DIN_mg_N_L", "oPhos_ug_P_L",
                                             "cond_uS_cm", "GPP_median_tofourdaysprior"))
 
+# make list of covariates for biochemical w/ cover (din + ophos + cond + GPP + cover)
+covariates[[13]] <- make_covariates(c("DIN_mg_N_L", "oPhos_ug_P_L",
+                                     "cond_uS_cm", "GPP_median_tofourdaysprior",
+                                     "microcoleus"))
+
 # make list of covariates for all (temp + dis + din + ophos + cond + GPP)
-covariates[[8]] <- make_covariates(c("temp_C", "discharge_m3_s", "DIN_mg_N_L", 
+covariates[[14]] <- make_covariates(c("temp_C", "discharge_m3_s", "DIN_mg_N_L", 
                                     "oPhos_ug_P_L", "cond_uS_cm", "GPP_median_tofourdaysprior"))
+
+
+# make list of covariates for all w/ cover (temp + dis + din + ophos + cond + GPP + cover)
+covariates[[15]] <- make_covariates(c("temp_C", "discharge_m3_s", "DIN_mg_N_L", 
+                                     "oPhos_ug_P_L", "cond_uS_cm", "GPP_median_tofourdaysprior",
+                                     "microcoleus"))
 
 # giving list names for clarification
 names(covariates) <- names(predictions)
@@ -217,13 +213,13 @@ for(j in 2:length(predictions)) {
   
   # empty list to save parameter estimates for each model
   # and parameter r-hats for each model
-  # number of covariates plus 4 (for b0, b1, sigma, and lp)
+  # number of covariates plus 3 (for b0, sigma, and lp)
   # ncol = 5 (hard-coded; number of reaches)
   param_est <- data.frame(matrix(NA, nrow = ncol(covariates[[j]]$training[[1]]) 
                                  # just using reach 1, all will have same number of columns 
-                                 + 4, ncol = 5)) # plus 4 includes b0, b1, sigma, & lp
+                                 + 3, ncol = 5)) # plus 3 includes b0, sigma, & lp
   rhats <- data.frame(matrix(NA, nrow = ncol(covariates[[j]]$training[[1]]) 
-                             + 4, ncol = 5))
+                             + 3, ncol = 5))
   colnames(param_est) = names(test_sites)
   colnames(rhats) = names(test_sites)
   
@@ -235,21 +231,20 @@ for(j in 2:length(predictions)) {
     # gather data
     mod_data = list(N = nrow(training_sites[[i]]),
                     c = ncol(covariates[[j]]$training[[i]]),
-                    future = training_sites[[i]]$future_M_cover_norm,
-                    present = training_sites[[i]]$resp_M_cover_norm,
+                    future = training_sites[[i]]$future_M_atx_norm,
                     covar = as.matrix(covariates[[j]]$training[[i]]))
     # run STAN model
     # if there are warning issues, code may stop if running through whole script 
     # (if using cntl+shift+enter)
-    model <- stan(file = "./code/model_STAN_files/predicting_autoregressive_logver.stan", 
+    model <- stan(file = "./code/model_STAN_files/predicting_NOT_autoregressive.stan", 
                  data = mod_data,
                  chains = 3, iter = 10000, warmup = 5000, 
                  control = list(adapt_delta = 0.95, max_treedepth = 12))
     # save STAN model
-    saveRDS(model, paste("./data/predictive_models/log_ver/M_cover_models/", model_name, 
+    saveRDS(model, paste("./data/predictive_models/M_atx_models/", model_name, 
                          "_", names(test_sites)[i], sep = ""))
     # extract parameters
-    params <- rstan::extract(model, c("sigma", "b0", "b1", "b"))
+    params <- rstan::extract(model, c("sigma", "b0", "b"))
     # add mean parameter estimates to dataframe
     rownames(param_est) <- rownames(get_posterior_mean(model))
     param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
@@ -257,21 +252,21 @@ for(j in 2:length(predictions)) {
     rownames(rhats) <- names(summary(model)$summary[,"Rhat"])
     rhats[i] <- summary(model)$summary[,"Rhat"]
     # make predictions matrix
-    preds_matrix <- preds_cover_trunc_for_log(params = params,
+    preds_matrix <- preds_anatoxins(params = params,
                                y = predictions[[j]][[i]],
                                covar = as.matrix(covariates[[j]]$testing[[i]]))
     # save summary of prediction; make sure to assign globally
     predictions[[j]][[i]][,2:4] <- preds_summary(preds_matrix)
     # calculate nRMSE of model
-    nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, exp(test_sites[[i]]$future_M_cover_norm),
+    nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$future_M_atx_norm,
                                         site_reach_name = names(test_sites)[i],
                                         model_name = model_name))
   }
   
   # save rhats and mean parameter estimates
-  write.csv(rhats, paste("./data/predictive_models/log_ver/M_cover_models/model_attributes/",
+  write.csv(rhats, paste("./data/predictive_models/M_atx_models/model_attributes/",
                          model_name, "_rhats.csv", sep = ""), row.names = TRUE)
-  write.csv(param_est,  paste("./data/predictive_models/log_ver/M_cover_models/model_attributes/",
+  write.csv(param_est,  paste("./data/predictive_models/M_atx_models/model_attributes/",
                              model_name, "_param_est.csv", sep = ""), row.names = TRUE)
   
   # lastly, print if all models converged <1.05 or not!
@@ -285,7 +280,7 @@ for(j in 2:length(predictions)) {
 #### (5) Saving Outputs
 
 # saving nRMSE table
-write.csv(nrmse %>% na.omit(), "./data/predictive_models/log_ver/nrmse_M_cover.csv",
+write.csv(nrmse %>% na.omit(), "./data/predictive_models/nrmse_M_atx.csv",
           row.names = FALSE)
 
 # adding site_reach and model name information to dataframe
@@ -306,8 +301,6 @@ for(j in 1:length(test_sites)) {
   }
 }
 
-# exponentiate predictions before saving
-
 # saving final predictions
-write.csv(final_predictions, "./data/predictive_models/log_ver/predictions_M_cover.csv",
+write.csv(final_predictions, "./data/predictive_models/predictions_M_atx.csv",
           row.names = FALSE)

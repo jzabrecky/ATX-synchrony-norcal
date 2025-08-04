@@ -7,10 +7,16 @@ library(ggsignif)
 
 cover_nrmse_M <- read.csv("./data/predictive_models/nrmse_M_cover.csv")
 cover_nrmse_AC <- read.csv("./data/predictive_models/nrmse_AC_cover.csv")
-atx_nRMSE_M <- read.csv("./data/predictive_models/nrmse_M_atx.csv")
-atx_nRMSE_AC <- read.csv("./data/predictive_models/nrmse_AC_atx.csv")
-atx_nRMSE_M_w_cover <- read.csv("./data/predictive_models/nrmse_M_atx_w_cover.csv")
-atx_nRMSE_AC_w_cover <- read.csv("./data/predictive_models/nrmse_M_atx_w_cover.csv")
+atx_nRMSE_M <- read.csv("./data/predictive_models/nrmse_M_atx.csv")  %>% 
+  mutate(cover = case_when(grepl("w_cover", model) ~ "cover",
+                           TRUE ~ "not"))
+atx_nRMSE_AC <- read.csv("./data/predictive_models/nrmse_AC_atx.csv") %>% 
+  mutate(cover = case_when(grepl("w_cover", model) ~ "cover",
+                           TRUE ~ "not"))
+atx_nRMSE_M_w_cover <- atx_nRMSE_M %>% 
+  filter(cover == "cover")
+atx_nRMSE_AC_w_cover <- atx_nRMSE_AC %>% 
+  filter(cover == "cover")
 
 cover_M_null <- cover_nrmse_M %>% 
   filter(model == "null")
@@ -25,12 +31,12 @@ cover_nrmse_AC <- cover_nrmse_AC %>%
 atx_nRMSE_M_null <- atx_nRMSE_M %>% 
   filter(model == "null")
 atx_nRMSE_M <- atx_nRMSE_M %>% 
-  filter(model != "null")
+  filter(model != "null" & cover == "not")
 
 atx_nRMSE_AC_null <- atx_nRMSE_AC %>% 
   filter(model == "null")
 atx_nRMSE_AC <- atx_nRMSE_AC %>% 
-  filter(model != "null")
+  filter(model != "null" & cover == "not")
 
 
 atx_nRMSE_M_w_cover <- atx_nRMSE_M_w_cover %>% 
@@ -54,25 +60,7 @@ cover_plot <- ggplot(data = cover_nrmse_M, aes(x = site_reach, y = mean)) +
                                 "ecohydrological (temp + dis + GPP)",
                                 "physical (temp + dis)",
                                 "physicochemical (temp + dis + DIN + ophos + cond)")) +
-  scale_shape_manual(values = c(21, 22, 22, 23, 22, 23, 23),
-                     labels = c("all (temp + dis + DIN + ophos + cond + GPP)", 
-                                "biochemical (DIN + ophos + cond + GPP)",
-                                "biological (GPP)",
-                                "chemical (DIN + ophos + cond)",
-                                "ecohydrological (temp + dis + GPP)",
-                                "physical (temp + dis)",
-                                "physicochemical (temp + dis + DIN + ophos + cond)")) +
-  labs(title = "nRMSE for Microcoleus cover predictions") +
-  theme_bw()
-cover_plot
-
-ac_cover_plot <- ggplot(data = cover_nrmse_AC, aes(x = site_reach, y = mean)) +
-  geom_point(aes(fill = model, shape = model), size = 7, alpha = 0.8, position = position_dodge(width=0.5), 
-             color = "black") +
-  geom_signif(y_position = c(cover_AC_null$mean), xmin = c(0.6, 1.6, 2.6, 3.6, 4.6), 
-              xmax = c(1.4, 2.4, 3.4, 4.4, 5.4), annotation = c("", "", "", "" ,""),
-              tip_length = 0, size = 0.6) +
-  scale_fill_manual(values = c("#523939", "#528b87", "#416f16", "#62a7f8", "#8b9609", "#bdb000", "#90ac7c"),
+  scale_color_manual(values = c("#523939", "#528b87", "#416f16", "#62a7f8", "#8b9609", "#bdb000", "#90ac7c"),
                     labels = c("all (temp + dis + DIN + ophos + cond + GPP)", 
                                "biochemical (DIN + ophos + cond + GPP)",
                                "biological (GPP)",
@@ -88,8 +76,44 @@ ac_cover_plot <- ggplot(data = cover_nrmse_AC, aes(x = site_reach, y = mean)) +
                                 "ecohydrological (temp + dis + GPP)",
                                 "physical (temp + dis)",
                                 "physicochemical (temp + dis + DIN + ophos + cond)")) +
+  labs(title = "nRMSE for Microcoleus cover predictions") +
+  theme_bw() + theme(legend.position = "none")
+cover_plot
+
+ac_cover_plot <- ggplot(data = cover_nrmse_AC, aes(x = site_reach, y = mean)) +
+  geom_point(aes(fill = model, shape = model), size = 7, alpha = 0.8, position = position_dodge(width=0.5), 
+             color = "black") +
+  geom_signif(y_position = c(cover_AC_null$mean), xmin = c(0.6, 1.6, 2.6, 3.6, 4.6), 
+              xmax = c(1.4, 2.4, 3.4, 4.4, 5.4), annotation = c("", "", "", "" ,""),
+              tip_length = 0, size = 0.6) +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper, color = model), position = position_dodge(width=0.5)) +
+  scale_fill_manual(values = c("#523939", "#528b87", "#416f16", "#62a7f8", "#8b9609", "#bdb000", "#90ac7c"),
+                    labels = c("all (temp + dis + DIN + ophos + cond + GPP)", 
+                               "biochemical (DIN + ophos + cond + GPP)",
+                               "biological (GPP)",
+                               "chemical (DIN + ophos + cond)",
+                               "ecohydrological (temp + dis + GPP)",
+                               "physical (temp + dis)",
+                               "physicochemical (temp + dis + DIN + ophos + cond)")) +
+  scale_color_manual(values = c("#523939", "#528b87", "#416f16", "#62a7f8", "#8b9609", "#bdb000", "#90ac7c"),
+                     labels = c("all (temp + dis + DIN + ophos + cond + GPP)", 
+                                "biochemical (DIN + ophos + cond + GPP)",
+                                "biological (GPP)",
+                                "chemical (DIN + ophos + cond)",
+                                "ecohydrological (temp + dis + GPP)",
+                                "physical (temp + dis)",
+                                "physicochemical (temp + dis + DIN + ophos + cond)")) +
+  scale_shape_manual(values = c(21, 22, 22, 23, 22, 23, 23),
+                     labels = c("all (temp + dis + DIN + ophos + cond + GPP)", 
+                                "biochemical (DIN + ophos + cond + GPP)",
+                                "biological (GPP)",
+                                "chemical (DIN + ophos + cond)",
+                                "ecohydrological (temp + dis + GPP)",
+                                "physical (temp + dis)",
+                                "physicochemical (temp + dis + DIN + ophos + cond)")) +
   labs(title = "nRMSE for Anabaena/Cylindrospermum cover predictions") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.position = "none")
 ac_cover_plot
 
 atx_m_plot <- ggplot(data = atx_nRMSE_M, aes(x = site_reach, y = mean)) +
@@ -107,6 +131,14 @@ atx_m_plot <- ggplot(data = atx_nRMSE_M, aes(x = site_reach, y = mean)) +
                                "ecohydrological (temp + dis + GPP)",
                                "physical (temp + dis)",
                                "physicochemical (temp + dis + DIN + ophos + cond)")) +
+  scale_color_manual(values = c("#523939", "#528b87", "#416f16", "#62a7f8", "#8b9609", "#bdb000", "#90ac7c"),
+                     labels = c("all (temp + dis + DIN + ophos + cond + GPP)", 
+                                "biochemical (DIN + ophos + cond + GPP)",
+                                "biological (GPP)",
+                                "chemical (DIN + ophos + cond)",
+                                "ecohydrological (temp + dis + GPP)",
+                                "physical (temp + dis)",
+                                "physicochemical (temp + dis + DIN + ophos + cond)")) +
   scale_shape_manual(values = c(21, 22, 22, 23, 22, 23, 23),
                      labels = c("all (temp + dis + DIN + ophos + cond + GPP)", 
                                 "biochemical (DIN + ophos + cond + GPP)",
@@ -115,8 +147,9 @@ atx_m_plot <- ggplot(data = atx_nRMSE_M, aes(x = site_reach, y = mean)) +
                                 "ecohydrological (temp + dis + GPP)",
                                 "physical (temp + dis)",
                                 "physicochemical (temp + dis + DIN + ophos + cond)")) +
-  labs(title = "nRMSE for Microcoleus cover predictions") +
-  theme_bw()
+  labs(title = "nRMSE for Microcoleus anatoxins predictions") +
+  theme_bw() +
+  theme(legend.position = "none")
 atx_m_plot
 
 atx_m_plot_w_cover <- ggplot(data = atx_nRMSE_M_w_cover, aes(x = site_reach, y = mean)) +
@@ -135,6 +168,14 @@ atx_m_plot_w_cover <- ggplot(data = atx_nRMSE_M_w_cover, aes(x = site_reach, y =
                                "physical (temp + dis)",
                                "physicochemical (temp + dis + DIN + ophos + cond)",
                                "cover only")) +
+  scale_color_manual(values = c("#523939", "#528b87", "#416f16", "#62a7f8", "#8b9609", "#bdb000", "#90ac7c"),
+                     labels = c("all (temp + dis + DIN + ophos + cond + GPP)", 
+                                "biochemical (DIN + ophos + cond + GPP)",
+                                "biological (GPP)",
+                                "chemical (DIN + ophos + cond)",
+                                "ecohydrological (temp + dis + GPP)",
+                                "physical (temp + dis)",
+                                "physicochemical (temp + dis + DIN + ophos + cond)")) +
   scale_shape_manual(values = c(21, 22, 22, 23, 22, 23, 23, 22),
                      labels = c("all (temp + dis + DIN + ophos + cond + GPP)", 
                                 "biochemical (DIN + ophos + cond + GPP)",
@@ -144,9 +185,86 @@ atx_m_plot_w_cover <- ggplot(data = atx_nRMSE_M_w_cover, aes(x = site_reach, y =
                                 "physical (temp + dis)",
                                 "physicochemical (temp + dis + DIN + ophos + cond)",
                                 "cover only")) +
-  labs(title = "nRMSE for Microcoleus cover predictions") +
-  theme_bw()
+  labs(title = "nRMSE for Microcoleus anatoxins w/ cover predictions") +
+  theme_bw() +
+  theme(legend.position = "none")
 atx_m_plot_w_cover
+
+
+atx_ac_plot <- ggplot(data = atx_nRMSE_AC, aes(x = site_reach, y = mean)) +
+  geom_point(aes(fill = model, shape = model), size = 7, alpha = 0.8, position = position_dodge(width=0.5), 
+             color = "black") +
+  geom_signif(y_position = c(atx_nRMSE_AC_null$mean), xmin = c(0.6, 1.6, 2.6, 3.6, 4.6), 
+              xmax = c(1.4, 2.4, 3.4, 4.4, 5.4), annotation = c("", "", "", "" ,""),
+              tip_length = 0, size = 0.6) +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper, color = model), position = position_dodge(width=0.5)) +
+  scale_fill_manual(values = c("#523939", "#528b87", "#416f16", "#62a7f8", "#8b9609", "#bdb000", "#90ac7c"),
+                    labels = c("all (temp + dis + DIN + ophos + cond + GPP)", 
+                               "biochemical (DIN + ophos + cond + GPP)",
+                               "biological (GPP)",
+                               "chemical (DIN + ophos + cond)",
+                               "ecohydrological (temp + dis + GPP)",
+                               "physical (temp + dis)",
+                               "physicochemical (temp + dis + DIN + ophos + cond)")) +
+  scale_color_manual(values = c("#523939", "#528b87", "#416f16", "#62a7f8", "#8b9609", "#bdb000", "#90ac7c"),
+                     labels = c("all (temp + dis + DIN + ophos + cond + GPP)", 
+                                "biochemical (DIN + ophos + cond + GPP)",
+                                "biological (GPP)",
+                                "chemical (DIN + ophos + cond)",
+                                "ecohydrological (temp + dis + GPP)",
+                                "physical (temp + dis)",
+                                "physicochemical (temp + dis + DIN + ophos + cond)")) +
+  scale_shape_manual(values = c(21, 22, 22, 23, 22, 23, 23),
+                     labels = c("all (temp + dis + DIN + ophos + cond + GPP)", 
+                                "biochemical (DIN + ophos + cond + GPP)",
+                                "biological (GPP)",
+                                "chemical (DIN + ophos + cond)",
+                                "ecohydrological (temp + dis + GPP)",
+                                "physical (temp + dis)",
+                                "physicochemical (temp + dis + DIN + ophos + cond)")) +
+  labs(title = "nRMSE for A&C anatoxins predictions") +
+  theme_bw() +
+  theme(legend.position = "none")
+atx_ac_plot
+
+
+atx_ac_plot_w_cover <- ggplot(data = atx_nRMSE_AC_w_cover, aes(x = site_reach, y = mean)) +
+  geom_point(aes(fill = model, shape = model), size = 7, alpha = 0.8, position = position_dodge(width=0.5), 
+             color = "black") +
+  geom_signif(y_position = c(atx_nRMSE_AC_null$mean), xmin = c(0.6, 1.6, 2.6, 3.6, 4.6), 
+              xmax = c(1.4, 2.4, 3.4, 4.4, 5.4), annotation = c("", "", "", "" ,""),
+              tip_length = 0, size = 0.6) +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper, color = model), position = position_dodge(width=0.5)) +
+  scale_fill_manual(values = c("#523939", "#528b87", "#416f16", "#62a7f8", "#8b9609", "#bdb000", "#90ac7c", "lightgray"),
+                    labels = c("all (temp + dis + DIN + ophos + cond + GPP)", 
+                               "biochemical (DIN + ophos + cond + GPP)",
+                               "biological (GPP)",
+                               "chemical (DIN + ophos + cond)",
+                               "ecohydrological (temp + dis + GPP)",
+                               "physical (temp + dis)",
+                               "physicochemical (temp + dis + DIN + ophos + cond)",
+                               "cover only")) +
+  scale_color_manual(values = c("#523939", "#528b87", "#416f16", "#62a7f8", "#8b9609", "#bdb000", "#90ac7c"),
+                     labels = c("all (temp + dis + DIN + ophos + cond + GPP)", 
+                                "biochemical (DIN + ophos + cond + GPP)",
+                                "biological (GPP)",
+                                "chemical (DIN + ophos + cond)",
+                                "ecohydrological (temp + dis + GPP)",
+                                "physical (temp + dis)",
+                                "physicochemical (temp + dis + DIN + ophos + cond)")) +
+  scale_shape_manual(values = c(21, 22, 22, 23, 22, 23, 23, 22),
+                     labels = c("all (temp + dis + DIN + ophos + cond + GPP)", 
+                                "biochemical (DIN + ophos + cond + GPP)",
+                                "biological (GPP)",
+                                "chemical (DIN + ophos + cond)",
+                                "ecohydrological (temp + dis + GPP)",
+                                "physical (temp + dis)",
+                                "physicochemical (temp + dis + DIN + ophos + cond)",
+                                "cover only")) +
+  labs(title = "nRMSE for A&C anatoxins w/ cover predictions") +
+  theme_bw() +
+  theme(legend.position = "none")
+atx_ac_plot_w_cover
 
 
 

@@ -16,11 +16,37 @@ M_cover_final <- read.csv("./data/predictive_models/predictions_M_cover.csv") %>
   mutate(field_date = ymd(field_date))
 M_cover_0.05_test <- read.csv("./data/predictive_models/compare_zero_sub_values/0.05/predictions_M_cover.csv") %>% 
   mutate(field_date = ymd(field_date))
-M_cover_log_test <- read.csv("./data/predictive_models/log_ver/predictions_M_cover.csv") %>% 
+M_cover_log <- read.csv("./data/predictive_models/log_ver/predictions_M_cover.csv") %>% 
   mutate(field_date = ymd(field_date))
 M_cover_oldlinear <- read.csv("./data/predictive_models/july_stuff/predictions_M_cover.csv") %>% 
   mutate(field_date = ymd(field_date))
 M_cover_oddreachout <- read.csv("./data/predictive_models/predictions_M_cover_oddreachout.csv") %>% 
+  mutate(field_date = ymd(field_date))
+AC_cover_final <- read.csv("./data/predictive_models/predictions_AC_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
+AC_cover_log <- read.csv("./data/predictive_models/log_ver/predictions_AC_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
+M_atx_final <- read.csv("./data/predictive_models/predictions_M_atx.csv") %>% 
+  mutate(field_date = ymd(field_date))
+AC_atx_final <- read.csv("./data/predictive_models/predictions_AC_atx.csv") %>% 
+  mutate(field_date = ymd(field_date))
+M_cover_logtest_0.6 <- read.csv("./data/predictive_models/log_tests/starting_value_0.6/predictions_M_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
+M_cover_logtest_0.05 <- read.csv("./data/predictive_models/log_tests/starting_value_0.05/predictions_M_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
+M_cover_logtest_0.01 <- read.csv("./data/predictive_models/log_tests/starting_value_0.01/predictions_M_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
+M_cover_logtest_0.005 <- read.csv("./data/predictive_models/log_tests/starting_value_0.005/predictions_M_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
+
+
+AC_cover_logtest_0.6 <- read.csv("./data/predictive_models/log_tests/starting_value_0.6/predictions_AC_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
+AC_cover_logtest_0.05 <- read.csv("./data/predictive_models/log_tests/starting_value_0.05/predictions_AC_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
+AC_cover_logtest_0.01 <- read.csv("./data/predictive_models/log_tests/starting_value_0.01/predictions_AC_cover.csv") %>% 
+  mutate(field_date = ymd(field_date))
+AC_cover_logtest_0.005 <- read.csv("./data/predictive_models/log_tests/starting_value_0.005/predictions_AC_cover.csv") %>% 
   mutate(field_date = ymd(field_date))
 
 # microcoleus cover predictions (final model?)
@@ -39,7 +65,7 @@ for(i in 1:length(preds_M_list)) {
 }
 
 # log test; microcoleus cover predictions
-preds_M_list_log <- split(M_cover_log_test, M_cover_log_test$model) # split into list
+preds_M_list_log <- split(M_cover_log, M_cover_log$model) # split into list
 
 for(i in 1:length(preds_M_list_log)) {
   plot <- ggplot(data = preds_M_list_log[[i]], aes(x = field_date)) +
@@ -48,6 +74,22 @@ for(i in 1:length(preds_M_list_log)) {
     geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
                shape = 18) +
     labs(title = paste(preds_M_list_log[[i]]$model[1], "-- Microcoleus cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+
+# log test; anabaena/cylindrospermum cover predictions
+preds_AC_cover_list <- split(AC_cover_log, AC_cover_log$model) # split into list
+
+for(i in 1:length(preds_AC_cover_list)) {
+  plot <- ggplot(data = preds_AC_cover_list[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_AC_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_AC_cover_list[[i]]$model[1], "-- Anabaena/Cylindrospermum cover"), y = "% of max at reach") +
     facet_wrap(~site_reach) +
     theme_bw()
   print(plot)
@@ -96,11 +138,204 @@ for(i in 1:length(preds_M_list_0.05)) {
   print(plot)
 }
 
+# anabaena/cylindrospermum cover predictions (final model?)
+preds_AC_list <- split(AC_cover_final, AC_cover_final$model) # split into list
+
+for(i in 1:length(preds_AC_list)) {
+  plot <- ggplot(data = preds_AC_list[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_AC_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_AC_list[[i]]$model[1], "-- Anabaena/Cyl cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+# microcoleus cover predictions (final model?)
+preds_M_list <- split(M_cover_final, M_cover_final$model) # split into list
+
+for(i in 1:length(preds_M_list)) {
+  plot <- ggplot(data = preds_M_list[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_M_list[[i]]$model[1], "-- Microcoleus cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+# microcoleus cover predictions (final model?)
+preds_M_list <- split(M_cover_final, M_cover_final$model) # split into list
+
+for(i in 1:length(preds_M_list)) {
+  plot <- ggplot(data = preds_M_list[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_M_list[[i]]$model[1], "-- Microcoleus cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+atx_palette <- c("#523939", "#523939", "#528b87",  "#528b87", "#416f16", "#416f16", 
+                 "#62a7f8", "#62a7f8", "#8b9609", "#8b9609", "gray", "#bdb000",  "#bdb000",
+                 "#90ac7c", "#90ac7c")
+atx_ribbon_palette <- c("#c9a3a3", "#c9a3a3", "#aed4d1", "#aed4d1", "#c7e3ac", "#c7e3ac",
+                        "#c7e1ff", "#c7e1ff", "#dee3a1", "#dee3a1", "gray", "#ebe7b0", "#ebe7b0", 
+                        "#d6edc5", "#d6edc5")
+
+# microcoleus anatoxins predictions (final model?)
+preds_M_list_atx <- split(M_atx_final, M_atx_final$model) # split into list
+
+for(i in 1:length(preds_M_list_atx)) {
+  plot <- ggplot(data = preds_M_list_atx[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = atx_ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = atx_palette[i]) +
+    geom_point(data = observed, aes(y = resp_M_atx_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_M_list_atx[[i]]$model[1], "-- Microcoleus atx"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+preds_AC_list_atx <- split(AC_atx_final, AC_atx_final$model) # split into list
+
+for(i in 1:length(preds_AC_list_atx)) {
+  plot <- ggplot(data = preds_AC_list_atx[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = atx_ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = atx_palette[i]) +
+    geom_point(data = observed, aes(y = resp_AC_atx_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_AC_list_atx[[i]]$model[1], "-- Microcoleus atx"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
 
 
+### log starting value tests
+
+# log test; microcoleus cover predictions
+preds_M_list_log_0.6 <- split(M_cover_logtest_0.6, M_cover_logtest_0.6$model) # split into list
+
+for(i in 1:length(preds_M_list_log_0.6)) {
+  plot <- ggplot(data = preds_M_list_log_0.6[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_M_list_log_0.6[[i]]$model[1], "-- Microcoleus cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+preds_M_list_log_0.05 <- split(M_cover_logtest_0.05, M_cover_logtest_0.6$model) # split into list
+
+for(i in 1:length(preds_M_list_log_0.05)) {
+  plot <- ggplot(data = preds_M_list_log_0.05[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_M_list_log_0.05[[i]]$model[1], "-- Microcoleus cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+preds_M_list_log_0.01 <- split(M_cover_logtest_0.01, M_cover_logtest_0.01$model) # split into list
+
+for(i in 1:length(preds_M_list_log_0.01)) {
+  plot <- ggplot(data = preds_M_list_log_0.01[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_M_list_log_0.01[[i]]$model[1], "-- Microcoleus cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+preds_M_list_log_0.005 <- split(M_cover_logtest_0.005, M_cover_logtest_0.005$model) # split into list
+
+for(i in 1:length(preds_M_list_log_0.005)) {
+  plot <- ggplot(data = preds_M_list_log_0.005[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_M_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_M_list_log_0.005[[i]]$model[1], "-- Microcoleus cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+# log test; microcoleus cover predictions
+preds_AC_list_log_0.6 <- split(AC_cover_logtest_0.6, AC_cover_logtest_0.6$model) # split into list
+
+for(i in 1:length(preds_AC_list_log_0.6)) {
+  plot <- ggplot(data = preds_AC_list_log_0.6[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_AC_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_M_list_log_0.6[[i]]$model[1], "-- Anabaena cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+preds_AC_list_log_0.05 <- split(AC_cover_logtest_0.05, AC_cover_logtest_0.6$model) # split into list
+
+for(i in 1:length(preds_AC_list_log_0.05)) {
+  plot <- ggplot(data = preds_AC_list_log_0.05[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_AC_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_AC_list_log_0.05[[i]]$model[1], "-- Anabaena cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
+
+preds_AC_list_log_0.01 <- split(AC_cover_logtest_0.01, AC_cover_logtest_0.01$model) # split into list
+
+for(i in 1:length(preds_AC_list_log_0.01)) {
+  plot <- ggplot(data = preds_AC_list_log_0.01[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_AC_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_AC_list_log_0.01[[i]]$model[1], "-- Anabaena cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
 
 
+preds_AC_list_log_0.005 <- split(AC_cover_logtest_0.005, AC_cover_logtest_0.005$model) # split into list
 
+for(i in 1:length(preds_AC_list_log_0.005)) {
+  plot <- ggplot(data = preds_AC_list_log_0.005[[i]], aes(x = field_date)) +
+    geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, group = 1), fill = ribbon_palette[i], alpha = 0.8) +
+    geom_point(aes(y = mean), size = 3, color = palette[i]) +
+    geom_point(data = observed, aes(y = resp_AC_cover_norm), color = "black",
+               shape = 18) +
+    labs(title = paste(preds_AC_list_log_0.005[[i]]$model[1], "-- Anabaena cover"), y = "% of max at reach") +
+    facet_wrap(~site_reach) +
+    theme_bw()
+  print(plot)
+}
 
 
 

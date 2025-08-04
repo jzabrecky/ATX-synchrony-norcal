@@ -36,7 +36,7 @@ preds_cover <- function(params, y, covar) {
 }
 
 # for predictions of anatoxins (i.e. does not include autoregressive term)
-preds_autoregressive <- function(params, y, covar) {
+preds_anatoxins <- function(params, y, covar) {
   n.pred <- nrow(y) # includes initial day where we used 0
   preds <- matrix(NA, length(params$sigma), n.pred) # empty prediction matrix
   preds[,1] <- 0 # assign first values to zero (hard-coded because we start all w/ zero)
