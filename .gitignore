@@ -4,12 +4,23 @@
 .RData
 .RDataTmp
 .Ruserdata
-# ignore select large data folders (GLDAS, NLDAS, etc.)
+# ignore folders with large storage associated with metabolism modeling
 data/GLDAS/
 data/NLDAS/
 data/metab_model_outputs/
-# just keeping out predictive model stuff for now...
-data/predictive_models/
+# ignore folders with large storage associated with predictive modeling
+data/predictive_models/M_cover_models/
+data/predictive_models/AC_cover_models/
+data/predictive_models/M_atx_models/
+data/predictive_models/AC_atx_models/
+# other folders that will be deleted
+data/predictive_models/july_stuff/
+data/predictive_models/log_tests/
+data/predictive_models/log_ver/
+data/predictive_models/M_cover_models_oddreachout/
+data/predictive_models/compare_sigma_prior/
+data/predictive_models/compare_zero_sub_values/
+data/predictive_models/warning_screenshots/
 # cannot publicly release data collected by karuk tribe
 data/karuk_tribe_data
 data/external_DO/salmon_2022_karuk.csv
