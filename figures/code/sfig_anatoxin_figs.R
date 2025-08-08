@@ -1,6 +1,6 @@
 #### Supplemental figures related to anatoxin concentrations
 ### Jordan Zabrecky
-## last edited: 07.14.2025
+## last edited: 08.065.2025
 
 # These figures show (1) the proportion of anatoxin congeners for each sample,
 # (2) the difference between anatoxins normalized per organic matter vs. chl-a,
@@ -112,8 +112,8 @@ ggsave("./figures/sfig_atx_normalized_notfinal.tiff", dpi = 600,
 #### (3) Riffle experiment ####
 
 # color palette
-grad_palette <- c("#080f2b", "#002b50", "#004967", "#00677a", "#008788", "#00aa8a", 
-                  "#00cc77", "#7fe95e", "#daff47")
+grad_palette <- c("#1E426B", "#28586F", "#347575", "#43987C", "#57C785", "#79CC77", 
+                  "#91D06D", "#D0DA52", "#E8DE48")
 
 # making figure
 riffle_fig <- ggplot(data = riffle_exp, aes(y = ATXa_ug_g, x = dhATXa_ug_g)) +

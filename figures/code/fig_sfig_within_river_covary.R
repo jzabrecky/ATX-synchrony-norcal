@@ -5,8 +5,6 @@
 # This script creates a supplementary figure to explore the relationships
 # between taxa-specific cover and ATX and also GPP
 
-# may move over to fig within river.R ... TBD
-
 #### (1) Loading libraries and data ####
 
 # loading libraries
@@ -172,80 +170,41 @@ ggsave("./figures/sfig_cover_ATX_covary_notfinal.tiff", dpi = 600,
 
 #### (3) GPP & Cover figures ####
 
-# maaaaaybe to be included into the supplement.. TBD
+# probably will not use these so currently commented out
 
 ## anabaena
 
 # all reaches
-ana_cov_gpp <- ggplot(data = data, aes(GPP_median_tofourdaysprior, 
-                                       anabaena_cylindrospermum)) +
-  geom_point(aes(color = site_reach), size = 4.5) +
-  geom_segment(data = data, linewidth = 1.2, alpha = 0.8,
-               aes(xend = end_GPP,
-                   yend = end_anacyl_cover,
-                   color = site_reach),
-               arrow = arrow(type = "open", length = unit(0.15, "inches"))) + 
-  scale_color_manual("Reach:", values = c("#302d00", "#6b6404", "#8f8504", 
-                                          "#c9be22", "#e8de48")) + 
-  labs(y = "% cover", 
-       x = expression(paste("g O"[2], " m"^-2, " d"^-1))) +
-  theme(legend.position = "top")
-ana_cov_gpp
-
-## microcoleus
-
-# all reaches
-micro_cov_gpp <- ggplot(data = data, aes(GPP_median_tofourdaysprior, microcoleus)) +
-  geom_point(aes(color = site_reach), size = 4.5) +
-  geom_segment(data = data,
-               linewidth = 1.1, alpha = 0.8,
-               aes(xend = end_GPP,
-                   yend = end_micro_cover,
-                   color = site_reach),
-               arrow = arrow(length = unit(3, "mm"))) +
-  scale_color_manual("Reach:", values = c("#0c223b", "#1e426b", "#2871c7", 
-                                          "#689bd9", "#a6ceff")) + 
-  labs(y = "% cover", 
-       x = expression(paste("g O"[2], " m"^-2, " d"^-1))) +
-  theme(legend.position = "top")
-micro_cov_gpp
-# note: may want to standardize GPP here
-
-#### (4) GPP & ATX figures ####
-
-# all reaches
-ana_atx_gpp <- ggplot(data = data, aes(GPP_median_tofourdaysprior, 
-                                       TAC_ATX_all_ug_g)) +
-  geom_point(aes(color = site_reach), size = 4.5) +
-  geom_segment(data = data, linewidth = 1.2, alpha = 0.8,
-               aes(xend = end_GPP,
-                   yend = end_TAC_atx,
-                   color = site_reach),
-               arrow = arrow(type = "open", length = unit(0.15, "inches"))) + 
-  scale_color_manual("Reach:", values = c("#302d00", "#6b6404", "#8f8504", 
-                                          "#c9be22", "#e8de48")) + 
-  labs(y = expression(paste(mu, "g ATX per g OM"), sep = ""), 
-       x = expression(paste("g O"[2], " m"^-2, " d"^-1))) +
-  scale_y_continuous(trans=scales::pseudo_log_trans(base = 10)) +
-  theme(legend.position = "top")
-ana_atx_gpp
-
-## microcoleus
-
-# all reaches
-micro_atx_gpp <- ggplot(data = data, aes(GPP_median_tofourdaysprior, TM_ATX_all_ug_g)) +
-  geom_point(aes(color = site_reach), size = 4.5) +
-  geom_segment(data = data,
-               linewidth = 1.1, alpha = 0.8,
-               aes(xend = end_GPP,
-                   yend = end_TM_atx,
-                   color = site_reach),
-               arrow = arrow(length = unit(3, "mm"))) +
-  scale_color_manual("Reach:", values = c("#0c223b", "#1e426b", "#2871c7", 
-                                          "#689bd9", "#a6ceff")) + 
-  labs(y = expression(paste(mu, "g ATX per g OM"), sep = ""),
-       x = expression(paste("g O"[2], " m"^-2, " d"^-1))) +
-  scale_y_continuous(trans=scales::pseudo_log_trans(base = 10)) +
-  theme(legend.position = "top")
-micro_atx_gpp
-# again, maybe need to standardize per reach here
+# ana_cov_gpp <- ggplot(data = data, aes(GPP_median_tofourdaysprior, 
+#                                        anabaena_cylindrospermum)) +
+#   geom_point(aes(color = site_reach), size = 4.5) +
+#   geom_segment(data = data, linewidth = 1.2, alpha = 0.8,
+#                aes(xend = end_GPP,
+#                    yend = end_anacyl_cover,
+#                    color = site_reach),
+#                arrow = arrow(type = "open", length = unit(0.15, "inches"))) + 
+#   scale_color_manual("Reach:", values = c("#302d00", "#6b6404", "#8f8504", 
+#                                           "#c9be22", "#e8de48")) + 
+#   labs(y = "% cover", 
+#        x = expression(paste("g O"[2], " m"^-2, " d"^-1))) +
+#   theme(legend.position = "top")
+# ana_cov_gpp
+# 
+# ## microcoleus
+# 
+# # all reaches
+# micro_cov_gpp <- ggplot(data = data, aes(GPP_median_tofourdaysprior, microcoleus)) +
+#   geom_point(aes(color = site_reach), size = 4.5) +
+#   geom_segment(data = data,
+#                linewidth = 1.1, alpha = 0.8,
+#                aes(xend = end_GPP,
+#                    yend = end_micro_cover,
+#                    color = site_reach),
+#                arrow = arrow(length = unit(3, "mm"))) +
+#   scale_color_manual("Reach:", values = c("#0c223b", "#1e426b", "#2871c7", 
+#                                           "#689bd9", "#a6ceff")) + 
+#   labs(y = "% cover", 
+#        x = expression(paste("g O"[2], " m"^-2, " d"^-1))) +
+#   theme(legend.position = "top")
+# micro_cov_gpp
+# # note: may want to standardize GPP here
