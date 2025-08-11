@@ -1,6 +1,6 @@
 #### Figure to show difference between presence/absence data and cover
 ### Jordan Zabrecky
-## last edited: 08.06.2025
+## last edited: 08.08.2025
 
 #### (1) Loading libraries and data ####
 

@@ -18,6 +18,7 @@ data/predictive_models/july_stuff/
 data/predictive_models/log_tests/
 data/predictive_models/log_ver/
 data/predictive_models/M_cover_models_oddreachout/
+data/predictive_models/nrmse_M_cover_oddreachout.csv
 data/predictive_models/compare_sigma_prior/
 data/predictive_models/compare_zero_sub_values/
 data/predictive_models/warning_screenshots/

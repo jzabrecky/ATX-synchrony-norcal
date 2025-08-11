@@ -171,5 +171,5 @@ all <- plot_grid(eel_figs, rus_figs, sal_figs, nrow = 3, align='vh',
   theme(plot.background = element_rect(fill = "white", color = "white")) # white background
 all # will edit further in inkscape
 
-ggsave("./figures/sfig_gpp_bc_acrossrivers_allreaches_notfinal.tiff", dpi = 600, 
+ggsave("./figures/sfig_bc_acrossrivers_allreaches_notfinal.tiff", dpi = 600, 
        width=18, height=18, unit="cm") 
