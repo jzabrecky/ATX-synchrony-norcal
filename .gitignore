@@ -21,6 +21,8 @@ data/predictive_models/M_cover_models_oddreachout/
 data/predictive_models/compare_sigma_prior/
 data/predictive_models/compare_zero_sub_values/
 data/predictive_models/warning_screenshots/
+data/predictive_models/other_temporary/
+data/predictive_models/predictions_M_cover_oddreachout.csv
 # cannot publicly release data collected by karuk tribe
 data/karuk_tribe_data
 data/external_DO/salmon_2022_karuk.csv

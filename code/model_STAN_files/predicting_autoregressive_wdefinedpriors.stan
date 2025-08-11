@@ -25,9 +25,9 @@ model {
   sigma~normal(0,10)T[0,];
   
   // prior for b0 and vector of b's
-  b0~normal(0,100);
+  b0~normal(0,50);
   for(i in 1:c) {
-    b[c]~normal(0,100); // check with bob about this
+    b[c]~normal(0,50); // check with bob about this
   }
 
 }
