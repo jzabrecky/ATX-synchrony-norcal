@@ -8,7 +8,7 @@
 #### (1) Loading libraries and data ####
 
 # loading libraries
-lapply(c("tidyverse", "lubridate", "cowplot", "plyr", "ggtext", "ggallin"), 
+lapply(c("tidyverse","cowplot", "plyr", "ggtext", "ggallin"), 
        require, character.only = T)
 
 # loading data 
@@ -142,7 +142,7 @@ m_cover <- ggplot(data = param_est_list[[4]] %>% filter(model == "all"), aes(y =
   geom_vline(xintercept = 0, linetype = "dashed") +
   scale_color_manual(values = palette) +
   scale_x_continuous(trans = pseudolog10_trans,
-                     breaks = c(-50, -30, -15, -5, 0, 5)) +
+                     breaks = c(-50, -15, -5, 0, 5)) +
   theme(strip.background = element_blank()) + # get rid of gray background for facet title
   theme(legend.position = "none") +
   labs(x = "posterior estimates", y = "", title = "*Microcoleus* Cover")
@@ -217,9 +217,46 @@ ac_atx_w_c <- ggplot(data = param_est_list[[1]] %>% filter(model == "all_w_cover
 
 # putting plots together
 # omitting atx w/o cover for simplicity!
-all <- plot_grid(m_cover, ac_cover, m_atx_w_c, ac_atx_w_c, ncol = 2)
+all <- plot_grid(m_cover, m_atx_w_c, ac_cover, ac_atx_w_c, ncol = 2)
 all
 
 # saving plot
 ggsave(paste("./figures/fig_paramest_notfinal.tiff", sep = ""), 
        dpi = 600, width = 15, height = 10, units = "cm")
+
+# saving for legend
+legend <- ggplot(data = param_est_list[[1]] %>% filter(model == "all_w_cover"), aes(y = parameters_f)) +
+  geom_hline(yintercept = (1:5)+0.5, linetype = "dashed", color = "gray") +
+  geom_point(aes(x = mean, color = site_reach), position = position_dodge(width = 1)) +
+  geom_errorbar(aes(xmin = ci_lower, xmax = ci_upper, color = site_reach),
+                position = position_dodge(width = 1)) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_color_manual(values = palette) +
+  scale_x_continuous(trans = pseudolog10_trans,
+                     breaks = c(-100, -10, 0, 10, 100)) +
+  theme(strip.background = element_blank()) + # get rid of gray background for facet title
+  labs(x = "posterior estimates", y = "", title = "*Anabaena/Cylindrospermum* Mat Anatoxins")
+legend
+
+# saving plot
+ggsave(paste("./figures/fig_paramest_legend.tiff", sep = ""), 
+       dpi = 600, width = 20, height = 10, units = "cm")
+
+# saving for legend
+legend_right <- ggplot(data = param_est_list[[1]] %>% filter(model == "all_w_cover"), aes(y = parameters_f)) +
+  geom_hline(yintercept = (1:5)+0.5, linetype = "dashed", color = "gray") +
+  geom_point(aes(x = mean, color = site_reach), position = position_dodge(width = 1)) +
+  geom_errorbar(aes(xmin = ci_lower, xmax = ci_upper, color = site_reach),
+                position = position_dodge(width = 1)) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  scale_color_manual(values = palette) +
+  scale_x_continuous(trans = pseudolog10_trans,
+                     breaks = c(-100, -10, 0, 10, 100)) +
+  theme(legend.position = "right") +
+  theme(strip.background = element_blank()) + # get rid of gray background for facet title
+  labs(x = "posterior estimates", y = "", title = "*Anabaena/Cylindrospermum* Mat Anatoxins")
+legend_right
+
+# saving plot
+ggsave(paste("./figures/fig_paramest_legend_right.tiff", sep = ""), 
+       dpi = 600, width = 20, height = 10, units = "cm")

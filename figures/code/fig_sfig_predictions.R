@@ -108,8 +108,8 @@ predictions_list_coversplit <- split(predictions, predictions$predicting_w_cover
 
 # for each list split into what model/covariates are predicting
 
-# nRMSEs
-nRMSEs <- ldply(list.files(path = "./data/predictive_models/", pattern = "nrmse"), 
+# NRMSEs
+NRMSEs <- ldply(list.files(path = "./data/predictive_models/", pattern = "nrmse"), 
                 function(filename) {
                   d <- read.csv(paste("./data/predictive_models/", filename, sep = ""))
                   # add column for what we are predicting
@@ -131,7 +131,7 @@ nRMSEs <- ldply(list.files(path = "./data/predictive_models/", pattern = "nrmse"
                            predicting_w_cover = case_when(cover_covariate == TRUE ~ paste(predicting, "_w_cover", sep = ""),
                                                           TRUE ~ predicting))  %>% 
                     # create a label column using mean (but rounding to two decimals!) for plots
-                    mutate(label = paste("nRMSE=", format(round(mean, 2), nsmall = 2))) %>% 
+                    mutate(label = paste("NRMSE=", format(round(mean, 2), nsmall = 2))) %>% 
                     # factor model to match what was done with predictions above
                     mutate(model_f = factor(model, levels = c("physical", "physical_w_cover",
                                                               "chemical", "chemical_w_cover", 
@@ -148,8 +148,8 @@ nRMSEs <- ldply(list.files(path = "./data/predictive_models/", pattern = "nrmse"
 
 
 # split into list by what we are predicting
-nRMSE_list <- split(nRMSEs, nRMSEs$predicting)
-nRMSE_list_splitcover <- split(nRMSEs, nRMSEs$predicting_w_cover) # separates atx w/ and w/o cover covariate
+NRMSE_list <- split(NRMSEs, NRMSEs$predicting)
+NRMSE_list_splitcover <- split(NRMSEs, NRMSEs$predicting_w_cover) # separates atx w/ and w/o cover covariate
 
 #### (2) Making supplemental figures ####
 
@@ -173,17 +173,17 @@ palette_w_cover <- c("#E8DE48", "#F0E985", "#B4D65E", "#CDE494", "#8BCF6F", "#B2
                      "#7AA9A4", "#1E426B", "#69819C")
 
 # title labels
-titles <- c("*Anabaena/Cylindrospermum* Anatoxin Concentration Predictions",
+titles <- c("*Anabaena/Cylindrospermum* Mat Anatoxin Concentration Predictions",
             "*Anabaena/Cylindrospermum* Cover Predictions",
-            "*Microcoleus* Anatoxin Concentration Predictions",
+            "*Microcoleus* Mat Anatoxin Concentration Predictions",
             "*Microcoleus* Cover Predictions")
-ylabels <- c("*Anabaena/Cylindrospermum* anatoxin concentration normalized to maximum of reach",
-             "*Anabaena/Cylindrospermum* cover normalized to maximum of reach",
-             "*Microcoleus* anatoxin concentration normalized to maximum of reach",
-             "*Microcoleus* cover normalized to maximum of reach")
-nRMSE_locations <- c(as.Date("2023-07-12"), as.Date("2023-09-01"), as.Date("2023-07-12"),
-                     as.Date("2023-07-10"))
-nRMSE_locations_y <- c(92, 90, 92, 95)
+ylabels <- c("*Anabaena/Cylindrospermum* mat anatoxin concentration (normalized to maximum of reach)",
+             "*Anabaena/Cylindrospermum* cover (normalized to maximum of reach)",
+             "*Microcoleus* mat anatoxin concentration (normalized to maximum of reach)",
+             "*Microcoleus* cover (normalized to maximum of reach)")
+NRMSE_locations <- c(as.Date("2023-07-12"), as.Date("2023-09-01"), as.Date("2023-07-12"),
+                     as.Date("2023-07-12"))
+NRMSE_locations_y <- c(92, 90, 92, 95)
 
 ## (b) cover predictions
 
@@ -203,10 +203,10 @@ for(i in cover_indices) {
         theme(legend.position = "none") +
         theme(strip.background = element_blank()) + # get rid of gray background for facet title
         geom_text(
-          data = nRMSE_list[[i]],
+          data = NRMSE_list[[i]],
           # note size seems to be different for below than above, hence the low size
           # will double-check in inkscape that it is correct
-          mapping = aes(x = nRMSE_locations[i], y = nRMSE_locations_y[i], label = label), size= 2) +
+          mapping = aes(x = NRMSE_locations[i], y = NRMSE_locations_y[i], label = label), size= 2) +
         scale_color_manual(values = palette) +
         scale_fill_manual(values = palette) +
         # labels for reach & model labels
@@ -236,10 +236,10 @@ for(i in atx_indices) {
     theme(legend.position = "none") +
     theme(strip.background = element_blank()) + # get rid of gray background for facet title
     geom_text(
-      data = nRMSE_list[[i]],
+      data = NRMSE_list[[i]],
       # note size seems to be different for below than above, hence the low size
       # will double-check in inkscape that it is correct
-      mapping = aes(x = nRMSE_locations[i], y = nRMSE_locations_y[i], label = label), size= 2) +
+      mapping = aes(x = NRMSE_locations[i], y = NRMSE_locations_y[i], label = label), size= 2) +
     scale_color_manual(values = palette_w_cover) +
     scale_fill_manual(values = palette_w_cover) +
     # labels for reach & model labels
@@ -254,26 +254,26 @@ for(i in atx_indices) {
 #### (3) Making main figure ####
 
 # which reach performs best?
-average_per_reach <- nRMSEs %>% 
+average_per_reach <- NRMSEs %>% 
   dplyr::group_by(site_reach) %>% 
   dplyr::summarize(mean_of_all = mean(mean))
 best_reach <- average_per_reach$site_reach[which.min(average_per_reach$mean_of_all)]
 print(best_reach) # SFE-Lower-1S !
 
-# filter for nRMSEs only for that reach
-nRMSE_best_reach_only <- lapply(nRMSE_list_splitcover, function(x) x <- x %>% 
+# filter for NRMSEs only for that reach
+NRMSE_best_reach_only <- lapply(NRMSE_list_splitcover, function(x) x <- x %>% 
                                     filter(site_reach == best_reach))
 
-# empty list for model and nRMSE attributes
-best_models <- data.frame(predicting = names(nRMSE_best_reach_only),
+# empty list for model and NRMSE attributes
+best_models <- data.frame(predicting = names(NRMSE_best_reach_only),
                           model = rep(NA, 6),
-                          nRMSE = rep(NA, 6))
+                          NRMSE = rep(NA, 6))
 
 # get indices of best models for each 
-for(i in 1:length(nRMSE_best_reach_only)) {
-  index_of_best = which.min(nRMSE_best_reach_only[[i]]$mean)
-  best_models$model[i] <- nRMSE_best_reach_only[[i]]$model[index_of_best]
-  best_models$nRMSE[i] <- nRMSE_best_reach_only[[i]]$label[index_of_best]
+for(i in 1:length(NRMSE_best_reach_only)) {
+  index_of_best = which.min(NRMSE_best_reach_only[[i]]$mean)
+  best_models$model[i] <- NRMSE_best_reach_only[[i]]$model[index_of_best]
+  best_models$NRMSE[i] <- NRMSE_best_reach_only[[i]]$label[index_of_best]
 }
 
 # empty list for plots
@@ -292,14 +292,12 @@ ylabels_w_cover <- c("*Anabaena/Cylindrospermum* anatoxin concentration normaliz
                       "*Microcoleus* anatoxin concentration normalized to maximum of reach",
                      "*Microcoleus* anatoxin concentration normalized to maximum of reach",
                       "*Microcoleus* cover normalized to maximum of reach")
-nRMSE_locations_w_cover <- c(as.Date("2023-07-10"), as.Date("2023-07-10"), as.Date("2023-09-01"), as.Date("2023-07-10"),
-                     as.Date("2023-07-10"), as.Date("2023-07-10"))
 
 # make plots; may need to adjust indexes for 
 
 for(i in 1:nrow(best_models)) {
-  palette_index <- as.integer(nRMSE_list$AC_atx$model_f
-    [which(best_models$model[i] == nRMSE_list$AC_atx$model_f)[1]])
+  palette_index <- as.integer(NRMSE_list$AC_atx$model_f
+    [which(best_models$model[i] == NRMSE_list$AC_atx$model_f)[1]])
   
   best_plots[[i]] <- ggplot(data = predictions_list_coversplit[[i]] %>% filter(site_reach == best_reach) %>% 
                          filter(model == best_models$model[i]), aes(x = field_date)) +
@@ -316,7 +314,7 @@ for(i in 1:nrow(best_models)) {
                           data = best_models[i,],
                           # note size seems to be different for below than above, hence the low size
                           # will double-check in inkscape that it is correct
-                          mapping = aes(x = nRMSE_locations_w_cover[i], y = 92, label = nRMSE), size= 2) +
+                          mapping = aes(x = as.Date("2023-07-02"), y = 91, label = NRMSE), size= 3) +
                         scale_color_manual(values = palette_w_cover[palette_index]) +
                         scale_fill_manual(values = palette_w_cover[palette_index])
   

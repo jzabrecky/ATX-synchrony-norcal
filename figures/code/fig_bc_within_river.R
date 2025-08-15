@@ -97,3 +97,15 @@ sfe_all
 # save figure
 ggsave("./figures/fig_bc_withinrivers_notfinal.tiff", dpi = 600, 
        width=8.1, height=12, unit="cm") 
+
+#### (3) Misc. Questions ####
+
+# how does peak magnitude vary per reach??
+summary <- data %>% 
+  dplyr::group_by(site_reach) %>% 
+  dplyr::summarize(max_m = max(microcoleus),
+                   max_ac = max(anabaena_cylindrospermum),
+                   max_m_atx = max(TM_ATX_all_ug_orgmat_g, na.rm = TRUE),
+                   max_ac_atx = max(TAC_ATX_all_ug_orgmat_g, na.rm = TRUE))
+max(summary$max_m) - min(summary$max_m) # 15.7% difference
+max(summary$max_ac) - min(summary$max_ac) # 21.81% difference

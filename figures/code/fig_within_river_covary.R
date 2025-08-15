@@ -1,9 +1,9 @@
-#### Primary figure to explore cover, ATX, and GPP relationships
+#### Primary figure to explore relationship between cover and ATX
 ### Jordan Zabrecky
-## last edited: 07.28.2025
+## last edited: 08.12.2025
 
 # This script creates a supplementary figure to explore the relationships
-# between taxa-specific cover and ATX and also GPP
+# between taxa-specific cover and ATX
 
 #### (1) Loading libraries and data ####
 
@@ -27,12 +27,9 @@ mean_data <- data %>%
   dplyr::summarize(mean_micro_cover = mean(microcoleus),
                    mean_anacyl_cover = mean(anabaena_cylindrospermum),
                    mean_TM_ATX = mean(TM_ATX_all_ug_g),
-                   mean_TAC_ATX = mean(TAC_ATX_all_ug_g),
-                   # not sure about this atm because four reaches all have same GPP
-                   mean_GPP = mean(GPP_median_tofourdaysprior))
+                   mean_TAC_ATX = mean(TAC_ATX_all_ug_g))
 
 # set universal theme for plots
-# set theme for all plots
 theme_set(theme_bw() + 
             theme(legend.position = "bottom", 
                    panel.grid.minor = element_blank(),
@@ -48,14 +45,12 @@ data$end_micro_cover <- c(data$microcoleus[-1], NA)
 data$end_anacyl_cover <- c(data$anabaena_cylindrospermum[-1], NA)
 data$end_TM_atx <-  c(data$TM_ATX_all_ug_g[-1], NA)
 data$end_TAC_atx <- c(data$TAC_ATX_all_ug_g[-1], NA)
-data$end_GPP <- c(data$GPP_median_tofourdaysprior[-1], NA)
 
 # do the same for mean data
 mean_data$end_micro_cover <- c(mean_data$mean_micro_cover[-1], NA)
 mean_data$end_anacyl_cover <- c(mean_data$mean_anacyl_cover[-1], NA)
 mean_data$end_TM_atx <-  c(mean_data$mean_TM_ATX[-1], NA)
 mean_data$end_TAC_atx <- c(mean_data$mean_TAC_ATX[-1], NA)
-mean_data$end_GPP <- c(mean_data$mean_GPP[-1], NA)
 
 # add in NAs to cut the segment on last field days
 data[which(data$field_date == ymd("2023-09-24")), 
@@ -63,7 +58,7 @@ data[which(data$field_date == ymd("2023-09-24")),
 mean_data[which(mean_data$field_date == ymd("2023-09-24")), 
      c("end_micro_cover", "end_anacyl_cover", "end_TM_atx", "end_TAC_atx", "end_GPP")] <- NA
 
-## note: for taxa cover & ATX covary plots, the main figure will be the one with
+## note: for these covary plots, the main figure will be the one with
 ## the mean behavior and each reach in a lighter color and the one with reach 
 ## reach in its own highlight will go to supplement
 
@@ -149,7 +144,7 @@ micro_cov_atx_mean <- ggplot(data = data, aes(microcoleus, TM_ATX_all_ug_g)) +
   theme(legend.position = "top")
 micro_cov_atx_mean
 
-## putting together figures and saving
+#### (3) Putting figures together & saving ####
 
 # main figure
 main <- plot_grid(micro_cov_atx_mean, ana_cov_atx_mean, ncol = 1,
@@ -166,45 +161,3 @@ sup
 
 ggsave("./figures/sfig_cover_ATX_covary_notfinal.tiff", dpi = 600, 
        width=12, height=14, unit="cm")
-
-
-#### (3) GPP & Cover figures ####
-
-# probably will not use these so currently commented out
-
-## anabaena
-
-# all reaches
-# ana_cov_gpp <- ggplot(data = data, aes(GPP_median_tofourdaysprior, 
-#                                        anabaena_cylindrospermum)) +
-#   geom_point(aes(color = site_reach), size = 4.5) +
-#   geom_segment(data = data, linewidth = 1.2, alpha = 0.8,
-#                aes(xend = end_GPP,
-#                    yend = end_anacyl_cover,
-#                    color = site_reach),
-#                arrow = arrow(type = "open", length = unit(0.15, "inches"))) + 
-#   scale_color_manual("Reach:", values = c("#302d00", "#6b6404", "#8f8504", 
-#                                           "#c9be22", "#e8de48")) + 
-#   labs(y = "% cover", 
-#        x = expression(paste("g O"[2], " m"^-2, " d"^-1))) +
-#   theme(legend.position = "top")
-# ana_cov_gpp
-# 
-# ## microcoleus
-# 
-# # all reaches
-# micro_cov_gpp <- ggplot(data = data, aes(GPP_median_tofourdaysprior, microcoleus)) +
-#   geom_point(aes(color = site_reach), size = 4.5) +
-#   geom_segment(data = data,
-#                linewidth = 1.1, alpha = 0.8,
-#                aes(xend = end_GPP,
-#                    yend = end_micro_cover,
-#                    color = site_reach),
-#                arrow = arrow(length = unit(3, "mm"))) +
-#   scale_color_manual("Reach:", values = c("#0c223b", "#1e426b", "#2871c7", 
-#                                           "#689bd9", "#a6ceff")) + 
-#   labs(y = "% cover", 
-#        x = expression(paste("g O"[2], " m"^-2, " d"^-1))) +
-#   theme(legend.position = "top")
-# micro_cov_gpp
-# # note: may want to standardize GPP here
