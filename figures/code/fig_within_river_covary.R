@@ -1,6 +1,6 @@
 #### Primary figure to explore relationship between cover and ATX
 ### Jordan Zabrecky
-## last edited: 08.12.2025
+## last edited: 09.15.2025
 
 # This script creates a supplementary figure to explore the relationships
 # between taxa-specific cover and ATX
@@ -33,8 +33,8 @@ mean_data <- data %>%
 theme_set(theme_bw() + 
             theme(legend.position = "bottom", 
                    panel.grid.minor = element_blank(),
-                   panel.border = element_rect(linewidth = 1.5), axis.ticks = element_line(linewidth = 1.5),
-                   text = element_text(size = 10), axis.ticks.length=unit(.25, "cm"),
+                   panel.border = element_rect(linewidth = 1.5), axis.ticks = element_line(linewidth = 1),
+                   text = element_text(size = 10), axis.ticks.length=unit(.2, "cm"),
                    strip.background = element_blank(), plot.title = element_text(size=10)))
 
 #### (2) Cover & ATX figures ####
@@ -54,9 +54,9 @@ mean_data$end_TAC_atx <- c(mean_data$mean_TAC_ATX[-1], NA)
 
 # add in NAs to cut the segment on last field days
 data[which(data$field_date == ymd("2023-09-24")), 
-     c("end_micro_cover", "end_anacyl_cover", "end_TM_atx", "end_TAC_atx", "end_GPP")] <- NA
+     c("end_micro_cover", "end_anacyl_cover", "end_TM_atx", "end_TAC_atx")] <- NA
 mean_data[which(mean_data$field_date == ymd("2023-09-24")), 
-     c("end_micro_cover", "end_anacyl_cover", "end_TM_atx", "end_TAC_atx", "end_GPP")] <- NA
+     c("end_micro_cover", "end_anacyl_cover", "end_TM_atx", "end_TAC_atx")] <- NA
 
 ## note: for these covary plots, the main figure will be the one with
 ## the mean behavior and each reach in a lighter color and the one with reach 
@@ -152,7 +152,7 @@ main <- plot_grid(micro_cov_atx_mean, ana_cov_atx_mean, ncol = 1,
 main
 
 ggsave("./figures/fig_cover_ATX_covary_notfinal.tiff", dpi = 600, 
-       width=7.5, height=12, unit="cm") 
+       width=7.25, height=13, unit="cm") # testing new dimensions
 
 # supplemental figure
 sup <- plot_grid(micro_cov_atx_reach, ana_cov_atx_reach, ncol = 1,

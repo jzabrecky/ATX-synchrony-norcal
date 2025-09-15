@@ -1,6 +1,6 @@
 #### Primary figure for taxa-specific cover & anatoxins and GPP on each river
 ### Jordan Zabrecky
-## last edited: 07.25.2025
+## last edited: 09.15.2025
 
 # This script creates a primary figure for Q2 focused on the relationships
 # between benthic cyanobacteria dynamics within the same river
@@ -57,8 +57,8 @@ data_longer$ATX_all_ug_orgmat_g <- replace_na(data_longer$ATX_all_ug_orgmat_g)
 # set theme for all plots
 theme_set(theme_bw() + theme(legend.position = "bottom", 
                              panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
-                             panel.border = element_rect(linewidth = 1.5), axis.ticks = element_line(linewidth = 1.5),
-                             text = element_text(size = 10), axis.ticks.length=unit(.25, "cm"),
+                             panel.border = element_rect(linewidth = 1.5), axis.ticks = element_line(linewidth = 1),
+                             text = element_text(size = 10), axis.ticks.length=unit(.2, "cm"),
                              strip.background = element_blank()))
 
 # benthic cyanobacteria plot

@@ -1,9 +1,13 @@
 #### Figure to show NRMSEs for all predictive models
 ### Jordan Zabrecky
-## last edited: 08.13.2025
+## last edited: 09.15.2025
 
 ## This figure shows the NRMSEs for all predicted models for all reaches
 ## and compares to the null model (as indicated by a line) for that reach
+## Also, included Mann-Whitney test at end to compare across the two taxa 
+## and including vs. not including cover when predicting ATX
+
+# trying supplemental vs. main figure
 
 #### (1) Loading libraries and data ####
 
@@ -53,6 +57,81 @@ NRMSEs <- ldply(list.files(path = "./data/predictive_models/", pattern = "nrmse"
 # separate out nulls
 NRMSE_nonull <- NRMSEs %>% filter(model!= "null")
 NRMSE_nulls <- NRMSEs %>% filter(model == "null")
+
+#### Attempting a more general main figure!?!?
+
+# summarizing based on taxa and then based on if cover is included
+mean_NRMSE_taxa <- NRMSE_nonull %>%
+  dplyr::group_by(predicting_f) %>% 
+  dplyr::summarize(mean_mean = mean(mean),
+                   mean_ci_lower = mean(ci_lower),
+                   mean_ci_upper = mean(ci_upper))
+mean_NRMSE_cover <- NRMSE_nonull %>% 
+  dplyr::group_by(predicting_w_cover) %>% 
+  dplyr::summarize(mean_mean = mean(mean),
+                   mean_ci_lower = mean(ci_lower),
+                   mean_ci_upper = mean(ci_upper))
+
+mean_nulls_taxa <- NRMSE_nulls %>% 
+  group_by(predicting_f) %>% 
+  dplyr::summarize(mean_mean = mean(mean))
+
+# making figure
+cover_comparison <- ggplot() +
+  geom_errorbar(data = NRMSE_nonull %>% filter(predicting_f == "M_cover" |
+                                                 predicting_f == "AC_cover"), 
+                aes(x = predicting_f, ymin = ci_lower, ymax = ci_upper, y = mean,
+                    color = predicting_f), 
+                position = position_jitter(width=0.3), alpha = 0.2, width = 0.5) +
+  geom_point(data = NRMSE_nonull %>% filter(predicting_f == "M_cover" |
+                                              predicting_f == "AC_cover"), 
+             aes(x = predicting_f, y = mean, color = predicting_f), 
+                position = position_jitter(width=0.3), alpha = 0.2) +
+  geom_point(data = mean_NRMSE_taxa %>% filter(predicting_f == "M_cover" |
+                                              predicting_f == "AC_cover"),
+             aes(x = predicting_f, y = mean_mean, color = predicting_f), size = 5) +
+  geom_errorbar(data = mean_NRMSE_taxa %>% filter(predicting_f == "M_cover" |
+                                                 predicting_f == "AC_cover"), 
+                aes(ymin = mean_ci_lower, ymax = mean_ci_upper, 
+                    x = predicting_f, color = predicting_f), linewidth = 2,
+                width = 0.5)  +
+  scale_color_manual(values = c("#2871c7", "#8f8504")) +
+  geom_segment(aes(x = c(0.55,1.55), xend = c(1.45, 2.45),
+                   y = c(mean_nulls_taxa$mean_mean[which(mean_nulls_taxa$predicting_f == "M_cover")],
+                         mean_nulls_taxa$mean_mean[which(mean_nulls_taxa$predicting_f == "AC_cover")]), 
+                   yend = c(mean_nulls_taxa$mean_mean[which(mean_nulls_taxa$predicting_f == "M_cover")],
+                            mean_nulls_taxa$mean_mean[which(mean_nulls_taxa$predicting_f == "AC_cover")])),
+               linewidth = 1, alpha = 0.8, linetype = "dashed")
+cover_comparison
+
+cover_comparison <- ggplot() +
+  geom_errorbar(data = NRMSE_nonull %>% filter(predicting_f == "M_atx" |
+                                                 predicting_f == "AC_atx"), 
+                aes(x = predicting_f, ymin = ci_lower, ymax = ci_upper, y = mean,
+                    color = predicting_f), 
+                position = position_jitter(width=0.5), alpha = 0.2, width = 0.8) +
+  geom_point(data = NRMSE_nonull %>% filter(predicting_f == "M_atx" |
+                                              predicting_f == "AC_atx"), 
+             aes(x = predicting_f, y = mean, color = predicting_f), 
+             position = position_jitter(width=0.5), alpha = 0.2) +
+  geom_point(data = mean_NRMSE_taxa %>% filter(predicting_f == "M_atx" |
+                                                 predicting_f == "AC_atx"),
+             aes(x = predicting_f, y = mean_mean, color = predicting_f), size = 5) +
+  geom_errorbar(data = mean_NRMSE_taxa %>% filter(predicting_f == "M_atx" |
+                                                    predicting_f == "AC_atx"), 
+                aes(ymin = mean_ci_lower, ymax = mean_ci_upper, 
+                    x = predicting_f, color = predicting_f), linewidth = 2,
+                width = 0.8)  +
+  scale_color_manual(values = c("#2871c7", "#8f8504")) +
+  geom_segment(aes(x = c(0.55,1.55), xend = c(1.45, 2.45),
+                   y = c(mean_nulls_taxa$mean_mean[which(mean_nulls_taxa$predicting_f == "M_cover")],
+                         mean_nulls_taxa$mean_mean[which(mean_nulls_taxa$predicting_f == "AC_cover")]), 
+                   yend = c(mean_nulls_taxa$mean_mean[which(mean_nulls_taxa$predicting_f == "M_cover")],
+                            mean_nulls_taxa$mean_mean[which(mean_nulls_taxa$predicting_f == "AC_cover")])),
+               linewidth = 1, alpha = 0.8, linetype = "dashed")
+
+atx_comparison
+  
 
 #### (2) Making plots ####
 
@@ -139,7 +218,7 @@ atx_plot <- ggplot(data = atx_data, aes(x = site_reach_cover))  +
   scale_color_manual(values = palette_outline) +
   scale_fill_manual(values = palette_fill) +
   scale_shape_manual(values = c(21, 22, 23, 21, 22, 23, 21)) +
-  scale_x_continuous(breaks = (1.5, 2.5, 3.5, 4.5, 5.5))
+  scale_x_continuous(breaks = c(1.5, 2.5, 3.5, 4.5, 5.5))
   labs(x = NULL, y = "NRMSE") +
   theme(legend.position = "none") +
   theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
@@ -239,3 +318,15 @@ best_atx_models <- NRMSE_nonull %>%
 best_atx_models_split <- split(best_atx_models, best_atx_models$predicting)
 view(best_atx_models_split$AC_atx)
 view(best_atx_models_split$M_atx)
+
+## curious about Mann-Whitney test
+shapiro.test(NRMSE_nonull$mean) # not normal, need to use nonparametric
+stats_test <- NRMSE_nonull %>% 
+  select(site_reach, model, mean, predicting_w_cover) %>%
+  # substitute manually for each
+  filter(predicting_w_cover == "AC_atx_w_cover" | predicting_w_cover ==  "AC_atx")
+wilcox.test(mean ~ predicting_w_cover, data = stats_test)
+# comparing AC cover & M cover p = 3.809e-08
+# also same ("significant") as above for AC atx & M atx, p = 7.544e-09
+# comparing AC atx with and without cover p = 6.081e-06
+# comparing M atx with and without cover p = 0.5055; no difference!

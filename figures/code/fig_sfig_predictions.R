@@ -1,6 +1,6 @@
 #### Main figure and supplemental figures showing our predictions
 ### Jordan Zabrecky
-## last edited: 8.11.25
+## last edited: 9.15.25
 
 ## This code makes figures showing our predictions vs. observed values for
 ## (1) all models for a supplemental figure and (2) showing only the best models
@@ -251,7 +251,9 @@ for(i in atx_indices) {
          dpi = 600, width = 17.5, height = 22.5, unit = "cm")
 } 
 
-#### (3) Making main figure ####
+#### (3) Figuring Out Best Models ####
+
+## need to pair with covariate estimates from that best reach!
 
 # which reach performs best?
 average_per_reach <- NRMSEs %>% 
@@ -293,8 +295,7 @@ ylabels_w_cover <- c("*Anabaena/Cylindrospermum* anatoxin concentration normaliz
                      "*Microcoleus* anatoxin concentration normalized to maximum of reach",
                       "*Microcoleus* cover normalized to maximum of reach")
 
-# make plots; may need to adjust indexes for 
-
+# make plots
 for(i in 1:nrow(best_models)) {
   palette_index <- as.integer(NRMSE_list$AC_atx$model_f
     [which(best_models$model[i] == NRMSE_list$AC_atx$model_f)[1]])
@@ -325,16 +326,75 @@ for(i in 1:nrow(best_models)) {
 # adding names to list of plots to make putting together final plot easier
 names(best_plots) <- names(predictions_list_coversplit)
 
-# putting plots together in one
-all <- plot_grid(best_plots$M_cover, best_plots$M_atx, best_plots$M_atx_w_cover,
-                 best_plots$AC_cover, best_plots$AC_atx, best_plots$AC_atx_w_cover,
-                 ncol = 3)
-all
+#### (4) Getting matching best parameter estimates ####
 
-# save plot    
-ggsave(paste("./figures/fig_best_predictions_notfinal.tiff", sep = ""), 
-       dpi = 600, width = 18, height = 8, unit = "cm")
+# get work done in other code
+source("./figures/code/sfig_param_est.R")
 
+# adding with cover tag to prediction to parameter dataframe
+mod_param_est <- param_est %>% 
+  mutate(cover_covariate = case_when(grepl("w_cover", model) ~ TRUE,
+                                     TRUE ~ FALSE),
+         # make a final column that tells both what we are predicting and if cover
+         # is a covariate
+         predicting_w_cover = case_when(cover_covariate == TRUE ~ paste(predicting, "_w_cover", sep = ""),
+                                        TRUE ~ predicting)) %>%
+  # change names to match up with best_models dataframe
+  select(!c(predicting)) %>% 
+  dplyr::rename(predicting = predicting_w_cover) %>% 
+  filter(site_reach == best_reach)
+
+# get parameter estimates for best models
+best_model_param_est <- left_join(best_models, mod_param_est, by = c("predicting", "model"))
+
+# split into a list
+best_model_param_est_list <- split(best_model_param_est, best_model_param_est$predicting)
+
+# empty list for plots
+best_param_plots <- list() 
+
+# making plots
+for(i in 1:nrow(best_models)) {
+  palette_index <- as.integer(NRMSE_list$AC_atx$model_f
+                              [which(best_models$model[i] == NRMSE_list$AC_atx$model_f)[1]])
+  
+  best_param_plots[[i]] <- ggplot(data = best_model_param_est_list[[i]], aes(y = parameters_f)) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "gray") +
+    geom_point(aes(x = mean), color = palette_w_cover[palette_index]) +
+    geom_errorbar(aes(xmin = ci_lower, xmax = ci_upper), color = palette_w_cover[palette_index]) +
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    scale_x_continuous(trans = pseudolog10_trans,
+                       breaks = c(-100, -50, -20, -5, -1, 0, 1, 5, 20, 50, 100)) +
+    theme(strip.background = element_blank()) + # get rid of gray background for facet title
+    theme(legend.position = "none") +
+    labs(x = "posterior estimates", y = NULL, title = paste(titles_w_cover[i], "<br>", best_models$model[i], sep =""))
+  
+  # print plot to see them!
+  print(best_param_plots[[i]])
+}
+
+# adding names to list of plots to make putting together final plot easier
+names(best_param_plots) <- names(predictions_list_coversplit)
+# may need to have separate scale per model
+
+#### (4) Putting Together Figures ####
+
+# microcoleus figure
+m_figure <- plot_grid(best_plots$M_cover, best_param_plots$M_cover, 
+                      best_plots$M_atx, best_param_plots$M_atx, best_plots$M_atx_w_cover,
+                      best_param_plots$M_atx_w_cover,
+                      nrow = 3, align = "hv", rel_widths = c(1.5, 1, 1.5, 1, 1.5, 1))
+m_figure
+
+# anabaena figure
+ac_figure <- plot_grid(best_plots$M_cover, best_param_plots$M_cover, 
+                      best_plots$M_atx, best_param_plots$M_atx, best_plots$M_atx_w_cover,
+                      best_param_plots$M_atx_w_cover,
+                      nrow = 3, align = "hv", rel_widths = c(1.5, 1, 1.5, 1, 1.5, 1))
+ac_figure
+
+
+## OLD- 
 # make option to have all be vertical
 all_v <- plot_grid(best_plots$M_cover, best_plots$M_atx, best_plots$M_atx_w_cover,
                  best_plots$AC_cover, best_plots$AC_atx, best_plots$AC_atx_w_cover,
