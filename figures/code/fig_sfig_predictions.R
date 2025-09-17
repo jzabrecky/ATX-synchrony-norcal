@@ -1,11 +1,12 @@
 #### Main figure and supplemental figures showing our predictions
 ### Jordan Zabrecky
-## last edited: 9.15.25
+## last edited: 9.16.25
 
 ## This code makes figures showing our predictions vs. observed values for
 ## (1) all models for a supplemental figure and (2) showing only the best models
 ## for predicting cover, predicting anatoxins, and then predicting anatoxins
-## using cover as a coariate (for a total of 6)
+## using cover as a covariate (for a total of 6) into two separate figures
+## joined with the corresponding parameter estimates
 
 #### (1) Loading libraries and data ####
 
@@ -158,7 +159,7 @@ NRMSE_list_splitcover <- split(NRMSEs, NRMSEs$predicting_w_cover) # separates at
 # set universal theme
 theme_set(theme_bw() + theme(legend.position = "top",
                              panel.grid.minor = element_blank(),
-                             panel.border = element_rect(linewidth = 1.2), axis.ticks = element_line(linewidth = 1.2),
+                             panel.border = element_rect(linewidth = 1.2), axis.ticks = element_line(linewidth = 1),
                              text = element_text(size = 10), axis.ticks.length=unit(.25, "cm"),
                              axis.title.y = ggtext::element_markdown(size = 10), 
                              axis.text.x = element_text(size = 10),
@@ -315,7 +316,7 @@ for(i in 1:nrow(best_models)) {
                           data = best_models[i,],
                           # note size seems to be different for below than above, hence the low size
                           # will double-check in inkscape that it is correct
-                          mapping = aes(x = as.Date("2023-07-02"), y = 91, label = NRMSE), size= 3) +
+                          mapping = aes(x = as.Date("2023-06-30"), y = 91, label = NRMSE), size= 3) +
                         scale_color_manual(values = palette_w_cover[palette_index]) +
                         scale_fill_manual(values = palette_w_cover[palette_index])
   
@@ -350,8 +351,16 @@ best_model_param_est <- left_join(best_models, mod_param_est, by = c("predicting
 # split into a list
 best_model_param_est_list <- split(best_model_param_est, best_model_param_est$predicting)
 
+# custom ranges for each plot
+custom_ranges <- list(c(-250, -50, -10, 0, 10, 50, 200), # AC atx
+                      c(-250, -50, -10, 0, 10, 50, 200), # AC atx w cover
+                      c(0, 2, 4), # AC cover,
+                      c(-50, -10, 0, 10, 50, 200), # M atx
+                      c(-50, 10, 0, 10, 50, 200), # M atx w/cover
+                      c(-10, -1, 0, 1)) # M cover
+
 # empty list for plots
-best_param_plots <- list() 
+best_param_plots <- list()
 
 # making plots
 for(i in 1:nrow(best_models)) {
@@ -364,10 +373,10 @@ for(i in 1:nrow(best_models)) {
     geom_errorbar(aes(xmin = ci_lower, xmax = ci_upper), color = palette_w_cover[palette_index]) +
     geom_vline(xintercept = 0, linetype = "dashed") +
     scale_x_continuous(trans = pseudolog10_trans,
-                       breaks = c(-100, -50, -20, -5, -1, 0, 1, 5, 20, 50, 100)) +
+                       breaks = custom_ranges[[i]]) +
     theme(strip.background = element_blank()) + # get rid of gray background for facet title
     theme(legend.position = "none") +
-    labs(x = "posterior estimates", y = NULL, title = paste(titles_w_cover[i], "<br>", best_models$model[i], sep =""))
+    labs(x = NULL, y = NULL, title = paste(titles_w_cover[i], "<br>", best_models$model[i], sep =""))
   
   # print plot to see them!
   print(best_param_plots[[i]])
@@ -377,7 +386,7 @@ for(i in 1:nrow(best_models)) {
 names(best_param_plots) <- names(predictions_list_coversplit)
 # may need to have separate scale per model
 
-#### (4) Putting Together Figures ####
+#### (5) Putting Together Figures ####
 
 # microcoleus figure
 m_figure <- plot_grid(best_plots$M_cover, best_param_plots$M_cover, 
@@ -386,21 +395,17 @@ m_figure <- plot_grid(best_plots$M_cover, best_param_plots$M_cover,
                       nrow = 3, align = "hv", rel_widths = c(1.5, 1, 1.5, 1, 1.5, 1))
 m_figure
 
+# save
+ggsave(paste("./figures/fig_best_predictions_M_notfinal.tiff", sep = ""), 
+       dpi = 600, width = 18, height = 13, unit = "cm")
+
 # anabaena figure
-ac_figure <- plot_grid(best_plots$M_cover, best_param_plots$M_cover, 
-                      best_plots$M_atx, best_param_plots$M_atx, best_plots$M_atx_w_cover,
-                      best_param_plots$M_atx_w_cover,
+ac_figure <- plot_grid(best_plots$AC_cover, best_param_plots$AC_cover, 
+                      best_plots$AC_atx, best_param_plots$AC_atx, best_plots$AC_atx_w_cover,
+                      best_param_plots$AC_atx_w_cover,
                       nrow = 3, align = "hv", rel_widths = c(1.5, 1, 1.5, 1, 1.5, 1))
 ac_figure
 
-
-## OLD- 
-# make option to have all be vertical
-all_v <- plot_grid(best_plots$M_cover, best_plots$M_atx, best_plots$M_atx_w_cover,
-                 best_plots$AC_cover, best_plots$AC_atx, best_plots$AC_atx_w_cover,
-                 ncol = 1)
-all_v
-
-# save plot    
-ggsave(paste("./figures/fig_best_predictions_vertical_notfinal.tiff", sep = ""), 
-       dpi = 600, width = 8, height = 22, unit = "cm")
+# save
+ggsave(paste("./figures/fig_best_predictions_AC_notfinal.tiff", sep = ""), 
+       dpi = 600, width = 18, height = 13, unit = "cm")

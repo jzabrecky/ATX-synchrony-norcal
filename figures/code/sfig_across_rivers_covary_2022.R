@@ -1,6 +1,6 @@
 #### Supplemental figure to explore cover & ATX with biweekly 2022 data
 ### Jordan Zabrecky
-## last edited: 08.13.2025
+## last edited: 09.16.2025
 
 # This script creates a supplementary figure to explore the relationships
 # between taxa-specific cover and ATX for biweekly 2022 data
@@ -23,13 +23,14 @@ data$TM_ATX_all_ug_g <- replace_na(data$TM_ATX_all_ug_g, 0)
 data$TAC_ATX_all_ug_g <- replace_na(data$TAC_ATX_all_ug_g, 0)
 
 # set universal theme for plots
-theme_set(theme_bw() +
-            theme(panel.grid.minor = element_blank(), strip.background = element_blank(),
-                  panel.grid.major = element_blank(), panel.border = element_rect(linewidth = 3), axis.ticks = element_line(linewidth = 2.8),
-                  text = element_text(size = 15), strip.text = element_text(size = 15),
+# set universal theme for all plots
+theme_set(theme_bw() + 
+            theme(panel.grid.minor = element_blank(),
+                  panel.border = element_rect(linewidth = 1.5), axis.ticks = element_line(linewidth = 1),
+                  text = element_text(size = 10), axis.ticks.length=unit(.25, "cm"),
+                  strip.background = element_blank(),
                   plot.margin = unit(c(.5, 0, 0, 0), "cm"),
-                  axis.ticks.length=unit(.25, "cm"), 
-                  plot.title = element_markdown(hjust = 0.5)))
+                  plot.title = element_markdown(size = 10, hjust = 0.5)))
 
 # change 7/6 Russian sampling to 7/6 to match the other two 
 # (was supposed to sample the first day but field day was taking too long so came back)
@@ -46,14 +47,6 @@ mean_data <- data %>%
 mean_data <- mean_data[order(mean_data$site),]
 
 #### (2) Cover & ATX figures ####
-
-# set universal theme for all plots
-theme_set(theme_bw() + 
-            theme(legend.position = "bottom", 
-                  panel.grid.minor = element_blank(),
-                  panel.border = element_rect(linewidth = 1.5), axis.ticks = element_line(linewidth = 1.5),
-                  text = element_text(size = 10), axis.ticks.length=unit(.25, "cm"),
-                  strip.background = element_blank(), plot.title = element_text(size=10)))
 
 # need to make manual dataframes so that two sites are not
 # linked together in geom_segment
@@ -177,11 +170,11 @@ sal_micro
 #### (3) Putting together plots and saving ####
 
 # plot all
-all <- plot_grid(sfkeel_micro, sfkeel_ana, sal_micro, rus_ana, scale = 0.92) +
+all <- plot_grid(sfkeel_micro, sfkeel_ana, scale = 0.92) +
   theme(plot.background = element_rect(fill = "white", color = "white"))
-all # russian not as illustrative, but keeping it for now as 
-# we never saw it's final decline in cover at the end of the season
+all 
+# dropping russian and salmon
 
 # save figure
 ggsave("./figures/sfig_cover_ATX_covary_2022_notfinal.tiff", dpi = 600, 
-       width=16, height=16, unit="cm")
+       width=16, height=9, unit="cm")

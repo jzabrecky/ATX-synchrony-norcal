@@ -62,7 +62,7 @@ figure <- ggplot(data = metab_final, aes(x = field_date, y = r_hat)) +
   labs(x = NULL, y = "R-hat") + 
   theme(legend.position = "bottom",
         panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
-        panel.border = element_rect(linewidth = 2), axis.ticks = element_line(linewidth = 2.0),
+        panel.border = element_rect(linewidth = 1.2), axis.ticks = element_line(linewidth = 1),
         text = element_text(size = 10), axis.ticks.length=unit(.25, "cm")) +
   theme(strip.text = ggtext::element_markdown()) # to K600 fancy
 figure

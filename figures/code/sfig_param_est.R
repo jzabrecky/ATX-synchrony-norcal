@@ -27,9 +27,9 @@ param_est <- read.csv("./data/predictive_models/parameter_est_allmodels.csv") %>
                                             "biochemical", "biochemical_w_cover", 
                                             "all", "all_w_cover"))) %>%
   # do same for parameters (ggplot will go from bottom to top, so reversed)
-  mutate(parameters_f = factor(parameters, levels = c("cover", "GPP", "conductivity",
-                                                      "oPhos", "DIN", "discharge", 
-                                                      "temperature"))) %>% 
+  mutate(parameters_f = factor(parameters, levels = c("Cover", "GPP", "Conductivity",
+                                                      "OPhos", "DIN", "Discharge", 
+                                                      "Temperature"))) %>% 
   mutate(model_f = case_when(grepl("w_cover", model_f) ~ paste(gsub("_w_cover", " with cover", model_f)),
                            TRUE ~ model_f))
 
@@ -41,7 +41,7 @@ param_est_list <- split(param_est, param_est$predicting)
 # set universal theme
 theme_set(theme_bw() + theme(legend.position = "top",
                              panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
-                             panel.border = element_rect(linewidth = 1.2), axis.ticks = element_line(linewidth = 1.2),
+                             panel.border = element_rect(linewidth = 1.2), axis.ticks = element_line(linewidth = 1),
                              text = element_text(size = 10), axis.ticks.length=unit(.25, "cm"),
                              axis.title.y = ggtext::element_markdown(size = 10), 
                              axis.text.x = element_text(size = 10),

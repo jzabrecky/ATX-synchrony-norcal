@@ -75,7 +75,7 @@ figure <- ggplot(data = discharge_all, aes(x = date_time, y = discharge_m3_s.x))
   theme(strip.background = element_blank()) +
   theme(legend.position = "bottom",
         panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
-        panel.border = element_rect(linewidth = 2), axis.ticks = element_line(linewidth = 2.0),
+        panel.border = element_rect(linewidth = 1.5), axis.ticks = element_line(linewidth = 1),
         text = element_text(size = 10), axis.ticks.length=unit(.25, "cm"))
 figure
 

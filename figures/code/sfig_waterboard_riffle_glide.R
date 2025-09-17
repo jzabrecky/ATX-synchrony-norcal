@@ -22,7 +22,7 @@ data <- read.csv("./data/field_and_lab/state_monitoring_mats.csv") %>%
 theme_set(theme_bw() + 
             theme(legend.position = "top",
                   panel.grid.minor = element_blank(),
-                  panel.border = element_rect(linewidth = 1.2), axis.ticks = element_line(linewidth = 1.2),
+                  panel.border = element_rect(linewidth = 1.2), axis.ticks = element_line(linewidth = 1),
                   text = element_text(size = 10), axis.ticks.length=unit(.25, "cm"),
                   axis.text.y = element_text(size = 10), axis.text.x = element_text(size = 10),
                   legend.text = element_text(size=10)))

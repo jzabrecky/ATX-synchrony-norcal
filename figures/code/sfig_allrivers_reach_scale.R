@@ -55,7 +55,7 @@ atx_list <- split(anatoxins, anatoxins$site)
 # set theme for all plots
 theme_set(theme_bw() + theme(legend.position = "bottom", 
                              panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
-                             panel.border = element_rect(linewidth = 1.5), axis.ticks = element_line(linewidth = 1.5),
+                             panel.border = element_rect(linewidth = 1.5), axis.ticks = element_line(linewidth = 1),
                              text = element_text(size = 10), axis.ticks.length=unit(.25, "cm"),
                              strip.background = element_blank()))
 
@@ -106,7 +106,7 @@ sal_figs <- ggplot(data = cover_list$SAL) +
            aes(x = field_date, y = ATX_ug_orgmat_g, fill = taxa, color = taxa), width = 7.5) +
   geom_line(data = cover_list$SAL, aes(x = field_date, 
                                        y = 5 - (percent_cover * .15), color = taxa,
-                                       linetype = taxa, group = segment),
+                                       linetype = taxa),
           linewidth = 1.25) +
   geom_point(data = cover_list$SAL, aes(x = field_date, 
                                         y = 5 - (percent_cover * .15), color = taxa, 

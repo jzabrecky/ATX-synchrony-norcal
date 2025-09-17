@@ -25,7 +25,7 @@ palette <- c("#1E426B","#377B76", "#57C785", "#A2D366", "#E8DE48")
 
 # set theme
 theme_set(theme_bw() + theme(panel.grid.minor = element_blank(),
-                             panel.border = element_rect(linewidth = 1.2), axis.ticks = element_line(linewidth = 1.2),
+                             panel.border = element_rect(linewidth = 1.2), axis.ticks = element_line(linewidth = 1),
                              text = element_text(size = 10), axis.ticks.length=unit(.25, "cm"),
                              axis.text.y = element_text(size = 10)))
 
