@@ -44,87 +44,87 @@ for(i in 1:length(folders)) {
             # assign parameter names based on model name
             if(modelname == "physical") {
               params <- params %>% 
-                mutate(parameters = case_when(beta == "b[1]" ~ "temperature",
-                                              beta == "b[2]" ~ "discharge"))
+                mutate(parameters = case_when(beta == "b[1]" ~ "Temperature",
+                                              beta == "b[2]" ~ "Discharge"))
             } else if(modelname == "physical_w_cover") {
               params <- params %>% 
-                mutate(parameters = case_when(beta == "b[1]" ~ "temperature",
-                                              beta == "b[2]" ~ "discharge",
-                                              beta == "b[3]" ~ "cover"))
+                mutate(parameters = case_when(beta == "b[1]" ~ "Temperature",
+                                              beta == "b[2]" ~ "Discharge",
+                                              beta == "b[3]" ~ "Cover"))
             } else if(modelname == "chemical") {
               params <- params %>% 
                 mutate(parameters = case_when(beta == "b[1]" ~ "DIN",
-                                              beta == "b[2]" ~ "oPhos",
-                                              beta == "b[3]" ~ "conductivity"))
+                                              beta == "b[2]" ~ "OPhos",
+                                              beta == "b[3]" ~ "Conductivity"))
             } else if(modelname == "chemical_w_cover") {
               params <- params %>% 
                 mutate(parameters = case_when(beta == "b[1]" ~ "DIN",
-                                              beta == "b[2]" ~ "oPhos",
-                                              beta == "b[3]" ~ "conductivity",
-                                              beta == "b[4]" ~ "cover"))
+                                              beta == "b[2]" ~ "OPhos",
+                                              beta == "b[3]" ~ "Conductivity",
+                                              beta == "b[4]" ~ "Cover"))
             } else if(modelname == "biological") {
               params <- params %>% 
                 mutate(parameters = case_when(beta == "b[1]" ~ "GPP"))
             } else if(modelname == "biological_w_cover") {
               params <- params %>% 
                 mutate(parameters = case_when(beta == "b[1]" ~ "GPP",
-                                              beta == "b[2]" ~ "cover"))
+                                              beta == "b[2]" ~ "Cover"))
             } else if(modelname == "physicochemical") {
               params <- params %>% 
-                mutate(parameters = case_when(beta == "b[1]" ~ "temperature",
-                                              beta == "b[2]" ~ "discharge",
+                mutate(parameters = case_when(beta == "b[1]" ~ "Temperature",
+                                              beta == "b[2]" ~ "Discharge",
                                               beta == "b[3]" ~  "DIN",
-                                              beta == "b[4]" ~ "oPhos",
-                                              beta == "b[5]" ~ "conductivity"))
+                                              beta == "b[4]" ~ "OPhos",
+                                              beta == "b[5]" ~ "Conductivity"))
             } else if(modelname == "physicochemical_w_cover") {
               params <- params %>% 
-                mutate(parameters = case_when(beta == "b[1]" ~ "temperature",
-                                              beta == "b[2]" ~ "discharge",
+                mutate(parameters = case_when(beta == "b[1]" ~ "Temperature",
+                                              beta == "b[2]" ~ "Discharge",
                                               beta == "b[3]" ~  "DIN",
-                                              beta == "b[4]" ~ "oPhos",
-                                              beta == "b[5]" ~ "conductivity",
-                                              beta == "b[6]" ~ "cover"))
+                                              beta == "b[4]" ~ "OPhos",
+                                              beta == "b[5]" ~ "Conductivity",
+                                              beta == "b[6]" ~ "Cover"))
             } else if(modelname == "ecohydrological") {
               params <- params %>% 
-                mutate(parameters = case_when(beta == "b[1]" ~ "temperature",
-                                              beta == "b[2]" ~ "discharge",
+                mutate(parameters = case_when(beta == "b[1]" ~ "Temperature",
+                                              beta == "b[2]" ~ "Discharge",
                                               beta == "b[3]" ~ "GPP"))
             } else if (modelname == "ecohydrological_w_cover") {
               params <- params %>% 
-                mutate(parameters = case_when(beta == "b[1]" ~ "temperature",
-                                              beta == "b[2]" ~ "discharge",
+                mutate(parameters = case_when(beta == "b[1]" ~ "Temperature",
+                                              beta == "b[2]" ~ "Discharge",
                                               beta == "b[3]" ~ "GPP",
-                                              beta == "b[4]" ~ "cover"))
+                                              beta == "b[4]" ~ "Cover"))
             } else if (modelname == "biochemical") {
               params <- params %>% 
                 mutate(parameters = case_when(beta == "b[1]" ~ "DIN",
-                                              beta == "b[2]" ~ "oPhos",
-                                              beta == "b[3]" ~ "conductivity",
+                                              beta == "b[2]" ~ "OPhos",
+                                              beta == "b[3]" ~ "Conductivity",
                                               beta == "b[4]" ~ "GPP"))
             } else if (modelname == "biochemical_w_cover") {
               params <- params %>% 
                 mutate(parameters = case_when(beta == "b[1]" ~ "DIN",
-                                              beta == "b[2]" ~ "oPhos",
-                                              beta == "b[3]" ~ "conductivity",
+                                              beta == "b[2]" ~ "OPhos",
+                                              beta == "b[3]" ~ "Conductivity",
                                               beta == "b[4]" ~ "GPP",
-                                              beta == "b[5]" ~ "cover"))
+                                              beta == "b[5]" ~ "Cover"))
             } else if(modelname == "all") {
               params <- params %>% 
-                mutate(parameters = case_when(beta == "b[1]" ~ "temperature",
-                                              beta == "b[2]" ~ "discharge",
+                mutate(parameters = case_when(beta == "b[1]" ~ "Temperature",
+                                              beta == "b[2]" ~ "Discharge",
                                               beta == "b[3]" ~  "DIN",
-                                              beta == "b[4]" ~ "oPhos",
-                                              beta == "b[5]" ~ "conductivity",
+                                              beta == "b[4]" ~ "OPhos",
+                                              beta == "b[5]" ~ "Conductivity",
                                               beta == "b[6]" ~ "GPP"))
             } else if(modelname == "all_w_cover") {
               params <- params %>% 
-                mutate(parameters = case_when(beta == "b[1]" ~ "temperature",
-                                              beta == "b[2]" ~ "discharge",
+                mutate(parameters = case_when(beta == "b[1]" ~ "Temperature",
+                                              beta == "b[2]" ~ "Discharge",
                                               beta == "b[3]" ~  "DIN",
-                                              beta == "b[4]" ~ "oPhos",
-                                              beta == "b[5]" ~ "conductivity",
+                                              beta == "b[4]" ~ "OPhos",
+                                              beta == "b[5]" ~ "Conductivity",
                                               beta == "b[6]" ~ "GPP",
-                                              beta == "b[7]" ~ "cover"))
+                                              beta == "b[7]" ~ "Cover"))
             }
             
             # add in reach the model is predicting and model name
