@@ -1,6 +1,6 @@
 #### Primary figure for taxa-specific cover & anatoxins and GPP on each river
 ### Jordan Zabrecky
-## last edited: 07.25.2025
+## last edited: 09.15.2025
 
 # This script creates a primary figure for Q2 focused on the relationships
 # between benthic cyanobacteria dynamics within the same river
@@ -57,8 +57,8 @@ data_longer$ATX_all_ug_orgmat_g <- replace_na(data_longer$ATX_all_ug_orgmat_g)
 # set theme for all plots
 theme_set(theme_bw() + theme(legend.position = "bottom", 
                              panel.grid.minor = element_blank(), panel.grid.major = element_blank(),
-                             panel.border = element_rect(linewidth = 1.5), axis.ticks = element_line(linewidth = 1.5),
-                             text = element_text(size = 10), axis.ticks.length=unit(.25, "cm"),
+                             panel.border = element_rect(linewidth = 1.5), axis.ticks = element_line(linewidth = 1),
+                             text = element_text(size = 10), axis.ticks.length=unit(.2, "cm"),
                              strip.background = element_blank()))
 
 # benthic cyanobacteria plot
@@ -97,3 +97,15 @@ sfe_all
 # save figure
 ggsave("./figures/fig_bc_withinrivers_notfinal.tiff", dpi = 600, 
        width=8.1, height=12, unit="cm") 
+
+#### (3) Misc. Questions ####
+
+# how does peak magnitude vary per reach??
+summary <- data %>% 
+  dplyr::group_by(site_reach) %>% 
+  dplyr::summarize(max_m = max(microcoleus),
+                   max_ac = max(anabaena_cylindrospermum),
+                   max_m_atx = max(TM_ATX_all_ug_orgmat_g, na.rm = TRUE),
+                   max_ac_atx = max(TAC_ATX_all_ug_orgmat_g, na.rm = TRUE))
+max(summary$max_m) - min(summary$max_m) # 15.7% difference
+max(summary$max_ac) - min(summary$max_ac) # 21.81% difference
