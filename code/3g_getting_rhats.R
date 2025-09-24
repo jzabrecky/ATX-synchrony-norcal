@@ -1,6 +1,6 @@
 #### Getting r-hats for all models to one csv
 ### Jordan Zabrecky
-## 09.24.2025
+## last edited: 09.24.2025
 
 ## This code pulls r-hats from all models and saves them into a single csv file
 ## to easily make a supplemental figure
