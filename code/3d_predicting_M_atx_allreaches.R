@@ -239,7 +239,7 @@ for(j in 2:length(predictions)) {
     model <- stan(file = "./code/model_STAN_files/predicting_NOT_autoregressive.stan", 
                  data = mod_data,
                  chains = 3, iter = 10000, warmup = 5000, 
-                 control = list(adapt_delta = 0.95, max_treedepth = 12))
+                 control = list(adapt_delta = 0.95, max_treedepth = 13))
     # save STAN model
     saveRDS(model, paste("./data/predictive_models/M_atx_models/", model_name, 
                          "_", names(test_sites)[i], sep = ""))

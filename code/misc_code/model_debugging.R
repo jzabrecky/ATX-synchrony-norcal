@@ -217,8 +217,8 @@ for(j in 2:length(predictions)) {
     # (if using cntl+shift+enter)
     model <- stan(file = "./code/model_STAN_files/predicting_autoregressive_wdefinedpriors.stan", 
                   data = mod_data,
-                  chains = 3, iter = 15000, warmup = 10000, 
-                  control = list(adapt_delta = 0.95, max_treedepth = 12))
+                  chains = 3, iter = 20000, warmup = 15000, 
+                  control = list(adapt_delta = 0.97, max_treedepth = 13))
     # save STAN model
     #saveRDS(model, paste("./data/predictive_models/M_cover_models/", model_name, 
     #                     "_", names(test_sites)[i], sep = ""))

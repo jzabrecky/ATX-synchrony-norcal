@@ -1,6 +1,6 @@
 #### models to predict cover
 ### Jordan Zabrecky
-## last edited: 07.28.2025
+## last edited: 09.19.2025
 
 # This script builds models to predict cover of benthic Microcoleus cover
 # as determined by benthic cover surveys. Each model is built using 4 of 
@@ -209,12 +209,10 @@ for(j in 2:length(predictions)) {
                     present = training_sites[[i]]$resp_M_cover_norm,
                     covar = as.matrix(covariates[[j]]$training[[i]]))
     # run STAN model
-    # if there are warning issues, code may stop if running through whole script 
-    # (if using cntl+shift+enter)
     model <- stan(file = "./code/model_STAN_files/predicting_autoregressive.stan", 
                  data = mod_data,
                  chains = 3, iter = 10000, warmup = 5000, 
-                 control = list(adapt_delta = 0.95, max_treedepth = 12))
+                 control = list(adapt_delta = 0.98, max_treedepth = 14))
     # save STAN model
     saveRDS(model, paste("./data/predictive_models/M_cover_models/", model_name, 
                          "_", names(test_sites)[i], sep = ""))

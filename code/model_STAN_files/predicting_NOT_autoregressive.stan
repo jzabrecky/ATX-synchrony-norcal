@@ -14,13 +14,19 @@ parameters {
   real<lower=0> sigma;
 }
 
-// autoregressive model with covariates
+// model with covariates
 model {
   for(i in 1:N) {
    future[i] ~ normal(b0 + covar[i]*b, sigma) T[0,100];
   }
 
   // prior for sigma
-  sigma~normal(0,5)T[0,];
+  sigma~normal(0,10)T[0,];
+  
+  // prior for b0 and vector of b's
+  b0~normal(0,1);
+  for(i in 1:c) {
+    b[c]~normal(0,5);
+  }
 
 }

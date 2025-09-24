@@ -1,4 +1,9 @@
-### code to ensure models converged
+#### Ensuring model convergence
+### Jordan Zabrecky
+## last edited: 09.23.2025
+
+## This code pulls the number of divergent transition and r-hats for all parameters
+## in all models to ensure convergence
 
 #### (1) Loading libraries ####
 
@@ -89,3 +94,11 @@ final <- left_join(rhat_summary, convergence_summary, by = c("predicting", "site
 
 # save as csv
 write.csv(final[-1,], "./data/predictive_models/convergence_summary.csv", row.names = FALSE)
+
+#### (5) Model trouble shooting ####
+
+# load a model with issues
+#model <- readRDS("./data/predictive_models/AC_cover_models/physicochemical_SFE-M-1S")
+
+# launch shinystan
+#shinystan::launch_shinystan(model)

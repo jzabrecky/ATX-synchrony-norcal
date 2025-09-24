@@ -1,6 +1,6 @@
 #### models to predict cover
 ### Jordan Zabrecky
-## last edited: 07.29.2025
+## last edited: 09.24.2025
 
 # This script builds models to predict cover of benthic Anabaena/Cylindrospermum
 # cover as determined by benthic cover surveys. Each model is built using 4 of 
@@ -209,8 +209,6 @@ for(j in 2:length(predictions)) {
                     present = training_sites[[i]]$resp_AC_cover_norm,
                     covar = as.matrix(covariates[[j]]$training[[i]]))
     # run STAN model
-    # if there are warning issues, code may stop if running through whole script 
-    # (if using cntl+shift+enter)
     model <- stan(file = "./code/model_STAN_files/predicting_autoregressive.stan", 
                  data = mod_data,
                  chains = 3, iter = 10000, warmup = 5000, 
@@ -279,3 +277,94 @@ for(j in 1:length(test_sites)) {
 # saving final predictions
 write.csv(final_predictions, "./data/predictive_models/predictions_AC_cover.csv",
           row.names = FALSE)
+
+#### (6) Dealing with divergent transitions ####
+
+# we have a couple of models that did not converge (as determined by script 3c)
+# (and require a very very narrow prior to do so)
+# so we will just omit these models from our study
+# models are:
+# SFE-M-1S all, biochemical, biological, ecohydrological
+
+# create dataframe of these models
+divergent_models <- data.frame(model_name = c("all_SFE-M-1S", "biochemical_SFE-M-1S", "biological_SFE-M-1S",
+                               "ecohydrological_SFE-M-1S")) %>% 
+  mutate(model = sub(paste0("_SFE", ".*"), "", model_name),
+         site_reach = sub(paste0(".*", "_"), "", model_name),
+         # to match csv's when we read them in
+         modified_site_reach = gsub("-", ".", site_reach))
+
+## remove NRMSEs
+
+#nrmse <- read.csv("./data/predictive_models/nrmse_AC_cover.csv") # open if needed
+#write.csv(nrmse, "./data/predictive_models/misc_with_omitted_models/nrmse_AC_cover.csv",
+#          row.names = FALSE) # preserve old NRMSE with these omitted models in separate folder
+
+# remove divergent models
+nrmse_final <- nrmse %>% 
+  filter(!(model %in% divergent_models$model & site_reach %in% divergent_models$site_reach))
+
+# overwrite csv
+write.csv(nrmse_final, "./data/predictive_models/nrmse_AC_cover.csv", row.names = FALSE)
+
+## remove predictions
+
+#final_predictions <- read.csv("./data/predictive_models/predictions_AC_cover.csv) # open if needed
+#write.csv(final_predictions, "./data/predictive_models/misc_with_omitted_models/predictions_AC_cover.csv",
+#          row.names = FALSE) # preserve old predictions with these omitted models in separate folder
+
+# remove divergent models
+final_predictions_final <- final_predictions %>% 
+  filter(!(model %in% divergent_models$model & site_reach %in% divergent_models$site_reach))
+
+# overwrite csv
+write.csv(final_predictions_final, "./data/predictive_models/predictions_AC_cover.csv",
+          row.names = FALSE)
+
+## remove parameter estimates of divergent models
+ldply(list.files(path = "./data/predictive_models/AC_cover_models/model_attributes", pattern = "param_est"),
+      function(filename) {
+        # go through to see if its a diverging model or not
+        for(i in 1:nrow(divergent_models)) {
+          if(sub("_param_est.csv", "", x = filename) == divergent_models$model[i]) {
+            
+            # read in file
+            param_est <- read.csv(paste("./data/predictive_models/AC_cover_models/model_attributes/",
+                                        filename, sep = ""))
+            #write.csv(param_est, paste("./data/predictive_models/misc_with_omitted_models/AC_cover_", 
+            #                           filename, sep = ""), row.names = FALSE) # save backup of old
+            
+            # remove column associated with site
+            index <- which(colnames(param_est) == divergent_models$modified_site_reach[i])
+            param_est[,2] <- NA
+            
+            # rewrite csv
+            write.csv(param_est, paste("./data/predictive_models/AC_cover_models/model_attributes/",
+                                       filename, sep = ""), row.names = FALSE)
+          }
+        }
+      })
+
+# remove r-hats
+ldply(list.files(path = "./data/predictive_models/AC_cover_models/model_attributes", pattern = "rhats"),
+      function(filename) {
+        # go through to see if its a diverging model or not
+        for(i in 1:nrow(divergent_models)) {
+          if(sub("_rhats.csv", "", x = filename) == divergent_models$model[i]) {
+            
+            # read in file
+            param_est <- read.csv(paste("./data/predictive_models/AC_cover_models/model_attributes/",
+                                        filename, sep = ""))
+            #write.csv(param_est, paste("./data/predictive_models/misc_with_omitted_models/AC_cover_", 
+            #                           filename, sep = ""), row.names = FALSE) # save backup of old
+            
+            # remove column associated with site
+            index <- which(colnames(param_est) == divergent_models$modified_site_reach[i])
+            param_est[,2] <- NA
+            
+            # rewrite csv
+            write.csv(param_est, paste("./data/predictive_models/AC_cover_models/model_attributes/",
+                                       filename, sep = ""), row.names = FALSE)
+          }
+        }
+      })

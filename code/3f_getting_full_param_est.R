@@ -1,6 +1,6 @@
 #### Extracting mean and 95% CI for parameter estimates from predictive models
 ### Jordan Zabrecky
-## last edited: 08.08.2025
+## last edited: 09.25.2025
 
 ## This code goes back to open previously ran models and saves their parameter estimates
 ## (mean and 95% credible interval) into one csv for each prediction type
@@ -13,7 +13,7 @@ lapply(c("tidyverse", "rstan", "StanHeaders", "plyr"),
 
 #### (2) Open model and save parameter estimates for cover models ####
 
-# create lists for folders we want to iterate through and different model naems
+# create lists for folders we want to iterate through and different model names
 folders <- c("M_cover_models", "AC_cover_models", "M_atx_models", "AC_atx_models")
 model_names <- c("null", "physical", "chemical", "biological", "ecohydrological", "all")
 # missing some, but note that "chemical" will catch three models (chemical, biochemical, physicochemical!)
@@ -150,6 +150,20 @@ for(i in 1:length(folders)) {
 # remove first row of dataframe (NAs)
 param_list <- param_list[-1,]
 
+#### (3) Removing divergent models ####
+
+# create a dataframe for divergent models
+divergent_models <- data.frame(predicting = rep("AC_cover", 4),
+                               model_name = c("all_SFE-M-1S", "biochemical_SFE-M-1S", "biological_SFE-M-1S",
+                                              "ecohydrological_SFE-M-1S")) %>% 
+  mutate(model = sub(paste0("_SFE", ".*"), "", model_name),
+         site_reach = sub(paste0(".*", "_"), "", model_name))
+
+# remove those diverging models from the parameter estimates
+param_list_final <- param_list %>% 
+  filter(!(site_reach %in% divergent_models$site_reach & predicting %in% divergent_models$predicting &
+             model %in% divergent_models$model))
+
 # save
-write.csv(param_list, "./data/predictive_models/parameter_est_allmodels.csv",
+write.csv(param_list_final, "./data/predictive_models/parameter_est_allmodels.csv",
           row.names = FALSE)
