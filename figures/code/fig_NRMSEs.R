@@ -10,7 +10,7 @@
 #### (1) Loading libraries and data ####
 
 # loading libraries
-lapply(c("tidyverse", "cowplot", "plyr", "ggtext"), 
+lapply(c("tidyverse", "cowplot", "plyr", "ggtext", "ggsignif"), 
        require, character.only = T)
 
 # loading data
@@ -165,12 +165,16 @@ null_data$'AC_atx' <- data.frame(site_reach = c(null_list$AC_atx$site_reach,
                                                  null_list$AC_atx$predicting_f))
 
 # summarizing based on taxa and then based on if cover is included
-mean_NRMSE_taxa <- NRMSE_nonull %>%
+mean_NRMSE_taxa <- NRMSE_nonull %>% 
+  # remove dummy values
+  filter(omitted != TRUE) %>% 
   dplyr::group_by(predicting_f) %>% 
   dplyr::summarize(mean_mean = mean(mean),
                    mean_ci_lower = mean(ci_lower),
                    mean_ci_upper = mean(ci_upper))
 mean_NRMSE_cover <- NRMSE_nonull %>% 
+  # remove dummy values
+  filter(omitted != TRUE) %>% 
   dplyr::group_by(predicting_f, cover_covariate) %>% 
   dplyr::summarize(mean_mean = mean(mean),
                    mean_ci_lower = mean(ci_lower),
@@ -186,6 +190,10 @@ mean_nulls_cover <- NRMSE_nulls %>%
 
 # cover comparison AC vs M. (note special alpha for omitted)
 cover_comparison <- ggplot() +
+  geom_signif(data = NRMSE_nonull %>% filter(predicting_f == "M_cover" |
+                                               predicting_f == "AC_cover"), 
+              aes(x = predicting_f, y = mean), comparisons = list(c("M_cover", "AC_cover")),
+              map_signif_level = TRUE, annotations = "", y_position = 0.95) +
   geom_errorbar(data = NRMSE_nonull %>% filter(predicting_f == "M_cover" |
                                                  predicting_f == "AC_cover"), 
                 aes(x = predicting_f, ymin = ci_lower, ymax = ci_upper, 
@@ -247,6 +255,10 @@ atx_comparison
   
 # M atx comparison w & w/o cover
 M_atx_comparison <- ggplot() +
+  geom_signif(data = NRMSE_nonull %>% filter(predicting_f == "M_atx"), 
+              aes(x = interaction(predicting_f, cover_covariate), y = mean), 
+              comparisons = list(c("M_atx.FALSE", "M_atx.TRUE")),
+              map_signif_level = TRUE, annotations = "", y_position = 0.85) +
   geom_errorbar(data = NRMSE_nonull %>% filter(predicting_f == "M_atx"), 
                 aes(x = interaction(predicting_f, cover_covariate), ymin = ci_lower, ymax = ci_upper, 
                     y = mean, shape = site_reach, color = model_f), 
@@ -273,6 +285,10 @@ M_atx_comparison
 
 # AC atx comparison w & w/o cover
 AC_atx_comparison <- ggplot() +
+  geom_signif(data = NRMSE_nonull %>% filter(predicting_f == "AC_atx"), 
+              aes(x = interaction(predicting_f, cover_covariate), y = mean), 
+              comparisons = list(c("AC_atx.FALSE", "AC_atx.TRUE")),
+              map_signif_level = TRUE, annotations = "", y_position = 0.89) +
   geom_errorbar(data = NRMSE_nonull %>% filter(predicting_f == "AC_atx"), 
                 aes(x = interaction(predicting_f, cover_covariate), ymin = ci_lower, ymax = ci_upper, 
                     y = mean, shape = site_reach, color = model_f), 
@@ -336,7 +352,7 @@ main
 
 # save to fit dimensions of one column
 ggsave("./figures/fig_NRMSEs_notfinal.tiff", 
-       dpi = 600, width = 18, height = 11, unit = "cm")
+       dpi = 600, width = 18, height = 12, unit = "cm")
 # want to try to change linewidth!!
 
 #### (4) Old Plots ####
@@ -457,6 +473,10 @@ all
 
 #### (5) Miscellaneous Questions ####
 
+# remove dummy values of omitted models in all of these:
+NRMSE_nonull <- NRMSE_nonull %>% 
+  filter(omitted != TRUE)
+
 ## how do mean NRMSE of taxa-specific cover predictions and anatoxin predictions compare?
 taxa_specific_NRMSE <- NRMSE_nonull %>% 
   dplyr::group_by(predicting) %>% 
@@ -486,6 +506,12 @@ outperforming <- NRMSEs_withnulls %>%
 # group by reach as well
 outperforming_by_reach <- NRMSEs_withnulls %>% 
   dplyr::group_by(predicting, site_reach) %>% 
+  dplyr::summarize(total = length(model),
+                   outperforming_null = sum(mean.x < mean.y))
+
+# group by model as well
+outperforming_by_model <- NRMSEs_withnulls %>% 
+  dplyr::group_by(predicting, model) %>% 
   dplyr::summarize(total = length(model),
                    outperforming_null = sum(mean.x < mean.y))
 

@@ -23,10 +23,14 @@ rhats <- read.csv("./data/predictive_models/rhats_allmodels.csv") %>%
                                 predicting == "AC_cover" ~ "*Anabaena/Cylindrospermum* Cover Models",
                                 predicting == "M_atx" ~ "*Microcoleus* Mat Anatoxin Models",
                                 predicting == "M_cover" ~ "*Microcoleus* Cover Models")) %>% 
-  # turning parameters into a factor; not including lp_
+  # turning parameters & predicting into a factor; not including lp_ for parameters
   mutate(parameters_f = factor(parameters, levels = c("b0", "Temperature", "Discharge", 
                                                       "DIN", "OPhos", "Conductivity", "GPP",
-                                                      "sigma"))) %>% 
+                                                      "sigma")),
+         predicting_f = factor(predicting, levels = c("*Microcoleus* Cover Models", 
+                                                      "*Anabaena/Cylindrospermum* Cover Models",
+                                                      "*Microcoleus* Mat Anatoxin Models",
+                                                      "*Anabaena/Cylindrospermum* Mat Anatoxin Models"))) %>% 
   na.omit()
 
 #### (2) Making figure ####
@@ -46,7 +50,7 @@ theme_set(theme_bw() + theme(legend.position = "top",
 # just going to use viridis as color palette
 # making figure
 figure <- ggplot(data = rhats, aes(x = parameters_f, y = rhat)) +
-  facet_grid(site_reach~predicting) +
+  facet_grid(site_reach~predicting_f) +
   geom_hline(yintercept = 1.05, linetype = "dashed", color = "red", linewidth = 1.02) +
   geom_jitter(aes(color = parameters_f), alpha = 0.5) +
   scale_color_viridis_d() +
@@ -58,4 +62,4 @@ figure
 
 # save figure
 ggsave(paste("./figures/sfig_prediction_rhats_notfinal.tiff"), dpi = 600,
-       width = 18, height = 18, unit = "cm")
+       width = 17.6, height = 18, unit = "cm")

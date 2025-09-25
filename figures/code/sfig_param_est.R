@@ -129,3 +129,15 @@ ggplot(data = param_est_list[[1]], aes(y = parameters_f)) +
 # save plot    
 ggsave(paste("./figures/sfig_paramest_ac_atx_notfinal.tiff", sep = ""), 
        dpi = 600, width = 18, height = 21, units = "cm")
+
+#### (3) Misc. Questions ####
+
+## How many parameters have CI's overlapping zero?
+param_est_q <- param_est %>% 
+  mutate(overlap = case_when((ci_lower > 0 & ci_upper < 0) ~ TRUE,
+                             (ci_lower < 0 & ci_upper > 0) ~ TRUE,
+                             TRUE ~ FALSE)) %>% 
+  dplyr::group_by(parameters, predicting) %>% # model 
+  dplyr::summarize(total = length(model),
+                   overlapping = sum(overlap == TRUE))
+view(param_est_q %>% filter(predicting == "AC_cover"))
