@@ -256,28 +256,57 @@ for(i in atx_indices) {
 
 ## need to pair with covariate estimates from that best reach!
 
-# which reach performs best?
+# which reach performs best for each taxa?
 average_per_reach <- NRMSEs %>% 
-  dplyr::group_by(site_reach) %>% 
+  mutate(taxa = case_when(grepl("AC", predicting) ~ "AC",
+                          grepl("M", predicting) ~ "M")) %>% 
+  dplyr::group_by(taxa, site_reach) %>% 
   dplyr::summarize(mean_of_all = mean(mean))
-best_reach <- average_per_reach$site_reach[which.min(average_per_reach$mean_of_all)]
-print(best_reach) # SFE-Lower-1S !
+# split dataframe
+average_per_reach_split <- split(average_per_reach, average_per_reach$taxa)
+# find out best_reach
+best_reach_M <- average_per_reach_split$M$site_reach[which.min(average_per_reach_split$M$mean_of_all)]
+print(best_reach_M) # SFE-Lower-1S !
+best_reach_AC <- average_per_reach_split$AC$site_reach[which.min(average_per_reach_split$AC$mean_of_all)]
+print(best_reach_AC) # SFE-Lower-1S ! (we don't have all models for this so which is second best)
+view(average_per_reach_split$AC)
+best_reach_AC <- "SFE-Lower-4"
 
 # filter for NRMSEs only for that reach
 NRMSE_best_reach_only <- lapply(NRMSE_list_splitcover, function(x) x <- x %>% 
-                                    filter(site_reach == best_reach))
+                                    # add taxa label
+                                    mutate(taxa = case_when(grepl("AC", predicting) ~ "AC",
+                                                            grepl("M", predicting) ~ "M")) %>% 
+                                    # filter for best reach dependent on taxa
+                                    filter(case_when(taxa == "M" ~ site_reach == best_reach_M,
+                                                     taxa == "AC" ~ site_reach == best_reach_AC)))
 
 # empty list for model and NRMSE attributes
 best_models <- data.frame(predicting = names(NRMSE_best_reach_only),
                           model = rep(NA, 6),
-                          NRMSE = rep(NA, 6))
+                          NRMSE = rep(NA, 6)) %>% 
+  mutate(taxa = case_when(grepl("AC", predicting) ~ "AC",
+                          grepl("M", predicting) ~ "M"),
+         best_reach = case_when(taxa == "M" ~ best_reach_M,
+                                taxa == "AC" ~ best_reach_AC))
 
-# get indices of best models for each 
+# determine best model across all reaches
+best_model_across_all_reaches <- NRMSEs %>% 
+  filter(model != "null") %>% 
+  dplyr::group_by(model, predicting_w_cover) %>% 
+  dplyr::summarize(mean_NRMSE = mean(mean))
+best_model_across_all_reaches_split <- split(best_model_across_all_reaches, best_model_across_all_reaches$predicting_w_cover)
+
+# figure out best model for each predicting category and pull to show with our sample reach
 for(i in 1:length(NRMSE_best_reach_only)) {
-  index_of_best = which.min(NRMSE_best_reach_only[[i]]$mean)
-  best_models$model[i] <- NRMSE_best_reach_only[[i]]$model[index_of_best]
-  best_models$NRMSE[i] <- NRMSE_best_reach_only[[i]]$label[index_of_best]
+  index_of_best = which.min(best_model_across_all_reaches_split[[i]]$mean_NRMSE)
+  best_models$model[i] <- best_model_across_all_reaches_split[[i]]$model[index_of_best]
+  best_models$NRMSE[i] <- NRMSE_best_reach_only[[i]]$label[which(NRMSE_best_reach_only[[i]]$model == 
+                                                                   best_model_across_all_reaches_split[[i]]$model[index_of_best])]
 }
+
+# okay, so looking at the best models across all site_reaches,
+# (see end of script "fig_NRMSEs")
 
 # empty list for plots
 best_plots <- list()
@@ -301,12 +330,13 @@ for(i in 1:nrow(best_models)) {
   palette_index <- as.integer(NRMSE_list$AC_atx$model_f
     [which(best_models$model[i] == NRMSE_list$AC_atx$model_f)[1]])
   
-  best_plots[[i]] <- ggplot(data = predictions_list_coversplit[[i]] %>% filter(site_reach == best_reach) %>% 
+  best_plots[[i]] <- ggplot(data = predictions_list_coversplit[[i]] %>% filter(site_reach == best_models$best_reach[i]) %>%  
                          filter(model == best_models$model[i]), aes(x = field_date)) +
                        geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, fill = model_f), 
                                    alpha = 0.5) +
                          geom_point(aes(y = mean, color = model_f), size = 2) +
-                         geom_point(data = observed_list_w_cover[[i]] %>% filter(site_reach == best_reach),
+                         geom_point(data = observed_list_w_cover[[i]] 
+                                    %>% filter(site_reach == best_models$best_reach[i]),
                                     aes(x = field_date, y = observed), 
                                     color = "#262626", size = 2, shape = 18) +
                         labs(x = NULL, y = NULL, title = paste(titles_w_cover[i], "<br>", best_models$model[i], sep ="")) +
@@ -343,7 +373,8 @@ mod_param_est <- param_est %>%
   # change names to match up with best_models dataframe
   select(!c(predicting)) %>% 
   dplyr::rename(predicting = predicting_w_cover) %>% 
-  filter(site_reach == best_reach)
+  filter(case_when(grepl("AC", predicting) ~ site_reach == best_reach_AC,
+                   grepl("M", predicting) ~ site_reach == best_reach_M))
 
 # get parameter estimates for best models
 best_model_param_est <- left_join(best_models, mod_param_est, by = c("predicting", "model"))
@@ -352,12 +383,12 @@ best_model_param_est <- left_join(best_models, mod_param_est, by = c("predicting
 best_model_param_est_list <- split(best_model_param_est, best_model_param_est$predicting)
 
 # custom ranges for each plot
-custom_ranges <- list(c(-250, -50, -10, 0, 10, 50, 200), # AC atx
-                      c(-250, -50, -10, 0, 10, 50, 200), # AC atx w cover
-                      c(0, 2, 4), # AC cover,
-                      c(-50, -10, 0, 10, 50, 200), # M atx
-                      c(-50, 10, 0, 10, 50, 200), # M atx w/cover
-                      c(-10, -1, 0, 1)) # M cover
+custom_ranges <- list(c(-50, -10, 0, 10), # AC atx
+                      c(0, 5, 10, 25), # AC atx w cover
+                      c(0, 1, 2), # AC cover,
+                      c(-10, 0, 10, 50), # M atx
+                      c(-10, 0, 10, 50), # M atx w/cover
+                      c(-5, -1, 0)) # M cover
 
 # empty list for plots
 best_param_plots <- list()

@@ -1,9 +1,9 @@
-#### Main figure and supplemental figures showing parameter estimates from predictive models
+#### Supplemental figures showing parameter estimates from predictive models
 ### Jordan Zabrecky
-## last edited: 9.15.25
+## last edited: 9.24.25
 
 ## This code makes figures to show our parameter estimates for all models (supplemental)
-## and then a main figure for just models with all predictors
+## and is used when pulling in data to make figures 6 & 7
 
 #### (1) Loading libraries and data ####
 
@@ -63,7 +63,7 @@ ggplot(data = param_est_list[[4]], aes(y = parameters_f)) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   scale_color_manual(values = palette) +
   scale_x_continuous(trans = pseudolog10_trans,
-                     breaks = c(-50, -15, -5, 0, 5)) +
+                     breaks = c(-15, -5, -1, 0, 1)) +
   theme(strip.background = element_blank()) + # get rid of gray background for facet title
   theme(legend.position = "none") +
   labs(x = "posterior estimates", y = "", title = "Posterior Estimates of Models Predicting *Microcoleus* Cover") +
@@ -82,7 +82,7 @@ ggplot(data = param_est_list[[2]], aes(y = parameters_f)) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   scale_color_manual(values = palette) +
   scale_x_continuous(trans = pseudolog10_trans,
-                     breaks = c(-10, -5, 0, 5, 10)) +
+                     breaks = c(-5, -1, 0, 1, 5)) +
   theme(strip.background = element_blank()) + # get rid of gray background for facet title
   theme(legend.position = "none") +
   labs(x = "posterior estimates", y = "", title = "Posterior Estimates of Models Predicting *Anabaena/Cylindrospermum* Cover") +
@@ -101,7 +101,7 @@ ggplot(data = param_est_list[[3]], aes(y = parameters_f)) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   scale_color_manual(values = palette) +
   scale_x_continuous(trans = pseudolog10_trans,
-                     breaks = c(-200, -10, 0, 10, 200)) +
+                     breaks = c(-50, -10, 0, 10,50)) +
   theme(strip.background = element_blank()) + # get rid of gray background for facet title
   theme(legend.position = "none") +
   labs(x = "posterior estimates", y = "", title = "Posterior Estimates of Models Predicting *Microcoleus* Mat Anatoxins") +
@@ -120,7 +120,7 @@ ggplot(data = param_est_list[[1]], aes(y = parameters_f)) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   scale_color_manual(values = palette) +
   scale_x_continuous(trans = pseudolog10_trans,
-                     breaks = c(-200, -10, 0, 10, 200)) +
+                     breaks = c(-50, -10, 0, 10, 50)) +
   theme(strip.background = element_blank()) + # get rid of gray background for facet title
   theme(legend.position = "none") +
   labs(x = "posterior estimates", y = "", title = "Posterior Estimates of Models Predicting *Anabaena/Cylindrospermum* Mat Anatoxins") +

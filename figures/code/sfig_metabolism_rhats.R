@@ -1,6 +1,6 @@
 #### Supplemental figure for r-hats for metabolism models
 ### Jordan Zabrecky
-## last edited: 07.21.2025
+## last edited: 09.24.2025
 
 ## This script produces a figure displaying all r-hats for each metabolism
 ## parameter (GPP, ER, K600) and demonstrates that they are all below 1.05
@@ -55,7 +55,7 @@ figure <- ggplot(data = metab_final, aes(x = field_date, y = r_hat)) +
                                        `GPP_Rhat` = "GPP Daily R-hats",
                                        `ER_Rhat` = "ER Daily R-hats",
                                        `K600_daily_Rhat` = "*K~600~* Daily R-hats"))) +
-  ylim(1.00, 1.06) +
+  #ylim(1.00, 1.06) +
   geom_hline(yintercept = 1.05, linetype = "dashed", color = "red", linewidth = 1.02)+
   theme_bw() +
   theme(strip.background = element_blank()) +

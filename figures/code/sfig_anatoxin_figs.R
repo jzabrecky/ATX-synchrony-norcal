@@ -1,6 +1,6 @@
 #### Supplemental figures related to anatoxin concentrations
 ### Jordan Zabrecky
-## last edited: 08.065.2025
+## last edited: 08.05.2025
 
 # These figures show (1) the proportion of anatoxin congeners for each sample,
 # (2) the difference between anatoxins normalized per organic matter vs. chl-a,

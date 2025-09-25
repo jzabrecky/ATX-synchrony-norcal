@@ -1,17 +1,11 @@
 #### Figure to show NRMSEs for all predictive models
 ### Jordan Zabrecky
-## last edited: 09.16.2025
+## last edited: 09.22.2025
 
-# redescribe what code is doing
-# still TBD on the main figure
-
-## Main figure shows the NRMSEs comparisons 
-## for all predicted models for all reaches
-## and compares to the null model (as indicated by a line) for that reach
-## Also, included Mann-Whitney test at end to compare across the two taxa 
-## and including vs. not including cover when predicting ATX
-
-# trying supplemental vs. main figure
+## Main figure that shows the NRMSEs comparisons between M vs. AC cover and anatoxins
+## models and M & AC anatoxin models not including cover as a covariate and including 
+## cover as a covariate with each model in the background versus the null model for that reach
+## plus the old NRMSE figure (which will not be used?)
 
 #### (1) Loading libraries and data ####
 
@@ -33,7 +27,10 @@ NRMSEs <- ldply(list.files(path = "./data/predictive_models/", pattern = "nrmse"
                                                   site_reach == "SFE-M-2" ~ "SFE-Lower-2",
                                                   site_reach == "SFE-M-3" ~ "SFE-Lower-3",
                                                   site_reach == "SFE-M-4" ~ "SFE-Lower-4",
-                                                  site_reach == "SFE-SH-1S" ~ "SFE-Upper-1S")) %>% 
+                                                  site_reach == "SFE-SH-1S" ~ "SFE-Upper-1S")) %>%
+                    # make a column to indicate if model was omitted or not
+                    mutate(omitted = case_when(is.na(mean) ~ TRUE,
+                                               TRUE ~ FALSE)) %>% 
                     # site reach separation for models with cover and without
                     mutate(site_reach_cover = case_when(grepl("w_cover", model) ~ paste(site_reach, "_w_cover", sep = ""),
                                                         TRUE ~ site_reach)) %>% 
@@ -64,6 +61,24 @@ NRMSEs <- ldply(list.files(path = "./data/predictive_models/", pattern = "nrmse"
                   return(d)
                 })
 
+# fill in dummy variables for missing data from omitted models
+omitted_models <- data.frame(site_reach = rep("SFE-Lower-1S", 4),
+                             model = c("all", "ecohydrological", "biological", "biochemical"),
+                             mean = rep(0.5, 4),
+                             ci_lower = rep(0.5, 4),
+                             ci_upper = rep(0.5, 4),
+                             predicting = rep("AC_cover", 4),
+                             omitted = rep(TRUE, 4),
+                             site_reach_cover = rep("SFE-Lower-1S_w_cover"),
+                             model_base = c("all", "ecohydrological", "biological", "biochemical"),
+                             cover_covariate = rep(FALSE, 4),
+                             predicting_w_cover = rep("AC_cover", 4),
+                             model_base_f = c("all", "ecohydrological", "biological", "biochemical"),
+                             model_f = c("all", "ecohydrological", "biological", "biochemical"),
+                             predicting_f = rep("AC_cover", 4))
+
+# bind together with NRMSEs
+NRMSEs <- rbind(NRMSEs, omitted_models)
 
 # separate out nulls
 NRMSE_nonull <- NRMSEs %>% filter(model!= "null")
@@ -84,9 +99,70 @@ theme_set(theme_bw() + theme(legend.position = "top",
 
 # palettes
 palette <- c("#E8DE48", "#B4D65E", "#8BCF6F", "#57C785", "#47A27E", "#387E77", "#1E426B")
-palette_w_cover <- c("#E8DE48", "#F0E985", "#B4D65E", "#CDE494", "#8BCF6F", "#B2DF9F", 
-                     "#57C785", "#8FDAAE", "#47A27E", "#84C1A9", "#387E77", 
-                     "#7AA9A4", "#1E426B", "#69819C")
+#palette_w_cover <- c("#E8DE48", "#F0E985", "#B4D65E", "#CDE494", "#8BCF6F", "#B2DF9F", 
+#                     "#57C785", "#8FDAAE", "#47A27E", "#84C1A9", "#387E77", 
+#                     "#7AA9A4", "#1E426B", "#69819C") where cover is slightly lighter in color
+palette_w_cover <- c("#E8DE48", "#E8DE48", "#B4D65E", "#B4D65E", "#8BCF6F", "#8BCF6F", 
+                     "#57C785",  "#57C785", "#47A27E", "#47A27E", "#387E77", "#387E77", 
+                     "#1E426B", "#1E426B")
+# for AC cover which has omitted models
+
+# create dataframe of segments for null data ()
+null_list <- split(NRMSE_nulls, NRMSE_nulls$predicting)
+names(null_list) <- unique(NRMSE_nulls$predicting)
+null_data <- list()
+# for cover comparison
+null_data$'cover' <- data.frame(site_reach = c(null_list$M_cover$site_reach, 
+                                            null_list$AC_cover$site_reach),
+                             x_start = c(0.55, 0.73, 0.91, 1.09, 1.27,
+                                         1.55, 1.73, 1.91, 2.09, 2.27),
+                             x_end = c(0.73, 0.91, 1.09, 1.27, 1.45,
+                                       1.73, 1.91, 2.09, 2.27, 2.45),
+                             y_start = c(null_list$M_cover$mean, 
+                                         null_list$AC_cover$mean),
+                             y_end = c(null_list$M_cover$mean, 
+                                       null_list$AC_cover$mean),
+                             predicting_f = c(null_list$M_cover$predicting_f,
+                                              null_list$AC_cover$predicting_f))
+# for atx comparison
+null_data$'atx' <- data.frame(site_reach = c(null_list$M_atx$site_reach, 
+                                               null_list$AC_atx$site_reach),
+                                x_start = c(0.525, 0.715, 0.905, 1.095, 1.285,
+                                            1.525, 1.715, 1.905, 2.095, 2.285),
+                                x_end = c(0.715, 0.905, 1.095, 1.285, 1.475,
+                                          1.715, 1.905, 2.095, 2.285, 2.475),
+                                y_start = c(null_list$M_atx$mean, 
+                                            null_list$AC_atx$mean),
+                                y_end = c(null_list$M_atx$mean, 
+                                          null_list$AC_atx$mean),
+                                predicting_f = c(null_list$M_atx$predicting_f,
+                                                 null_list$AC_atx$predicting_f))
+# for M atx comparison
+null_data$'M_atx' <- data.frame(site_reach = c(null_list$M_atx$site_reach, 
+                                             null_list$M_atx$site_reach),
+                                x_start = c(0.55, 0.73, 0.91, 1.09, 1.27,
+                                            1.55, 1.73, 1.91, 2.09, 2.27),
+                                x_end = c(0.73, 0.91, 1.09, 1.27, 1.45,
+                                          1.73, 1.91, 2.09, 2.27, 2.45),
+                              y_start = c(null_list$M_atx$mean, 
+                                          null_list$M_atx$mean),
+                              y_end = c(null_list$M_atx$mean, 
+                                        null_list$M_atx$mean),
+                              predicting_f = c(null_list$M_atx$predicting_f,
+                                               null_list$M_atx$predicting_f))
+# for AC atx comparison
+null_data$'AC_atx' <- data.frame(site_reach = c(null_list$AC_atx$site_reach, 
+                                               null_list$AC_atx$site_reach),
+                                 x_start = c(0.55, 0.73, 0.91, 1.09, 1.27,
+                                             1.55, 1.73, 1.91, 2.09, 2.27),
+                                 x_end = c(0.73, 0.91, 1.09, 1.27, 1.45,
+                                           1.73, 1.91, 2.09, 2.27, 2.45),
+                                y_start = c(null_list$AC_atx$mean, 
+                                            null_list$AC_atx$mean),
+                                y_end = c(null_list$AC_atx$mean, 
+                                          null_list$AC_atx$mean),
+                                predicting_f = c(null_list$AC_atx$predicting_f,
+                                                 null_list$AC_atx$predicting_f))
 
 # summarizing based on taxa and then based on if cover is included
 mean_NRMSE_taxa <- NRMSE_nonull %>%
@@ -108,37 +184,34 @@ mean_nulls_cover <- NRMSE_nulls %>%
 
 ##  making figure
 
-# cover comparison AC vs M.
+# cover comparison AC vs M. (note special alpha for omitted)
 cover_comparison <- ggplot() +
   geom_errorbar(data = NRMSE_nonull %>% filter(predicting_f == "M_cover" |
                                                  predicting_f == "AC_cover"), 
                 aes(x = predicting_f, ymin = ci_lower, ymax = ci_upper, 
-                    y = mean, color = model_f, shape = site_reach), 
-                position = position_dodge(width=0.7),
-                alpha = 0.75, width = 0.5) +
+                    y = mean, shape = site_reach, color = model_f, alpha = omitted), 
+                position = position_dodge(width=0.9), linewidth = 0.2, width = 0.5) +
   geom_point(data = NRMSE_nonull %>% filter(predicting_f == "M_cover" |
                                               predicting_f == "AC_cover"), 
              aes(x = predicting_f, y = mean,
-                 color = model_f, shape = site_reach, fill = model_f), 
-             position = position_dodge(width=0.7), alpha = 0.75, size = 0.9) +
+                 shape = site_reach, color = model_f, fill = model_f, alpha = omitted), 
+             position = position_dodge(width=0.9), size = 0.8) +
   geom_errorbar(data = mean_NRMSE_taxa %>% filter(predicting_f == "M_cover" |
                                                  predicting_f == "AC_cover"), 
                 aes(ymin = mean_ci_lower, ymax = mean_ci_upper, 
-                    x = predicting_f), color = "#2e2e2e", linewidth = 1.2,
-                width = 0.5, position = position_dodge(width=0.3), alpha = 0.9)  +
+                    x = predicting_f), color = "#2e2e2e",  linewidth = .8,
+                width = 0.2, alpha = 0.7)  +
   geom_point(data = mean_NRMSE_taxa %>% filter(predicting_f == "M_cover" |
                                                  predicting_f == "AC_cover"),
              aes(x = predicting_f, y = mean_mean), color = "#2e2e2e", fill = "white",
-             size = 3, alpha = 0.9) +
+             size = 1.5, stroke = 1.1, alpha = 0.7, shape = 16) +
   scale_color_manual(values = palette) +
   scale_shape_manual(values = c(21, 22, 23, 24, 25)) +
   scale_fill_manual(values = palette) + 
-  geom_segment(aes(x = c(0.55,1.55), xend = c(1.45, 2.45),
-                   y = c(mean_nulls_taxa$mean_mean[which(mean_nulls_taxa$predicting_f == "M_cover")],
-                         mean_nulls_taxa$mean_mean[which(mean_nulls_taxa$predicting_f == "AC_cover")]), 
-                   yend = c(mean_nulls_taxa$mean_mean[which(mean_nulls_taxa$predicting_f == "M_cover")],
-                            mean_nulls_taxa$mean_mean[which(mean_nulls_taxa$predicting_f == "AC_cover")])),
-               linewidth = 1, alpha = 0.8, linetype = "dashed") +
+  scale_alpha_manual(values = c(1, 0)) +
+  geom_segment(data = null_data$cover, aes(x = x_start, xend = x_end,
+                                         y = y_start, yend = y_end),
+               linewidth = 0.4, linetype = "11", color = "#2e2e2e") +
   theme(legend.position = "none")
 cover_comparison
 
@@ -147,32 +220,28 @@ atx_comparison <- ggplot() +
   geom_errorbar(data = NRMSE_nonull %>% filter(predicting_f == "M_atx" |
                                                  predicting_f == "AC_atx"), 
                 aes(x = predicting_f, ymin = ci_lower, ymax = ci_upper, 
-                    y = mean, color = model_f, shape = site_reach), 
-                position = position_dodge(width=0.95),
-                alpha = 0.75, width = 0.5) +
+                    y = mean, shape = site_reach, color = model_f), 
+                position = position_dodge(width=0.95), linewidth = 0.2, width = 0.5) +
   geom_point(data = NRMSE_nonull %>% filter(predicting_f == "M_atx" |
                                               predicting_f == "AC_atx"), 
-             aes(x = predicting_f, y = mean,
-                 color = model_f, shape = site_reach, fill = model_f), 
-             position = position_dodge(width=0.95), alpha = 0.75, size = 0.9) +
+             aes(x = predicting_f, y = mean, shape = site_reach,
+                 color = model_f, fill = model_f), 
+             position = position_dodge(width=0.95), size = 0.8) +
   geom_errorbar(data = mean_NRMSE_taxa %>% filter(predicting_f == "M_atx" |
                                                     predicting_f == "AC_atx"), 
                 aes(ymin = mean_ci_lower, ymax = mean_ci_upper, 
-                    x = predicting_f), color = "#2e2e2e", linewidth = 1.2,
-                width = 0.5, alpha = 0.9)  +
+                    x = predicting_f), color = "#2e2e2e", linewidth = .8,
+                width = 0.2, alpha = 0.7)  +
   geom_point(data = mean_NRMSE_taxa %>% filter(predicting_f == "M_atx" |
                                                  predicting_f == "AC_atx"),
              aes(x = predicting_f, y = mean_mean), color = "#2e2e2e", fill = "white",
-             size = 3, alpha = 0.9) +
+             size = 1.5, stroke = 1.1, alpha = 0.7, shape = 16) +
   scale_color_manual(values = palette_w_cover) +
   scale_shape_manual(values = c(21, 22, 23, 24, 25)) +
   scale_fill_manual(values = palette_w_cover) + 
-  geom_segment(aes(x = c(0.55,1.55), xend = c(1.45, 2.45),
-                   y = c(mean_nulls_taxa$mean_mean[which(mean_nulls_taxa$predicting_f == "M_atx")],
-                         mean_nulls_taxa$mean_mean[which(mean_nulls_taxa$predicting_f == "AC_atx")]), 
-                   yend = c(mean_nulls_taxa$mean_mean[which(mean_nulls_taxa$predicting_f == "M_atx")],
-                            mean_nulls_taxa$mean_mean[which(mean_nulls_taxa$predicting_f == "AC_atx")])),
-               linewidth = 1, alpha = 0.8, linetype = "dashed") +
+  geom_segment(data = null_data$atx, aes(x = x_start, xend = x_end,
+                                           y = y_start, yend = y_end),
+               linewidth = 0.4, linetype = "11", color = "#2e2e2e") +
   theme(legend.position = "none")
 atx_comparison
   
@@ -180,29 +249,25 @@ atx_comparison
 M_atx_comparison <- ggplot() +
   geom_errorbar(data = NRMSE_nonull %>% filter(predicting_f == "M_atx"), 
                 aes(x = interaction(predicting_f, cover_covariate), ymin = ci_lower, ymax = ci_upper, 
-                    y = mean, color = model_f, shape = site_reach), 
-                position = position_dodge(width=0.7),
-                alpha = 0.75, width = 0.5) +
+                    y = mean, shape = site_reach, color = model_f), 
+                position = position_dodge(width=0.9), linewidth = 0.2, width = 0.5) +
   geom_point(data = NRMSE_nonull %>% filter(predicting_f == "M_atx"), 
              aes(interaction(predicting_f, cover_covariate), y = mean,
-                 color = model_f, shape = site_reach, fill = model_f), 
-             position = position_dodge(width=0.7), alpha = 0.75, size = 0.9) +
+                 shape = site_reach, color = model_f, fill = model_f), 
+             position = position_dodge(width=0.9), size = 0.8) +
   geom_errorbar(data = mean_NRMSE_cover %>% filter(predicting_f == "M_atx"), 
                 aes(ymin = mean_ci_lower, ymax = mean_ci_upper, 
-                    interaction(predicting_f, cover_covariate)), color = "#2e2e2e", linewidth = 1.2,
-                width = 0.5, alpha = 0.9)  +
+                    interaction(predicting_f, cover_covariate)), color = "#2e2e2e", linewidth = .8,
+                width = 0.2, alpha = 0.7)  +
   geom_point(data = mean_NRMSE_cover %>% filter(predicting_f == "M_atx"),
              aes(x = interaction(predicting_f, cover_covariate), y = mean_mean), color = "#2e2e2e", fill = "white",
-             size = 3, alpha = 0.9) +
+             size = 1.5, stroke = 1.1, alpha = 0.7, shape = 16) +
   scale_color_manual(values = palette_w_cover) +
   scale_shape_manual(values = c(21, 22, 23, 24, 25)) +
   scale_fill_manual(values = palette_w_cover) + 
-  geom_segment(aes(x = 0.55, xend = 2.45,
-                   # only one null model for microcoleus anatoxins
-                   y = mean_nulls_taxa$mean_mean[which(mean_nulls_cover$predicting_f == "M_atx")],
-                   yend =  mean_nulls_taxa$mean_mean[which(mean_nulls_cover$predicting_f == "M_atx" & 
-                                                               mean_nulls_cover$cover_covariate == FALSE)]),
-               linewidth = 1, alpha = 0.8, linetype = "dashed") +
+  geom_segment(data = null_data$M_atx, aes(x = x_start, xend = x_end,
+                                            y = y_start, yend = y_end),
+               linewidth = 0.4, linetype = "11", color = "#2e2e2e") +
   theme(legend.position = "none")
 M_atx_comparison
 
@@ -210,48 +275,78 @@ M_atx_comparison
 AC_atx_comparison <- ggplot() +
   geom_errorbar(data = NRMSE_nonull %>% filter(predicting_f == "AC_atx"), 
                 aes(x = interaction(predicting_f, cover_covariate), ymin = ci_lower, ymax = ci_upper, 
-                    y = mean, color = model_f, shape = site_reach), 
-                position = position_dodge(width=0.7),
-                alpha = 0.75, width = 0.5) +
+                    y = mean, shape = site_reach, color = model_f), 
+                position = position_dodge(width=0.9), linewidth = 0.2, width = 0.5) +
   geom_point(data = NRMSE_nonull %>% filter(predicting_f == "AC_atx"), 
-             aes(interaction(predicting_f, cover_covariate), y = mean,
-                 color = model_f, shape = site_reach, fill = model_f), 
-             position = position_dodge(width=0.7), alpha = 0.75, size = 0.8) +
+             aes(interaction(predicting_f, cover_covariate), y = mean, shape = site_reach,
+                 color = model_f, fill = model_f), 
+             position = position_dodge(width=0.9), size = 0.8) +
   geom_errorbar(data = mean_NRMSE_cover %>% filter(predicting_f == "AC_atx"), 
                 aes(ymin = mean_ci_lower, ymax = mean_ci_upper, 
-                    interaction(predicting_f, cover_covariate)), color = "#2e2e2e", linewidth = 1.2,
-                width = 0.5, alpha = 0.9)  +
+                    interaction(predicting_f, cover_covariate)), color = "#2e2e2e", linewidth = .8,
+                width = 0.2, alpha = 0.7)  +
   geom_point(data = mean_NRMSE_cover %>% filter(predicting_f == "AC_atx"),
              aes(x = interaction(predicting_f, cover_covariate), y = mean_mean), color = "#2e2e2e", fill = "white",
-             size = 3, alpha = 0.9) +
+             size = 1.5, stroke = 1.1, alpha = 0.7, shape = 16) +
   scale_color_manual(values = palette_w_cover) +
   scale_shape_manual(values = c(21, 22, 23, 24, 25)) +
   scale_fill_manual(values = palette_w_cover) + 
-  geom_segment(aes(x = 0.55, xend = 2.45,
-                   # only one null model for microcoleus anatoxins
-                   y = mean_nulls_taxa$mean_mean[which(mean_nulls_cover$predicting_f == "AC_atx")],
-                   yend =  mean_nulls_taxa$mean_mean[which(mean_nulls_cover$predicting_f == "AC_atx" & 
-                                                             mean_nulls_cover$cover_covariate == FALSE)]),
-               linewidth = 1, alpha = 0.8, linetype = "dashed") +
+  geom_segment(data = null_data$AC_atx, aes(x = x_start, xend = x_end,
+                                           y = y_start, yend = y_end),
+               linewidth = 0.4, linetype = "11", color = "#2e2e2e") +
   theme(legend.position = "none")
 AC_atx_comparison
 
-main <- plot_grid(cover_comparison, atx_comparison, M_atx_comparison, AC_atx_comparison,
-                  align = "hv", ncol = 2)
+# version for legend
+legend <- ggplot() +
+  geom_errorbar(data = NRMSE_nonull %>% filter(predicting_f == "AC_atx"), 
+                aes(x = interaction(predicting_f, cover_covariate), ymin = ci_lower, ymax = ci_upper, 
+                    y = mean, shape = site_reach, color = model_f), 
+                position = position_dodge(width=0.7), linewidth = 0.2, width = 0.5) +
+  geom_point(data = NRMSE_nonull %>% filter(predicting_f == "AC_atx"), 
+             aes(interaction(predicting_f, cover_covariate), y = mean, shape = site_reach,
+                 color = model_f, fill = model_f), 
+             position = position_dodge(width=0.7), size = 0.8) +
+  geom_errorbar(data = mean_NRMSE_cover %>% filter(predicting_f == "AC_atx"), 
+                aes(ymin = mean_ci_lower, ymax = mean_ci_upper, 
+                    interaction(predicting_f, cover_covariate)), color = "#2e2e2e", linewidth = .8,
+                width = 0.2, alpha = 0.7)  +
+  geom_point(data = mean_NRMSE_cover %>% filter(predicting_f == "AC_atx"),
+             aes(x = interaction(predicting_f, cover_covariate), y = mean_mean), color = "#2e2e2e", fill = "white",
+             size = 1.5, stroke = 1.1, alpha = 0.7, shape = 16) +
+  scale_color_manual(values = palette_w_cover) +
+  scale_shape_manual(values = c(21, 22, 23, 24, 25)) +
+  scale_fill_manual(values = palette_w_cover) + 
+  geom_segment(data = null_data$AC_atx, aes(x = x_start, xend = x_end,
+                                            y = y_start, yend = y_end),
+               linewidth = 0.4, linetype = "11", color = "#2e2e2e") +
+  theme(legend.position = "right")
+legend
+
+ggsave(paste("./figures/fig_NRMSEs_legend.tiff"), dpi = 600,
+       width = 9, height = 13, unit = "cm")
+
+#### (3) Putting together plots & saving ####
+
+main <- plot_grid(cover_comparison, NA, M_atx_comparison, AC_atx_comparison,
+                  align = "hv", ncol = 2) +
+  theme(plot.background = element_rect(fill = "white", color = "white")) # white background
 main
+# dropping atx as it's redundant
 
 # save to fit dimensions of one column
-ggsave(paste("./figures/fig_NRMSEs_notfinal.tiff", sep = ""), 
-       dpi = 600, width = 18, height = 10, unit = "cm")
+ggsave("./figures/fig_NRMSEs_notfinal.tiff", 
+       dpi = 600, width = 18, height = 11, unit = "cm")
+# want to try to change linewidth!!
 
-#### (2) Making plots ####
+#### (4) Old Plots ####
 
 # color palette
 palette_outline <- c("#a8a231", "#839c46", "#608f4d", "#3f8f60", "#34755b", "#2a5e59", "#152f4d")
 palette_fill <- c("#F0E985", "#CDE494", "#B2DF9F", "#8FDAAE", "#84C1A9", "#7AA9A4", "#69819C")
 
 
-# create dataframe of segments for null data ()
+# create dataframe of segments for null data () with new spacing intervals
 null_list <- split(NRMSE_nulls, NRMSE_nulls$predicting)
 null_data <- list()
 for(i in 1:length(null_list)) {
@@ -326,7 +421,7 @@ atx_plot <- ggplot(data = atx_data, aes(x = site_reach_cover))  +
   theme(strip.background = element_blank())
 atx_plot
 
-#### (3) Putting together plots & saving ####
+## putting together old plots & saving
 
 # putting all together
 all <- plot_grid(cover_plot, atx_plot, nrow = 1, rel_widths = c(1.25,2), scale = 0.98) +
@@ -334,33 +429,33 @@ all <- plot_grid(cover_plot, atx_plot, nrow = 1, rel_widths = c(1.25,2), scale =
 all
 
 # save plot
-ggsave(paste("./figures/sfig_NRMSEs_notfinal.tiff", sep = ""), 
-       dpi = 600, width = 18, height = 13, unit = "cm")
+#ggsave(paste("./figures/sfig_NRMSEs_notfinal.tiff", sep = ""), 
+#       dpi = 600, width = 18, height = 13, unit = "cm")
 
 # save legend
-legend <- ggplot(data = cover_data, aes(x = site_reach)) +
-  geom_vline(xintercept = c(1:5)+0.5, linetype = "dashed", color = "gray") +
-  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper, color = model_base_f), 
-                position = position_dodge(width=0.5)) +
-  geom_point(aes(y = mean, color = model_base_f, fill = model_base_f, shape = model_base_f), 
-             position = position_dodge(width=0.5), size = 3) +
-  geom_segment(data = null_cover_data, aes(x = x_start, xend = x_end,
-                                           y = y_start, yend = y_end),
-               linewidth = 0.8, alpha = 0.75) +
-  scale_color_manual(values = palette_outline) +
-  scale_fill_manual(values = palette_fill) +
-  scale_shape_manual(values = c(21, 22, 23, 21, 22, 23, 21)) +
-  labs(x = NULL, y = "NRMSE") +
-  theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
-  facet_wrap(~predicting_f, ncol = 1) +
-  theme(strip.background = element_blank())
-legend
+#legend <- ggplot(data = cover_data, aes(x = site_reach)) +
+#  geom_vline(xintercept = c(1:5)+0.5, linetype = "dashed", color = "gray") +
+#  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper, color = model_base_f), 
+#                position = position_dodge(width=0.5)) +
+#  geom_point(aes(y = mean, color = model_base_f, fill = model_base_f, shape = model_base_f), 
+#             position = position_dodge(width=0.5), size = 3) +
+#  geom_segment(data = null_cover_data, aes(x = x_start, xend = x_end,
+#                                           y = y_start, yend = y_end),
+#               linewidth = 0.8, alpha = 0.75) +
+#  scale_color_manual(values = palette_outline) +
+#  scale_fill_manual(values = palette_fill) +
+#  scale_shape_manual(values = c(21, 22, 23, 21, 22, 23, 21)) +
+#  labs(x = NULL, y = "NRMSE") +
+#  theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
+#  facet_wrap(~predicting_f, ncol = 1) +
+#  theme(strip.background = element_blank())
+#legend
 
 # save plot
-ggsave(paste("./figures/sfig_NRMSEs_legend.tiff", sep = ""), 
-       dpi = 600, width = 18, height = 12, unit = "cm")
+#ggsave(paste("./figures/sfig_NRMSEs_legend.tiff", sep = ""), 
+#       dpi = 600, width = 18, height = 12, unit = "cm")
 
-#### (4) Miscellaneous Questions ####
+#### (5) Miscellaneous Questions ####
 
 ## how do mean NRMSE of taxa-specific cover predictions and anatoxin predictions compare?
 taxa_specific_NRMSE <- NRMSE_nonull %>% 
@@ -370,7 +465,7 @@ taxa_specific_NRMSE <- NRMSE_nonull %>%
                    mean_upper = mean(ci_upper))
 
 # add in reach grouping
-taxa_specific_NRMSE <- NRMSE_nonull %>% 
+taxa_specific_NRMSE_reach <- NRMSE_nonull %>% 
   dplyr::group_by(predicting, site_reach) %>% 
   dplyr::summarize(mean_NRMSE = mean(mean),
                    mean_lower = mean(ci_lower),
@@ -395,29 +490,17 @@ outperforming_by_reach <- NRMSEs_withnulls %>%
                    outperforming_null = sum(mean.x < mean.y))
 
 ## what is the difference in NRMSE for atx models with and without cover?
-taxa_specific_NRMSE <- NRMSE_nonull %>% 
+taxa_specific_NRMSE_w_cover <- NRMSE_nonull %>% 
   dplyr::group_by(predicting, cover_covariate) %>% 
   dplyr::summarize(mean_NRMSE = mean(mean),
                    mean_lower = mean(ci_lower),
                    mean_upper = mean(ci_upper))
 
-## what were the best models for anatoxins prediction
-best_atx_models <- NRMSE_nonull %>% 
-  filter(predicting == "M_atx" | predicting == "AC_atx") %>% 
+## what were the best models for prediction of cover and atx
+best_models <- NRMSE_nonull %>% 
   dplyr::group_by(model, predicting) %>% 
   dplyr::summarize(mean_NRMSE = mean(mean))
-best_atx_models_split <- split(best_atx_models, best_atx_models$predicting)
-view(best_atx_models_split$AC_atx)
-view(best_atx_models_split$M_atx)
-
-## curious about Mann-Whitney test
-shapiro.test(NRMSE_nonull$mean) # not normal, need to use nonparametric
-stats_test <- NRMSE_nonull %>% 
-  select(site_reach, model, mean, predicting_w_cover) %>%
-  # substitute manually for each
-  filter(predicting_w_cover == "AC_atx_w_cover" | predicting_w_cover ==  "AC_atx")
-wilcox.test(mean ~ predicting_w_cover, data = stats_test)
-# comparing AC cover & M cover p = 3.809e-08
-# also same ("significant") as above for AC atx & M atx, p = 7.544e-09
-# comparing AC atx with and without cover p = 6.081e-06
-# comparing M atx with and without cover p = 0.5055; no difference!
+best_models_split <- split(best_models, best_models$predicting)
+view(best_models_split$AC_atx)
+view(best_models_split$AC_cover)
+view(best_models_split$M_atx)
