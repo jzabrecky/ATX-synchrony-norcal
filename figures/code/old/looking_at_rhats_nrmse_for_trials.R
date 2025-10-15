@@ -220,3 +220,24 @@ ac_atx_rhats <- ldply(list.files(path = "./data/predictive_models/AC_atx_models/
 
 bad_model_ac_atx <- readRDS("./data/predictive_models/M_atx_models/all_SFE-M-3")
 shinystan::launch_shinystan(bad_model_ac_atx)
+
+
+### starting value test
+ac_0.05 <- read.csv("./data/predictive_models/compare_zero_sub_values/0.05/nrmse_AC_cover.csv") %>% 
+  mutate(starting_value = 0.05)
+ac_0.025 <- read.csv("./data/predictive_models/compare_zero_sub_values/0.025/nrmse_AC_cover.csv") %>% 
+  mutate(starting_value = 0.025)
+ac_0.01 <- read.csv("./data/predictive_models/compare_zero_sub_values/0.01/nrmse_AC_cover.csv") %>% 
+  mutate(starting_value = 0.01)
+m_0.05 <- read.csv("./data/predictive_models/compare_zero_sub_values/0.05/nrmse_M_cover.csv") %>% 
+  mutate(starting_value = 0.05)
+m_0.025 <- read.csv("./data/predictive_models/compare_zero_sub_values/0.025/nrmse_M_cover.csv") %>% 
+  mutate(starting_value = 0.025)
+m_0.01 <- read.csv("./data/predictive_models/compare_zero_sub_values/0.01/nrmse_M_cover.csv") %>% 
+  mutate(starting_value = 0.01)
+m_nrmse <- rbind(m_0.05, m_0.025, m_0.01) %>% 
+  dplyr::group_by(starting_value) %>% 
+  dplyr::summarize(mean = mean(mean))
+ac_nrmse <- rbind(ac_0.05, ac_0.025, ac_0.01) %>% 
+  dplyr::group_by(starting_value) %>% 
+  dplyr::summarize(mean = mean(mean))

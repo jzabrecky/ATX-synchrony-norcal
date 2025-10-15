@@ -1,10 +1,11 @@
-#### models to predict cover
+#### models to predict anatoxins for Anabaena/Cylindrospermum
 ### Jordan Zabrecky
 ## last edited: 07.30.2025
 
-# This script builds models to predict cover of benthic Anabaena/Cylindrospermum
-# anatoxins as determined by benthic anatoxins surveys. Each model is built using 4 of 
-# 5 reaches, then the model is tested using the withheld fifth reach
+# This script builds models to predict benthic Anabaena/Cylindrospermum anatoxins
+# as determined by composite Anabaena/Cylindrospermum sample anatoxin concentrations. 
+# Each model is built using data from 4 of 5 reaches, then the model is tested 
+# using the withheld fifth reach
 
 #### (1) Loading data and libraries ####
 
@@ -45,14 +46,7 @@ field_dates <- rbind(field_dates, data.frame(site_reach = unique(field_dates$sit
                                              field_date = rep("2023-09-24", 5)))
 field_dates <- split(field_dates, field_dates$site_reach)
 
-#### (3) Create empty tables for predictions and nRMSE ####
-
-# empty RMSE data frame
-nrmse <- data.frame(site_reach = NA,
-                    model = NA,
-                    mean = NA,
-                    ci_lower = NA,
-                    ci_upper = NA)
+#### (3) Create empty tables for predictions ####
 
 # empty dataframes for predictions (list of model types and then list within per reach)
 model_names <- c("null", "physical", "physical_w_cover", "chemical", "chemical_w_cover", 
@@ -86,28 +80,6 @@ names(predictions) <- model_names
 # all = autoregressive w/ all covariates
 # w_cover includes the addition of cover at the end!!
 
-# ADD THIS TO SUPPLEMENTAL SCRIPTS LATER
-# function to make list of covariates training and testing for each model
-make_covariates <- function(covariates) {
-  
-  # create empty lists
-  training_list = list()
-  testing_list = list()
-  
-  # assign covariates for each reach grouping
-  for(i in 1:length(test_sites)) {
-    training_list[[i]] = as.matrix(training_sites[[i]] %>% 
-                                     select(all_of(covariates)))
-    testing_list[[i]] = as.matrix(test_sites[[i]] %>% 
-                                    select(all_of(covariates)))
-  }
-  
-  # create and return final list of the two combined
-  final_list = list(training_list, testing_list)
-  names(final_list) = c("training", "testing")
-  return(final_list)
-}
-
 #### (4) Predicting Anabaena/Cylindrospermum Mat Anatoxins ####
 
 # get prediction functions
@@ -118,26 +90,26 @@ source("./code/supplemental_code/S3b_pred_functions.R")
 # calculate mean to use for null model (this ignores first day which we are not predicting)
 mean_cover <- mean(data$future_AC_atx_norm)
 
-# add to predictions for each site and calculate nRMSE
+# add to predictions for each site and calculate NRMSE
 for(i in 1:length(test_sites)) {
   predictions$null[[i]]$mean <- rep(mean_cover, nrow(predictions$null[[i]]))
   predictions$null[[i]]$ci_lower <- rep(mean_cover, nrow(predictions$null[[i]]))
   predictions$null[[i]]$ci_upper <- rep(mean_cover, nrow(predictions$null[[i]]))
 }
 
-# calculate nRMSE 
+
+# empty vector for null NMRSE
+NRMSE <- c(rep(NA, length(test_sites)))
+
+# calculate NRMSE 
 for(i in 1:length(test_sites)) {
-  new <- data.frame(site_reach = names(test_sites)[i],
-                    model = "null")
   # (removing first row of prediction which is first day that we are not predicting!)
-  new$mean <- calc_nRMSE(predictions$null[[i]]$mean[-1], test_sites[[i]]$future_AC_atx_norm,
+  NRMSE[i] <- calc_NRMSE(predictions$null[[i]]$mean[-1], test_sites[[i]]$future_AC_atx_norm,
                          max(test_sites[[i]]$future_AC_atx_norm), min(test_sites[[i]]$future_AC_atx_norm))
-  new$ci_lower <- calc_nRMSE(predictions$null[[i]]$ci_lower[-1], test_sites[[i]]$future_AC_atx_norm,
-                             max(test_sites[[i]]$future_AC_atx_norm), min(test_sites[[i]]$future_AC_atx_norm))
-  new$ci_upper <- calc_nRMSE(predictions$null[[i]]$ci_upper[-1], test_sites[[i]]$future_AC_atx_norm,
-                             max(test_sites[[i]]$future_AC_atx_norm), min(test_sites[[i]]$future_AC_atx_norm))
-  nrmse <- rbind(nrmse, new)
 }
+
+# save null NMRSE
+write.csv(NRMSE, "./data/predictive_models/AC_atx_models/NRMSE_vectors/null.csv", row.names = FALSE)
 
 ## (b) all others (putting data together and then run through big for loop)
 
@@ -236,13 +208,16 @@ for(j in 2:length(predictions)) {
     # run STAN model
     # if there are warning issues, code may stop if running through whole script 
     # (if using cntl+shift+enter)
-    model <- stan(file = "./code/model_STAN_files/predicting_NOT_autoregressive.stan", 
-                 data = mod_data,
-                 chains = 3, iter = 10000, warmup = 5000, 
-                 control = list(adapt_delta = 0.95, max_treedepth = 13))
-    # save STAN model
-    saveRDS(model, paste("./data/predictive_models/AC_atx_models/", model_name, 
-                         "_", names(test_sites)[i], sep = ""))
+    # model <- stan(file = "./code/model_STAN_files/predicting_NOT_autoregressive.stan", 
+    #              data = mod_data,
+    #              chains = 3, iter = 10000, warmup = 5000, 
+    #              control = list(adapt_delta = 0.95, max_treedepth = 13))
+    # # save STAN model
+    # saveRDS(model, paste("./data/predictive_models/AC_atx_models/", model_name, 
+    #                      "_", names(test_sites)[i], sep = ""))
+    # ALTERNATIVELY, option instead to read RDS object if model already built
+    model <- readRDS(paste("./data/predictive_models/AC_atx_models/", model_name, 
+                           "_", names(test_sites)[i], sep = ""))
     # extract parameters
     params <- rstan::extract(model, c("sigma", "b0", "b"))
     # add mean parameter estimates to dataframe
@@ -257,10 +232,12 @@ for(j in 2:length(predictions)) {
                                covar = as.matrix(covariates[[j]]$testing[[i]]))
     # save summary of prediction; make sure to assign globally
     predictions[[j]][[i]][,2:4] <- preds_summary(preds_matrix)
-    # calculate nRMSE of model
-    nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$future_AC_atx_norm,
-                                        site_reach_name = names(test_sites)[i],
-                                        model_name = model_name))
+    # calculate NRMSE of model
+    NRMSE <- NRMSE_summary(preds_matrix, observed = test_sites[[i]]$future_AC_atx_norm)
+    # save NRMSE vector
+    write.csv(NRMSE, paste("./data/predictive_models/AC_atx_models/NRMSE_vectors/",
+                           model_name, "_", names(test_sites)[i], "_NRMSE.csv", sep = ""), 
+              row.names = FALSE)
   }
   
   # save rhats and mean parameter estimates
@@ -277,11 +254,7 @@ for(j in 2:length(predictions)) {
   
 }
 
-#### (5) Saving Outputs
-
-# saving nRMSE table
-write.csv(nrmse %>% na.omit(), "./data/predictive_models/nrmse_AC_atx.csv",
-          row.names = FALSE)
+#### (5) Saving Prediction Summary ####
 
 # adding site_reach and model name information to dataframe
 for(j in 1:length(test_sites)) {

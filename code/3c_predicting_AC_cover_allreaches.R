@@ -1,6 +1,6 @@
-#### models to predict cover
+#### models to predict cover for Anabaena/Cylindrospermum
 ### Jordan Zabrecky
-## last edited: 09.24.2025
+## last edited: 10.14.2025
 
 # This script builds models to predict cover of benthic Anabaena/Cylindrospermum
 # cover as determined by benthic cover surveys. Each model is built using 4 of 
@@ -52,14 +52,7 @@ field_dates <- rbind(field_dates, data.frame(site_reach = unique(field_dates$sit
                                              field_date = rep("2023-09-24", 5)))
 field_dates <- split(field_dates, field_dates$site_reach)
 
-#### (3) Create empty tables for predictions and nRMSE ####
-
-# empty RMSE data frame
-nrmse <- data.frame(site_reach = NA,
-                    model = NA,
-                    mean = NA,
-                    ci_lower = NA,
-                    ci_upper = NA)
+#### (3) Create empty tables for predictions ####
 
 # empty dataframes for predictions (list of model types and then list within per reach)
 model_names <- c("null", "physical", "chemical", "biological", "physicochemical",
@@ -90,27 +83,6 @@ names(predictions) <- model_names
 # biochemical = autoregressive w/ GPP, nutrients, and conductivity
 # all = autoregressive w/ all covariates
 
-# function to make list of covariates training and testing for each model
-make_covariates <- function(covariates) {
-  
-  # create empty lists
-  training_list = list()
-  testing_list = list()
-  
-  # assign covariates for each reach grouping
-  for(i in 1:length(test_sites)) {
-    training_list[[i]] = as.matrix(training_sites[[i]] %>% 
-                                     select(all_of(covariates)))
-    testing_list[[i]] = as.matrix(test_sites[[i]] %>% 
-                                    select(all_of(covariates)))
-  }
-  
-  # create and return final list of the two combined
-  final_list = list(training_list, testing_list)
-  names(final_list) = c("training", "testing")
-  return(final_list)
-}
-
 #### (4) Predicting Microcoleus Cover ####
 
 # get prediction functions
@@ -121,26 +93,25 @@ source("./code/supplemental_code/S3b_pred_functions.R")
 # calculate mean to use for null model (this ignores first day which we are not predicting)
 mean_cover <- mean(data$future_AC_cover_norm)
 
-# add to predictions for each site and calculate nRMSE
+# add to predictions for each site and calculate NRMSE
 for(i in 1:length(test_sites)) {
   predictions$null[[i]]$mean <- rep(mean_cover, nrow(predictions$null[[i]]))
   predictions$null[[i]]$ci_lower <- rep(mean_cover, nrow(predictions$null[[i]]))
   predictions$null[[i]]$ci_upper <- rep(mean_cover, nrow(predictions$null[[i]]))
 }
 
-# calculate nRMSE 
+# empty vector for null NMRSE
+NRMSE <- c(rep(NA, length(test_sites)))
+
+# calculate NRMSE 
 for(i in 1:length(test_sites)) {
-  new <- data.frame(site_reach = names(test_sites)[i],
-                    model = "null")
   # (removing first row of prediction which is first day that we are not predicting!)
-  new$mean <- calc_nRMSE(predictions$null[[i]]$mean[-1], test_sites[[i]]$future_AC_cover_norm,
+  NRMSE[i] <- calc_NRMSE(predictions$null[[i]]$mean[-1], test_sites[[i]]$future_AC_cover_norm,
                          max(test_sites[[i]]$future_AC_cover_norm), min(test_sites[[i]]$future_AC_cover_norm))
-  new$ci_lower <- calc_nRMSE(predictions$null[[i]]$ci_lower[-1], test_sites[[i]]$future_AC_cover_norm,
-                             max(test_sites[[i]]$future_AC_cover_norm), min(test_sites[[i]]$future_AC_cover_norm))
-  new$ci_upper <- calc_nRMSE(predictions$null[[i]]$ci_upper[-1], test_sites[[i]]$future_AC_cover_norm,
-                             max(test_sites[[i]]$future_AC_cover_norm), min(test_sites[[i]]$future_AC_cover_norm))
-  nrmse <- rbind(nrmse, new)
 }
+
+# save null NMRSE
+write.csv(NRMSE, "./data/predictive_models/AC_cover_models/NRMSE_vectors/null.csv", row.names = FALSE)
 
 ## (b) all others (putting data together and then run through big for loop)
 
@@ -209,13 +180,16 @@ for(j in 2:length(predictions)) {
                     present = training_sites[[i]]$resp_AC_cover_norm,
                     covar = as.matrix(covariates[[j]]$training[[i]]))
     # run STAN model
-    model <- stan(file = "./code/model_STAN_files/predicting_autoregressive.stan", 
-                 data = mod_data,
-                 chains = 3, iter = 10000, warmup = 5000, 
-                 control = list(adapt_delta = 0.95, max_treedepth = 12))
+    #model <- stan(file = "./code/model_STAN_files/predicting_autoregressive.stan", 
+    #             data = mod_data,
+    #             chains = 3, iter = 10000, warmup = 5000, 
+    #             control = list(adapt_delta = 0.95, max_treedepth = 12))
     # save STAN model
-    saveRDS(model, paste("./data/predictive_models/AC_cover_models/", model_name, 
-                         "_", names(test_sites)[i], sep = ""))
+    #saveRDS(model, paste("./data/predictive_models/AC_cover_models/", model_name, 
+    #                     "_", names(test_sites)[i], sep = ""))
+    # ALTERNATIVELY, option instead to read RDS object if model already built
+    model <- readRDS(paste("./data/predictive_models/AC_cover_models/", model_name, 
+                                                "_", names(test_sites)[i], sep = ""))
     # extract parameters
     params <- rstan::extract(model, c("sigma", "b0", "b"))
     # add mean parameter estimates to dataframe
@@ -230,10 +204,12 @@ for(j in 2:length(predictions)) {
                                covar = as.matrix(covariates[[j]]$testing[[i]]))
     # save summary of prediction; make sure to assign globally
     predictions[[j]][[i]][,2:4] <- preds_summary(preds_matrix)
-    # calculate nRMSE of model
-    nrmse <- rbind(nrmse, nRMSE_summary(preds_matrix, test_sites[[i]]$future_AC_cover_norm,
-                                        site_reach_name = names(test_sites)[i],
-                                        model_name = model_name))
+    # calculate NRMSE of model
+    NRMSE <- NRMSE_summary(preds_matrix, observed = test_sites[[i]]$future_AC_cover_norm)
+    # save NRMSE vector
+    write.csv(NRMSE, paste("./data/predictive_models/AC_cover_models/NRMSE_vectors/",
+                           model_name, "_", names(test_sites)[i], "_NRMSE.csv", sep = ""), 
+              row.names = FALSE)
   }
   
   # save rhats and mean parameter estimates
@@ -250,10 +226,10 @@ for(j in 2:length(predictions)) {
   
 }
 
-#### (5) Saving Outputs
+#### (5) Saving Prediction Summary ####
 
-# saving nRMSE table
-write.csv(nrmse %>% na.omit(), "./data/predictive_models/nrmse_AC_cover.csv",
+# saving NRMSE table
+write.csv(NRMSE %>% na.omit(), "./data/predictive_models/NRMSE_AC_cover.csv",
           row.names = FALSE)
 
 # adding site_reach and model name information to dataframe
@@ -277,94 +253,3 @@ for(j in 1:length(test_sites)) {
 # saving final predictions
 write.csv(final_predictions, "./data/predictive_models/predictions_AC_cover.csv",
           row.names = FALSE)
-
-#### (6) Dealing with divergent transitions ####
-
-# we have a couple of models that did not converge (as determined by script 3c)
-# (and require a very very narrow prior to do so)
-# so we will just omit these models from our study
-# models are:
-# SFE-M-1S all, biochemical, biological, ecohydrological
-
-# create dataframe of these models
-divergent_models <- data.frame(model_name = c("all_SFE-M-1S", "biochemical_SFE-M-1S", "biological_SFE-M-1S",
-                               "ecohydrological_SFE-M-1S")) %>% 
-  mutate(model = sub(paste0("_SFE", ".*"), "", model_name),
-         site_reach = sub(paste0(".*", "_"), "", model_name),
-         # to match csv's when we read them in
-         modified_site_reach = gsub("-", ".", site_reach))
-
-## remove NRMSEs
-
-#nrmse <- read.csv("./data/predictive_models/nrmse_AC_cover.csv") # open if needed
-#write.csv(nrmse, "./data/predictive_models/misc_with_omitted_models/nrmse_AC_cover.csv",
-#          row.names = FALSE) # preserve old NRMSE with these omitted models in separate folder
-
-# remove divergent models
-nrmse_final <- nrmse %>% 
-  filter(!(model %in% divergent_models$model & site_reach %in% divergent_models$site_reach))
-
-# overwrite csv
-write.csv(nrmse_final, "./data/predictive_models/nrmse_AC_cover.csv", row.names = FALSE)
-
-## remove predictions
-
-#final_predictions <- read.csv("./data/predictive_models/predictions_AC_cover.csv) # open if needed
-#write.csv(final_predictions, "./data/predictive_models/misc_with_omitted_models/predictions_AC_cover.csv",
-#          row.names = FALSE) # preserve old predictions with these omitted models in separate folder
-
-# remove divergent models
-final_predictions_final <- final_predictions %>% 
-  filter(!(model %in% divergent_models$model & site_reach %in% divergent_models$site_reach))
-
-# overwrite csv
-write.csv(final_predictions_final, "./data/predictive_models/predictions_AC_cover.csv",
-          row.names = FALSE)
-
-## remove parameter estimates of divergent models
-ldply(list.files(path = "./data/predictive_models/AC_cover_models/model_attributes", pattern = "param_est"),
-      function(filename) {
-        # go through to see if its a diverging model or not
-        for(i in 1:nrow(divergent_models)) {
-          if(sub("_param_est.csv", "", x = filename) == divergent_models$model[i]) {
-            
-            # read in file
-            param_est <- read.csv(paste("./data/predictive_models/AC_cover_models/model_attributes/",
-                                        filename, sep = ""))
-            #write.csv(param_est, paste("./data/predictive_models/misc_with_omitted_models/AC_cover_", 
-            #                           filename, sep = ""), row.names = FALSE) # save backup of old
-            
-            # remove column associated with site
-            index <- which(colnames(param_est) == divergent_models$modified_site_reach[i])
-            param_est[,2] <- NA
-            
-            # rewrite csv
-            write.csv(param_est, paste("./data/predictive_models/AC_cover_models/model_attributes/",
-                                       filename, sep = ""), row.names = FALSE)
-          }
-        }
-      })
-
-# remove r-hats
-ldply(list.files(path = "./data/predictive_models/AC_cover_models/model_attributes", pattern = "rhats"),
-      function(filename) {
-        # go through to see if its a diverging model or not
-        for(i in 1:nrow(divergent_models)) {
-          if(sub("_rhats.csv", "", x = filename) == divergent_models$model[i]) {
-            
-            # read in file
-            param_est <- read.csv(paste("./data/predictive_models/AC_cover_models/model_attributes/",
-                                        filename, sep = ""))
-            #write.csv(param_est, paste("./data/predictive_models/misc_with_omitted_models/AC_cover_", 
-            #                           filename, sep = ""), row.names = FALSE) # save backup of old
-            
-            # remove column associated with site
-            index <- which(colnames(param_est) == divergent_models$modified_site_reach[i])
-            param_est[,2] <- NA
-            
-            # rewrite csv
-            write.csv(param_est, paste("./data/predictive_models/AC_cover_models/model_attributes/",
-                                       filename, sep = ""), row.names = FALSE)
-          }
-        }
-      })

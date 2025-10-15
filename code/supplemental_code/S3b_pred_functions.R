@@ -1,12 +1,36 @@
 #### functions to make predictions with STAN models
 ### Jordan Zabrecky
-## last edited: 07.03.2025
+## last edited: 10.14.2025
 
-# This script hosts function to make predictions using STAN
-# models and returns predictions (mean, lower bound of 95% confidence 
-# interval, and upper bound of 95% confidence interval)
+# This script hosts function to make covariates for each model, 
+# make predictions using STAN models, and returns predictions 
+# (mean, lower bound of 95% confidence interval, and upper bound of 95% confidence interval)
 
-#### (1) Functions to generate predictions matrix ####
+#### (1) Function to make covariates for each model ####
+
+make_covariates <- function(covariates) {
+
+  # create empty lists
+  training_list = list()
+  testing_list = list()
+  
+  # assign covariates for each reach grouping
+  for(i in 1:length(test_sites)) {
+    training_list[[i]] = as.matrix(training_sites[[i]] %>% 
+                                     select(all_of(covariates)))
+    testing_list[[i]] = as.matrix(test_sites[[i]] %>% 
+                                    select(all_of(covariates)))
+  }
+  
+  # create and return final list of the two combined
+  final_list = list(training_list, testing_list)
+  names(final_list) = c("training", "testing")
+  return(final_list)
+  
+}
+
+
+#### (2) Functions to generate predictions matrix ####
 
 # for predictions functions...
 # params = parameters extracted from STAN model
@@ -55,7 +79,7 @@ preds_anatoxins <- function(params, y, covar) {
   return(preds)
 }
 
-#### (2) Functions to get predictions and nRMSE summaries ####
+#### (3) Functions to get predictions and NRMSEs ####
 
 # function to calculate mean & 95% confidence interval of predictions from prediction matrix
 preds_summary <- function(preds_matrix) {
@@ -71,39 +95,32 @@ preds_summary <- function(preds_matrix) {
   return(y)
 }
 
-# function to calculate nRMSE with predicted and observed vectors
-calc_nRMSE <- function(predicted, observed, max, min) {
-  nRMSE <- rmse(observed, predicted) / (max - min)
+# function to calculate NRMSE with predicted and observed vectors
+calc_NRMSE <- function(predicted, observed, max, min) {
+  NRMSE <- rmse(observed, predicted) / (max - min)
 }
 
-# calculate mean and 95% confidence interval nRMSE's
-nRMSE_summary <- function(preds_matrix, observed, site_reach_name, model_name) {
-  # calculation of nRMSE of predictions should not include initial value as that was pre-set
+# calculate mean and 95% confidence interval NRMSE's
+NRMSE_summary <- function(preds_matrix, observed) {
+  # calculation of NRMSE of predictions should not include initial value as that was pre-set
   # so remove first column from preds_matrix
   preds_matrix <- preds_matrix[,-1]
   
-  # get number of predictions and max and min of observed values (should be 0 & 100)
+  # get number of predictions and max and min of observed values (should be 0 or 0.05 & 100)
   n.pred <- length(observed)
   max <- max(observed)
   min <- min(observed)
   
-  # make matrix for RMSE values
-  nRMSE_matrix <- matrix(data = NA, nrow = nrow(preds_matrix), 
-                         ncol = ncol(preds_matrix))
+  # make VECTOR for RMSE values (one value for each model!)
+  NRMSE_vector <- c(rep(NA, nrow(preds_matrix)))
   
-  # fill in nRMSE for each predicted value in the matrix
+  # fill in NRMSE for each model predictions
   for(j in 1:n.pred){
     for(i in 1:length(params$sigma)) {
-      nRMSE_matrix[i,j] <- calc_nRMSE(observed[j], preds_matrix[i,j], max, min)
+      NRMSE_vector[i] <- calc_NRMSE(observed, preds_matrix[i,], max, min)
     }
   }
   
-  # creating dataframe for nRMSE 
-  nRMSE <- data.frame(site_reach = site_reach_name,
-                      model = model_name)
-  nRMSE$mean <- mean(nRMSE_matrix)
-  nRMSE$ci_lower <- quantile(nRMSE_matrix, prob = 0.025)
-  nRMSE$ci_upper <- quantile(nRMSE_matrix, prob = 0.975)
-  
-  return(nRMSE)
+  # return vector to be saved in main script
+  return(NRMSE_vector)
 }

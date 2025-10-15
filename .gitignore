@@ -34,7 +34,7 @@ data/metab_model_inputs/salmon_2023_karuk_modelinputs.csv
 data/old_StreamLight_and_MODIS
 code/old_code_toDEL
 data/metab_model_inputs/old
-# ignore .rds, .png, .pdf, and .svg files for now...
+# ignore .rds, .png, .pdf, and .svg files
 *.rds
 *.png
 *.pdf
