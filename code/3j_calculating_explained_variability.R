@@ -90,11 +90,27 @@ predictions <- predictions %>%
 # join predictions and observed dataframes
 together <- left_join(predictions, observed, by = c("field_date", "site_reach", "predicting"))
 
+## test on a single model
+# get data
+test <- together %>% 
+  filter(predicting == "M_cover" & model == "physical")
+# lm version
+summary(lm(test$mean ~ test$observed))$r.squared # 0.44
+cor(x = test$observed, y = test$mean) ^ 2 # 0.44
+
 # calculate for each submodel
 variability_1 <- together %>% 
+  dplyr::group_by(predicting, model) %>% 
+  dplyr::summarize(coef_of_deter_lm = summary(lm(mean ~ observed))$r.squared,
+                   coef_of_deter_cor = cor(x = observed, y = mean) ^ 2)
+# our test value is the same in this dataframe!
+
+# and save one version for each site reach
+variability_2 <- together %>% 
   dplyr::group_by(predicting, model, site_reach) %>% 
   dplyr::summarize(coef_of_deter_lm = summary(lm(mean ~ observed))$r.squared,
                    coef_of_deter_cor = cor(x = observed, y = mean) ^ 2)
 
 # save csvs
-write.csv(variability_1, "./data/predictive_models/rsquared_by_site_reach.csv", row.names = FALSE)
+write.csv(variability_1, "./data/predictive_models/rsquared.csv", row.names = FALSE)
+write.csv(variability_2, "./data/predictive_models/rsquared_by_site_reach.csv", row.names = FALSE)

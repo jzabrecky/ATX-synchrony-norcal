@@ -1,6 +1,6 @@
 #### Extracting mean and 95% CI for parameter estimates from predictive models
 ### Jordan Zabrecky
-## last edited: 10.15.2025
+## last edited: 10.25.2025
 
 ## This code goes back to open previously ran models and saves their parameter estimates
 ## (mean and 95% credible interval) into one csv for each prediction type for
@@ -19,16 +19,14 @@ lapply(c("tidyverse", "rstan", "StanHeaders", "plyr"),
 folders <- c("M_cover_models", "AC_cover_models", "M_atx_models", "AC_atx_models")
 
 # empty dataframe to add parameter estimates to (one that separates out site-reach & one that does not)
-param_list <- data.frame(beta = NA,
-                         parameters = NA,
+param_list <- data.frame(parameters = NA,
                          model = NA,
                          predicting = NA,
                          mean = NA,
                          ci_lower = NA,
                          ci_upper = NA)
 
-param_list_site_reach <- data.frame(beta = NA,
-                                    parameters = NA,
+param_list_site_reach <- data.frame(parameters = NA,
                                     site_reach = NA,
                                     model = NA,
                                     predicting = NA,
@@ -39,6 +37,8 @@ param_list_site_reach <- data.frame(beta = NA,
 # iterate through for loop of all folders (i; what we are predicting) and all model names (j; different covariates)
 for(i in 1:length(folders)) {
   # list unique model names (by listing all files in folder & removing site_reach tag minus S)
+  # will still have a duplicate of biochemical & physicochemical from the chemical model pattern
+  # but as it gets grouped by model name to summarize the matrix, the results are unaffected
   model_names <- c(unique(str_extract(list.files(path = paste("./data/predictive_models/", folders[i], "/", sep = "")),
                                ".+?(?=FE)")) %>% na.omit())
   for(j in 1:(length(model_names))) {
@@ -152,7 +152,7 @@ for(i in 1:length(folders)) {
     
     # summarize on a model basis
     by_model <- full_matrix %>% 
-      dplyr::group_by(beta, parameters, model, predicting) %>% 
+      dplyr::group_by(parameters, model, predicting) %>% 
       dplyr::summarize(mean = mean(value),
                        ci_lower = quantile(value, 0.025),
                        ci_upper = quantile(value, 0.975))
@@ -162,7 +162,7 @@ for(i in 1:length(folders)) {
     
     # summarize on a site_reach basis
     by_site_reach <- full_matrix %>% 
-      dplyr::group_by(beta, parameters, site_reach, model, predicting) %>% 
+      dplyr::group_by(parameters, site_reach, model, predicting) %>% 
       dplyr::summarize(mean = mean(value),
                        ci_lower = quantile(value, 0.025),
                        ci_upper = quantile(value, 0.975))
@@ -177,6 +177,10 @@ for(i in 1:length(folders)) {
 # remove first row of dataframe (NAs)
 param_list <- param_list[-1,]
 param_list_site_reach <- param_list_site_reach[-1,]
+
+# remove duplicate of biochemical and physicochemical (gets added twice because of chemical!)
+param_list <- unique(param_list)
+param_list_site_reach <- unique(param_list_site_reach)
 
 # save
 write.csv(param_list, "./data/predictive_models/parameter_est_allmodels.csv",
