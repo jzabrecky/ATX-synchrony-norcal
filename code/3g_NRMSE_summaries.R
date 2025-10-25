@@ -109,7 +109,20 @@ test_a_data <- rbind((NRMSE_list$AC_cover %>% mutate(predicting = "AC_cover")),
 # density plot
 ggplot(data = test_a_data, aes(x = x, fill = predicting)) +
   geom_density(alpha = 0.6) +
-  facet_wrap(~model) +
+  facet_wrap(~model, ncol = 1) +
+  theme_bw()
+
+# testing around different plots...
+ggplot(data = test_a_data, aes(x = x, fill = interaction(model, predicting))) +
+  geom_density(alpha = 0.6) +
+  scale_fill_manual(values = c("#FEF9BE", "#d6d093", "#afa869", "#9c9455", "#786f2e", "#665d1a", "#544c03", 
+                       "#d9e7ff", "#c0d7ff", "#86a2d6", "#6180bb", "#3b5fa1", "#034087", "#033264")) +
+  #facet_wrap(~model) +
+  theme_bw()
+
+ggplot(data = test_a_data, aes(x = x, fill = predicting)) +
+  geom_density(alpha = 0.6) +
+  #facet_wrap(~model) +
   theme_bw()
 
 ## (b) comparing M atx vs. AC atx

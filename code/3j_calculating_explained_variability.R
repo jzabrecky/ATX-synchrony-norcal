@@ -90,18 +90,11 @@ predictions <- predictions %>%
 # join predictions and observed dataframes
 together <- left_join(predictions, observed, by = c("field_date", "site_reach", "predicting"))
 
-# group by model (across reaches)
+# calculate for each submodel
 variability_1 <- together %>% 
-  dplyr::group_by(predicting, model) %>% 
+  dplyr::group_by(predicting, model, site_reach) %>% 
   dplyr::summarize(coef_of_deter_lm = summary(lm(mean ~ observed))$r.squared,
                    coef_of_deter_cor = cor(x = observed, y = mean) ^ 2)
 
-# no grouping
-variability_2 <- together %>% 
-  mutate(coef_of_deter_lm = summary(lm(mean ~ observed))$r.squared,
-         coef_of_deter_cor = cor(x = observed, y = mean) ^ 2) %>% 
-  select(predicting, model, site_reach, coef_of_deter_lm, coef_of_deter_cor)
-
 # save csvs
-write.csv(variability_1, "./data/predictive_models/rsquared.csv", row.names = FALSE)
-write.csv(variability_2, "./data/predictive_models/rsquared_by_site_reach.csv", row.names = FALSE)
+write.csv(variability_1, "./data/predictive_models/rsquared_by_site_reach.csv", row.names = FALSE)
