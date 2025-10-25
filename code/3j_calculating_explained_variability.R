@@ -93,24 +93,24 @@ together <- left_join(predictions, observed, by = c("field_date", "site_reach", 
 ## test on a single model
 # get data
 test <- together %>% 
-  filter(predicting == "M_cover" & model == "physical")
+  filter(predicting == "M_cover" & model == "physical" & site_reach == "SFE-Lower-1S")
 # lm version
-summary(lm(test$mean ~ test$observed))$r.squared # 0.44
-cor(x = test$observed, y = test$mean) ^ 2 # 0.44
+summary(lm(test$mean ~ test$observed))$r.squared # 0.628
+cor(x = test$observed, y = test$mean) ^ 2 # 0.628
 
 # calculate for each submodel
 variability_1 <- together %>% 
-  dplyr::group_by(predicting, model) %>% 
+  dplyr::group_by(predicting, model, site_reach) %>% 
   dplyr::summarize(coef_of_deter_lm = summary(lm(mean ~ observed))$r.squared,
                    coef_of_deter_cor = cor(x = observed, y = mean) ^ 2)
 # our test value is the same in this dataframe!
 
-# and save one version for each site reach
-variability_2 <- together %>% 
-  dplyr::group_by(predicting, model, site_reach) %>% 
-  dplyr::summarize(coef_of_deter_lm = summary(lm(mean ~ observed))$r.squared,
-                   coef_of_deter_cor = cor(x = observed, y = mean) ^ 2)
+# average across those values for a single value for each model
+variability_2 <- variability_1 %>% 
+  dplyr::group_by(model, predicting) %>% 
+  dplyr::summarize(coef_of_deter_lm = mean(coef_of_deter_lm),
+                   coef_of_deter_cor = mean(coef_of_deter_cor))
 
 # save csvs
-write.csv(variability_1, "./data/predictive_models/rsquared.csv", row.names = FALSE)
-write.csv(variability_2, "./data/predictive_models/rsquared_by_site_reach.csv", row.names = FALSE)
+write.csv(variability_1, "./data/predictive_models/rsquared_by_site_reach.csv", row.names = FALSE)
+write.csv(variability_2, "./data/predictive_models/rsquared.csv", row.names = FALSE)
