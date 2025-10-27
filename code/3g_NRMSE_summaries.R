@@ -2,7 +2,6 @@
 ### Jordan Zabrecky
 ## last edited: 10.27.2025
 
-
 ## This code reads in NRMSEs for all predictions for a type of model and 
 ## summarizes them via mean & 95% confidence interval
 
@@ -113,7 +112,7 @@ ggplot(data = test_a_data, aes(x = x, fill = predicting)) +
   facet_wrap(~model, ncol = 1) +
   theme_bw()
 
-# testing around different plots...
+# density plot 2
 ggplot(data = test_a_data, aes(x = x, fill = interaction(model, predicting))) +
   geom_density(alpha = 0.6) +
   scale_fill_manual(values = c("#FEF9BE", "#d6d093", "#afa869", "#9c9455", "#786f2e", "#665d1a", "#544c03", 
@@ -122,7 +121,7 @@ ggplot(data = test_a_data, aes(x = x, fill = interaction(model, predicting))) +
   labs(title = "cover prediction") +
   theme_bw()
 
-# density plot 2
+# density plot 3
 ggplot(data = test_a_data, aes(x = x, fill = predicting)) +
   geom_density(alpha = 0.6) +
   #facet_wrap(~model) +
@@ -149,7 +148,7 @@ ggplot(data = test_b_data, aes(x = x, fill = predicting)) +
 
 # add base model (as to not have 14+ categories in plot!)
 test_b_data <- test_b_data %>% 
-  mutate(model_base = str_remove(mode, "_w_cover"))
+  mutate(model_base = str_remove(model, "_w_cover"))
 
 # density plot 2
 ggplot(data = test_b_data, aes(x = x, fill = interaction(model_base, predicting))) +
