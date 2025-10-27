@@ -1,6 +1,6 @@
 #### putting together field and lab data to answer research questions
 ### Jordan Zabrecky
-## last edited: 07.024.2025
+## last edited: 07.24.2025
 
 # This script aggregates (1) 2022 benthic cyanobacteria and GPP for all rivers
 # to answer Q1, (2) 2023 south fork eel benthic cyanobacteria, GPP, and water

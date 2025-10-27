@@ -1,6 +1,6 @@
 #### Primary figure for taxa-specific cover & anatoxins and GPP on each river
 ### Jordan Zabrecky
-## last edited: 09.15.2025
+## last edited: 10.25.2025
 
 # This script creates a primary figure for Q2 focused on the relationships
 # between benthic cyanobacteria dynamics within the same river
@@ -96,7 +96,7 @@ sfe_all
 
 # save figure
 ggsave("./figures/fig_bc_withinrivers_notfinal.tiff", dpi = 600, 
-       width=8.1, height=12, unit="cm") 
+       width=9, height=14, unit="cm") 
 
 #### (3) Misc. Questions ####
 

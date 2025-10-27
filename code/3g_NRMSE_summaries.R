@@ -1,6 +1,6 @@
 #### Getting NRMSE summaries for each model
 ### Jordan Zabrecky
-## last edited: 10.15.2025
+## last edited: 10.25.2025
 
 ## This code reads in NRMSEs for all predictions for a type of model and 
 ## summarizes them via mean & 95% confidence interval
@@ -178,7 +178,7 @@ test_d <- count(eval((NRMSE_list$AC_atx$x[which(NRMSE_list$AC_atx$w_cover == TRU
 # 128565 false and 396435 true
 test_d$freq[which(test_c$x == "TRUE")] / length(NRMSE_list$M_atx$x
                                                 [which(NRMSE_list$M_atx$w_cover == TRUE)]) 
-# 75.51% of M models w/ cover outperform M models w/o cover
+# 75.51% of AC models w/ cover outperform M models w/o cover
 
 # density plot
 ggplot(data = NRMSE_list$AC_atx %>% mutate(base = case_when(grepl("cover", model) ~

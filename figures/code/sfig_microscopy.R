@@ -1,6 +1,6 @@
 #### Supplemental figure showing relative abundance of M and A/C in target samples
 ### Jordan Zabrecky
-## last edited: 10.13.2025
+## last edited: 10.25.2025
 
 ## This is a supplemental figure that shows the relative abundance of Microcoleus
 ## and Anabaena/Cylindrospermum in targeted samples respectively (excluding non-algal portion)
@@ -114,11 +114,12 @@ max((microscopy %>% filter(sample_type == "TM"))$microcoleus) # 94.84536
 mean((microscopy %>% filter(sample_type == "TM"))$microcoleus) # 75.00533
 
 ## Anabaena/Cylindrospermum
-min((microscopy %>% filter(sample_type == "TAC"))$anabaena_and_cylindrospermum) # 13.21429
+min((microscopy %>% filter(sample_type == "TAC"))$non_e_diatoms) # 13.21429
 max((microscopy %>% filter(sample_type == "TAC"))$anabaena_and_cylindrospermum) # 75.74219
 mean((microscopy %>% filter(sample_type == "TAC"))$anabaena_and_cylindrospermum) # 35.90746
 
-## curious about the amount of green algae in these samples
-min((microscopy %>% filter(sample_type == "TAC"))$green_algae) # 2.734375
-max((microscopy %>% filter(sample_type == "TAC"))$green_algae) # 70.67138
-mean((microscopy %>% filter(sample_type == "TAC"))$green_algae) # 24.98525
+## just going to summarize the pivot_wider
+summary <- microscopy_longer %>% 
+  select(site_reach_date, sample_type, taxa, percent) %>% 
+  dplyr::group_by(sample_type, taxa) %>% 
+  dplyr::summarize(mean = mean(percent))
