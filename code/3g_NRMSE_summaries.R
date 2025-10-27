@@ -1,6 +1,6 @@
 #### Getting NRMSE summaries for each model
 ### Jordan Zabrecky
-## last edited: 10.15.2025
+## last edited: 10.27.2025
 
 ## This code reads in NRMSEs for all predictions for a type of model and 
 ## summarizes them via mean & 95% confidence interval
@@ -118,8 +118,10 @@ ggplot(data = test_a_data, aes(x = x, fill = interaction(model, predicting))) +
   scale_fill_manual(values = c("#FEF9BE", "#d6d093", "#afa869", "#9c9455", "#786f2e", "#665d1a", "#544c03", 
                        "#d9e7ff", "#c0d7ff", "#86a2d6", "#6180bb", "#3b5fa1", "#034087", "#033264")) +
   #facet_wrap(~model) +
+  labs(title = "cover prediction") +
   theme_bw()
 
+# density plot 2
 ggplot(data = test_a_data, aes(x = x, fill = predicting)) +
   geom_density(alpha = 0.6) +
   #facet_wrap(~model) +
@@ -142,6 +144,19 @@ test_b_data <- rbind(NRMSE_list$AC_atx %>% mutate(predicting = "AC_atx"),
 ggplot(data = test_b_data, aes(x = x, fill = predicting)) +
   geom_density(alpha = 0.6) +
   facet_wrap(~model) +
+  theme_bw()
+
+# add base model (as to not have 14+ categories in plot!)
+test_b_data <- test_b_data %>% 
+  mutate(model_base = str_remove(mode, "_w_cover"))
+
+# density plot 2
+ggplot(data = test_b_data, aes(x = x, fill = interaction(model_base, predicting))) +
+  geom_density(alpha = 0.6) +
+  scale_fill_manual(values = c("#FEF9BE", "#d6d093", "#afa869", "#9c9455", "#786f2e", "#665d1a", "#544c03", 
+                               "#d9e7ff", "#c0d7ff", "#86a2d6", "#6180bb", "#3b5fa1", "#034087", "#033264")) +
+  #facet_wrap(~model) +
+  labs(title = "atx prediction") +
   theme_bw()
 
 ## (c) comparing M atx w & w/o cover as a predictor
@@ -169,6 +184,15 @@ ggplot(data = NRMSE_list$M_atx %>% mutate(base = case_when(grepl("cover", model)
   facet_wrap(~base) +
   theme_bw()
 
+# density plot 2.
+ggplot(data = NRMSE_list$M_atx, aes(x = x, fill = interaction(model, w_cover))) +
+  geom_density(alpha = 0.6) +
+  scale_fill_manual(values = c("#FEF9BE", "#d6d093", "#afa869", "#9c9455", "#786f2e", "#665d1a", "#544c03", 
+                               "#d9e7ff", "#c0d7ff", "#86a2d6", "#6180bb", "#3b5fa1", "#034087", "#033264")) +
+  #facet_wrap(~model) +
+  labs(title = "M atx prediction") +
+  theme_bw()
+
 ## (d) comparing AC atx w/ & w/o cover as a predictor
 
 # How many AC_atx models w/ cover outperform AC_atx models w/o cover
@@ -186,4 +210,13 @@ ggplot(data = NRMSE_list$AC_atx %>% mutate(base = case_when(grepl("cover", model
                                                             TRUE ~ model)), aes(x = x, fill = w_cover)) +
   geom_density(alpha = 0.6) +
   facet_wrap(~base) +
+  theme_bw()
+
+# density plot 2
+ggplot(data = NRMSE_list$AC_atx, aes(x = x, fill = interaction(model, w_cover))) +
+  geom_density(alpha = 0.6) +
+  scale_fill_manual(values = c("#FEF9BE", "#d6d093", "#afa869", "#9c9455", "#786f2e", "#665d1a", "#544c03", 
+                               "#d9e7ff", "#c0d7ff", "#86a2d6", "#6180bb", "#3b5fa1", "#034087", "#033264")) +
+  #facet_wrap(~model) +
+  labs(title = "AC atx prediction") +
   theme_bw()
