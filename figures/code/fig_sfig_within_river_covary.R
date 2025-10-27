@@ -1,6 +1,6 @@
 #### Primary figure to explore relationship between cover and ATX
 ### Jordan Zabrecky
-## last edited: 09.15.2025
+## last edited: 10.25.2025
 
 # This script creates a supplementary figure to explore the relationships
 # between taxa-specific cover and ATX
@@ -152,7 +152,7 @@ main <- plot_grid(micro_cov_atx_mean, ana_cov_atx_mean, ncol = 1,
 main
 
 ggsave("./figures/fig_cover_ATX_covary_notfinal.tiff", dpi = 600, 
-       width=7.25, height=13, unit="cm") # testing new dimensions
+       width=6.25, height=7, unit="cm") # testing new dimensions
 
 # supplemental figure
 sup <- plot_grid(micro_cov_atx_reach, ana_cov_atx_reach, ncol = 1,

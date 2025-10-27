@@ -1,6 +1,6 @@
 #### Supplemental figures showing parameter estimates from predictive models
 ### Jordan Zabrecky
-## last edited: 9.24.25
+## last edited: 10.25.25
 
 ## This code makes figures to show our parameter estimates for all models (supplemental)
 ## and is used when pulling in data to make figures 6 & 7
@@ -13,11 +13,6 @@ lapply(c("tidyverse","cowplot", "plyr", "ggtext", "ggallin"),
 
 # loading data 
 param_est <- read.csv("./data/predictive_models/parameter_est_allmodels.csv") %>% 
-  mutate(site_reach = case_when(site_reach == "SFE-M-1S" ~ "SFE-Lower-1S",
-                                site_reach == "SFE-M-2" ~ "SFE-Lower-2",
-                                site_reach == "SFE-M-3" ~ "SFE-Lower-3",
-                                site_reach == "SFE-M-4" ~ "SFE-Lower-4",
-                                site_reach == "SFE-SH-1S" ~ "SFE-Upper-1S")) %>% 
   # factor model column to get desired order
   mutate(model_f = factor(model, levels = c("physical", "physical_w_cover",
                                             "chemical", "chemical_w_cover", 
@@ -50,15 +45,15 @@ theme_set(theme_bw() + theme(legend.position = "top",
                              strip.text = element_text(face="bold", size=10)))
 
 # palette
-palette <- c("#1E426B","#377B76", "#57C785", "#A2D366", "#E8DE48")
+palette <- c("#E8DE48", "#B4D65E", "#8BCF6F", "#57C785", "#47A27E", "#387E77", "#1E426B")
 
 # (doing separate plots for each as they will each have their own breaks)
 
 ## microcoleus cover
 ggplot(data = param_est_list[[4]], aes(y = parameters_f)) +
   geom_hline(yintercept = (1:5)+0.5, linetype = "dashed", color = "gray") +
-  geom_point(aes(x = mean, color = site_reach), position = position_dodge(width = 1)) +
-  geom_errorbar(aes(xmin = ci_lower, xmax = ci_upper, color = site_reach),
+  geom_point(aes(x = mean, color = parameters_f), position = position_dodge(width = 1)) +
+  geom_errorbar(aes(xmin = ci_lower, xmax = ci_upper, color = parameters_f),
                 position = position_dodge(width = 1)) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   scale_color_manual(values = palette) +
@@ -76,8 +71,8 @@ ggsave(paste("./figures/sfig_paramest_m_cover_notfinal.tiff", sep = ""),
 ## anabaena/cylindrospermum cover
 ggplot(data = param_est_list[[2]], aes(y = parameters_f)) +
   geom_hline(yintercept = (1:5)+0.5, linetype = "dashed", color = "gray") +
-  geom_point(aes(x = mean, color = site_reach), position = position_dodge(width = 1)) +
-  geom_errorbar(aes(xmin = ci_lower, xmax = ci_upper, color = site_reach),
+  geom_point(aes(x = mean, color = parameters_f), position = position_dodge(width = 1)) +
+  geom_errorbar(aes(xmin = ci_lower, xmax = ci_upper, color = parameters_f),
                 position = position_dodge(width = 1)) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   scale_color_manual(values = palette) +
@@ -95,8 +90,8 @@ ggsave(paste("./figures/sfig_paramest_ac_cover_notfinal.tiff", sep = ""),
 ## microcoleus ATX
 ggplot(data = param_est_list[[3]], aes(y = parameters_f)) +
   geom_hline(yintercept = (1:6)+0.5, linetype = "dashed", color = "gray") +
-  geom_point(aes(x = mean, color = site_reach), position = position_dodge(width = 1)) +
-  geom_errorbar(aes(xmin = ci_lower, xmax = ci_upper, color = site_reach),
+  geom_point(aes(x = mean, color = parameters_f), position = position_dodge(width = 1)) +
+  geom_errorbar(aes(xmin = ci_lower, xmax = ci_upper, color = parameters_f),
                 position = position_dodge(width = 1)) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   scale_color_manual(values = palette) +
@@ -114,8 +109,8 @@ ggsave(paste("./figures/sfig_paramest_m_atx_notfinal.tiff", sep = ""),
 ## Anabaena/Cylindrospermum ATX
 ggplot(data = param_est_list[[1]], aes(y = parameters_f)) +
   geom_hline(yintercept = (1:6)+0.5, linetype = "dashed", color = "gray") +
-  geom_point(aes(x = mean, color = site_reach), position = position_dodge(width = 1)) +
-  geom_errorbar(aes(xmin = ci_lower, xmax = ci_upper, color = site_reach),
+  geom_point(aes(x = mean, color = parameters_f), position = position_dodge(width = 1)) +
+  geom_errorbar(aes(xmin = ci_lower, xmax = ci_upper, color = parameters_f),
                 position = position_dodge(width = 1)) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   scale_color_manual(values = palette) +
@@ -140,4 +135,4 @@ param_est_q <- param_est %>%
   dplyr::group_by(parameters, predicting) %>% # model 
   dplyr::summarize(total = length(model),
                    overlapping = sum(overlap == TRUE))
-view(param_est_q %>% filter(predicting == "AC_cover"))
+view(param_est_q %>% filter(predicting == "AC_atx"))
