@@ -1,6 +1,6 @@
 #### Primary figure to explore relationship between cover and ATX
 ### Jordan Zabrecky
-## last edited: 10.25.2025
+## last edited: 10.29.2025
 
 # This script creates a supplementary figure to explore the relationships
 # between taxa-specific cover and ATX
@@ -147,12 +147,26 @@ micro_cov_atx_mean
 #### (3) Putting figures together & saving ####
 
 # main figure
-main <- plot_grid(micro_cov_atx_mean, ana_cov_atx_mean, ncol = 1,
-                  align = "h")
+main <- plot_grid(micro_cov_atx_mean + scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+  breaks = c(0, 25, 50, 100)),
+                  ana_cov_atx_mean, ncol = 1,
+                  align = "v")
 main
 
 ggsave("./figures/fig_cover_ATX_covary_notfinal.tiff", dpi = 600, 
-       width=6.25, height=7, unit="cm") # testing new dimensions
+       width=6.25, height=8.5, unit="cm") # testing new dimensions
+
+# deciding to save them separately
+micro_cov_atx_mean + scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                                        breaks = c(0, 25, 50, 100))
+
+ggsave("./figures/fig_cover_ATX_covary_M_notfinal.tiff", dpi = 600, 
+       width=6.25, height=4.25, unit="cm") # testing new dimensions
+
+ana_cov_atx_mean
+
+ggsave("./figures/fig_cover_ATX_covary_AC_notfinal.tiff", dpi = 600, 
+       width=6.25, height=4.25, unit="cm") # testing new dimensions
 
 # supplemental figure
 sup <- plot_grid(micro_cov_atx_reach, ana_cov_atx_reach, ncol = 1,
@@ -161,3 +175,22 @@ sup
 
 ggsave("./figures/sfig_cover_ATX_covary_notfinal.tiff", dpi = 600, 
        width=12, height=14, unit="cm")
+
+
+# adding in 2022 data into main figure as suggested by Keith
+source("./figures/code/sfig_across_rivers_covary_2022.R")
+
+all <- plot_grid(micro_cov_atx_mean + scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                                                         breaks = c(0, 25, 50, 100)) +
+                   theme(theme(plot.margin = unit(c(0, 0, 0, 0), "cm"))),
+                 ana_cov_atx_mean + theme(theme(plot.margin = unit(c(0, 0, 0, 0), "cm"))),
+                 sfkeel_micro + scale_y_continuous(trans=scales::pseudo_log_trans(base = 10),
+                                                    breaks = c(0, 25, 50, 100)) +
+                   theme(plot.margin = unit(c(0, 0, 0, 0), "cm")),
+                 sfkeel_ana + theme(plot.margin = unit(c(0, 0, 0, 0), "cm")), ncol = 1, 
+                   align = "hv", scale = 0.95) +
+  theme(plot.background = element_rect(fill = "white", color = "white"))
+all 
+
+ggsave("./figures/fig_cover_ATX_covary_2022_2023_notfinal.tiff", dpi = 600, 
+       width=6.5, height=16.5, unit="cm")

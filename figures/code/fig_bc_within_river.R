@@ -92,11 +92,11 @@ sfe_all <- ggplot(data = data_longer, aes(x = field_date)) +
                                           ))+
   theme(strip.text = element_text(size = 8, face = "bold")) +
   theme(legend.position = "none") # will move over legend via illustrator
-sfe_all
+sfe_all 
 
 # save figure
 ggsave("./figures/fig_bc_withinrivers_notfinal.tiff", dpi = 600, 
-       width=9, height=14, unit="cm") 
+       width=9, height=14.25, unit="cm") 
 
 #### (3) Misc. Questions ####
 

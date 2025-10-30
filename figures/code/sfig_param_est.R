@@ -1,6 +1,6 @@
 #### Supplemental figures showing parameter estimates from predictive models
 ### Jordan Zabrecky
-## last edited: 10.25.25
+## last edited: 10.30.25
 
 ## This code makes figures to show our parameter estimates for all models (supplemental)
 ## and is used when pulling in data to make figures 6 & 7
@@ -61,7 +61,7 @@ ggplot(data = param_est_list[[4]], aes(y = parameters_f)) +
                      breaks = c(-15, -5, -1, 0, 1)) +
   theme(strip.background = element_blank()) + # get rid of gray background for facet title
   theme(legend.position = "none") +
-  labs(x = "posterior estimates", y = "", title = "Posterior Estimates of Models Predicting *Microcoleus* Cover") +
+  labs(x = "posterior estimate", y = "", title = "Posterior Estimates for Covariates in Models Predicting *Microcoleus* Cover") +
   facet_wrap(~model_f)
 
 # saving plot
@@ -80,7 +80,7 @@ ggplot(data = param_est_list[[2]], aes(y = parameters_f)) +
                      breaks = c(-5, -1, 0, 1, 5)) +
   theme(strip.background = element_blank()) + # get rid of gray background for facet title
   theme(legend.position = "none") +
-  labs(x = "posterior estimates", y = "", title = "Posterior Estimates of Models Predicting *Anabaena/Cylindrospermum* Cover") +
+  labs(x = "posterior estimate", y = "", title = "Posterior Estimates for Covariates in Models Predicting *Anabaena/Cylindrospermum* Cover") +
   facet_wrap(~model_f)
 
 # save plot    
@@ -99,7 +99,7 @@ ggplot(data = param_est_list[[3]], aes(y = parameters_f)) +
                      breaks = c(-50, -10, 0, 10,50)) +
   theme(strip.background = element_blank()) + # get rid of gray background for facet title
   theme(legend.position = "none") +
-  labs(x = "posterior estimates", y = "", title = "Posterior Estimates of Models Predicting *Microcoleus* Mat Anatoxins") +
+  labs(x = "posterior estimate", y = "", title = "Posterior Estimates for Covariates in Models Predicting *Microcoleus* Anatoxins") +
   facet_wrap(~model_f)
 
 # save plot    
@@ -118,7 +118,7 @@ ggplot(data = param_est_list[[1]], aes(y = parameters_f)) +
                      breaks = c(-50, -10, 0, 10, 50)) +
   theme(strip.background = element_blank()) + # get rid of gray background for facet title
   theme(legend.position = "none") +
-  labs(x = "posterior estimates", y = "", title = "Posterior Estimates of Models Predicting *Anabaena/Cylindrospermum* Mat Anatoxins") +
+  labs(x = "posterior estimate", y = "", title = "Posterior Estimates for Covariates in Models Predicting *Anabaena/Cylindrospermum* Anatoxins") +
   facet_wrap(~model_f)
 
 # save plot    

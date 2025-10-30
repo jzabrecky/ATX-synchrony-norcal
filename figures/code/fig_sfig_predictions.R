@@ -1,6 +1,6 @@
 #### Main figure and supplemental figures showing our predictions
 ### Jordan Zabrecky
-## last edited: 9.16.25
+## last edited: 10.30.25
 
 ## This code makes figures showing our predictions vs. observed values for
 ## (1) all models for a supplemental figure and (2) showing only the best models
@@ -110,42 +110,48 @@ predictions_list_coversplit <- split(predictions, predictions$predicting_w_cover
 # for each list split into what model/covariates are predicting
 
 # NRMSEs
-NRMSEs <- ldply(list.files(path = "./data/predictive_models/", pattern = "nrmse"), 
+NRMSEs <- ldply(list.files(path = "./data/predictive_models/", pattern = "NRMSE_"), 
                 function(filename) {
-                  d <- read.csv(paste("./data/predictive_models/", filename, sep = ""))
-                  # add column for what we are predicting
-                  d$predicting <- str_remove(filename, "nrmse_")
-                  d$predicting <- str_remove(d$predicting, ".csv") # remove .csv
-                  # some final manipulating
-                  d <- d %>% 
-                    # change site_reach to new names for publication
-                    mutate(site_reach = case_when(site_reach == "SFE-M-1S" ~ "SFE-Lower-1S",
-                                                  site_reach == "SFE-M-2" ~ "SFE-Lower-2",
-                                                  site_reach == "SFE-M-3" ~ "SFE-Lower-3",
-                                                  site_reach == "SFE-M-4" ~ "SFE-Lower-4",
-                                                  site_reach == "SFE-SH-1S" ~ "SFE-Upper-1S")) %>% 
-                    # add column (T/F) if cover is included as covariate
-                    mutate(cover_covariate = case_when(grepl("w_cover", model) ~ TRUE,
-                                                       TRUE ~ FALSE),
-                           # make a final column that tells both what we are predicting and if cover
-                           # is a covariate
-                           predicting_w_cover = case_when(cover_covariate == TRUE ~ paste(predicting, "_w_cover", sep = ""),
-                                                          TRUE ~ predicting))  %>% 
-                    # create a label column using mean (but rounding to two decimals!) for plots
-                    mutate(label = paste("NRMSE=", format(round(mean, 2), nsmall = 2))) %>% 
-                    # factor model to match what was done with predictions above
-                    mutate(model_f = factor(model, levels = c("physical", "physical_w_cover",
-                                                              "chemical", "chemical_w_cover", 
-                                                              "biological", "biological_w_cover",
-                                                              "physicochemical", "physicochemical_w_cover",
-                                                              "ecohydrological", "ecohydrological_w_cover",
-                                                              "biochemical", "biochemical_w_cover", 
-                                                              "all", "all_w_cover"))) %>% 
-                    # lastly, remove null models because we don't care about that here
-                    filter(model != "null")
-                  
-                  return(d)
+                  if(grepl("by_site_reach", filename)) {
+                    d <- read.csv(paste("./data/predictive_models/", filename, sep = ""))
+                    # add column for what we are predicting
+                    d$predicting <- str_remove(filename, "NRMSE_")
+                    d$predicting <- str_remove(d$predicting, "_by_site_reach.csv") # remove .csv
+                    # some final manipulating
+                    d <- d %>% 
+                      # change site_reach to new names for publication
+                      mutate(site_reach = case_when(site_reach == "SFE-M-1S" ~ "SFE-Lower-1S",
+                                                    site_reach == "SFE-M-2" ~ "SFE-Lower-2",
+                                                    site_reach == "SFE-M-3" ~ "SFE-Lower-3",
+                                                    site_reach == "SFE-M-4" ~ "SFE-Lower-4",
+                                                    site_reach == "SFE-SH-1S" ~ "SFE-Upper-1S")) %>% 
+                      # add column (T/F) if cover is included as covariate
+                      mutate(cover_covariate = case_when(grepl("w_cover", model) ~ TRUE,
+                                                         TRUE ~ FALSE),
+                             # make a final column that tells both what we are predicting and if cover
+                             # is a covariate
+                             predicting_w_cover = case_when(cover_covariate == TRUE ~ paste(predicting, "_w_cover", sep = ""),
+                                                            TRUE ~ predicting))  %>% 
+                      # create a label column using mean (but rounding to two decimals!) for plots
+                      mutate(label = paste("NRMSE=", format(round(mean, 2), nsmall = 2))) %>% 
+                      # factor model to match what was done with predictions above
+                      mutate(model_f = factor(model, levels = c("physical", "physical_w_cover",
+                                                                "chemical", "chemical_w_cover", 
+                                                                "biological", "biological_w_cover",
+                                                                "physicochemical", "physicochemical_w_cover",
+                                                                "ecohydrological", "ecohydrological_w_cover",
+                                                                "biochemical", "biochemical_w_cover", 
+                                                                "all", "all_w_cover"))) %>% 
+                      # lastly, remove null models because we don't care about that here
+                      filter(model != "null")
+                    return(d)
+                  }
                 })
+
+# read in r-squared & add it to NRMSE dataframe & create second label
+NRMSEs <- left_join(NRMSEs, read.csv("./data/predictive_models/rsquared_by_site_reach.csv"),
+                  by = c("predicting", "model", "site_reach")) %>% 
+  mutate(label_2 = paste("*r<sup>2</sup>*:", format(round(coef_of_deter_lm, 2), nsmall = 2)))
 
 
 # split into list by what we are predicting
@@ -174,17 +180,20 @@ palette_w_cover <- c("#E8DE48", "#F0E985", "#B4D65E", "#CDE494", "#8BCF6F", "#B2
                      "#7AA9A4", "#1E426B", "#69819C")
 
 # title labels
-titles <- c("*Anabaena/Cylindrospermum* Mat Anatoxin Concentration Predictions",
+titles <- c("*Anabaena/Cylindrospermum* Anatoxin Concentration Predictions",
             "*Anabaena/Cylindrospermum* Cover Predictions",
-            "*Microcoleus* Mat Anatoxin Concentration Predictions",
+            "*Microcoleus* Anatoxin Concentration Predictions",
             "*Microcoleus* Cover Predictions")
-ylabels <- c("*Anabaena/Cylindrospermum* mat anatoxin concentration (normalized to maximum of reach)",
+ylabels <- c("*Anabaena/Cylindrospermum* anatoxin concentrations (normalized to maximum of reach)",
              "*Anabaena/Cylindrospermum* cover (normalized to maximum of reach)",
-             "*Microcoleus* mat anatoxin concentration (normalized to maximum of reach)",
+             "*Microcoleus* anatoxin concentrations (normalized to maximum of reach)",
              "*Microcoleus* cover (normalized to maximum of reach)")
 NRMSE_locations <- c(as.Date("2023-07-12"), as.Date("2023-09-01"), as.Date("2023-07-12"),
                      as.Date("2023-07-12"))
 NRMSE_locations_y <- c(92, 90, 92, 95)
+rsquared_locations <- c(as.Date("2023-07-02"), as.Date("2023-09-10"), as.Date("2023-07-02"),
+                        as.Date("2023-07-02"))
+rsquared_locations_y <- c(74, 79, 74, 83)
 
 ## (b) cover predictions
 
@@ -208,6 +217,12 @@ for(i in cover_indices) {
           # note size seems to be different for below than above, hence the low size
           # will double-check in inkscape that it is correct
           mapping = aes(x = NRMSE_locations[i], y = NRMSE_locations_y[i], label = label), size= 2) +
+        geom_richtext(
+          data = NRMSE_list[[i]],
+          # note size seems to be different for below than above, hence the low size
+          # will double-check in inkscape that it is correct
+          mapping = aes(x = rsquared_locations[i], y = rsquared_locations_y[i], label = label_2), size= 2,
+          fill = NA, label.color = NA) +
         scale_color_manual(values = palette) +
         scale_fill_manual(values = palette) +
         # labels for reach & model labels
@@ -241,6 +256,12 @@ for(i in atx_indices) {
       # note size seems to be different for below than above, hence the low size
       # will double-check in inkscape that it is correct
       mapping = aes(x = NRMSE_locations[i], y = NRMSE_locations_y[i], label = label), size= 2) +
+    geom_richtext(
+      data = NRMSE_list[[i]],
+      # note size seems to be different for below than above, hence the low size
+      # will double-check in inkscape that it is correct
+      mapping = aes(x = rsquared_locations[i], y = rsquared_locations_y[i], label = label_2), size= 2,
+      fill = NA, label.color = NA) +
     scale_color_manual(values = palette_w_cover) +
     scale_fill_manual(values = palette_w_cover) +
     # labels for reach & model labels
@@ -256,7 +277,7 @@ for(i in atx_indices) {
 
 ## need to pair with covariate estimates from that best reach!
 
-# which reach performs best for each taxa?
+# which reach showed the best submodel performance?
 average_per_reach <- NRMSEs %>% 
   mutate(taxa = case_when(grepl("AC", predicting) ~ "AC",
                           grepl("M", predicting) ~ "M")) %>% 
@@ -284,7 +305,8 @@ NRMSE_best_reach_only <- lapply(NRMSE_list_splitcover, function(x) x <- x %>%
 # empty list for model and NRMSE attributes
 best_models <- data.frame(predicting = names(NRMSE_best_reach_only),
                           model = rep(NA, 6),
-                          NRMSE = rep(NA, 6)) %>% 
+                          NRMSE = rep(NA, 6),
+                          rsquared = rep(NA, 6)) %>% 
   mutate(taxa = case_when(grepl("AC", predicting) ~ "AC",
                           grepl("M", predicting) ~ "M"),
          best_reach = case_when(taxa == "M" ~ best_reach_M,
@@ -302,6 +324,8 @@ for(i in 1:length(NRMSE_best_reach_only)) {
   index_of_best = which.min(best_model_across_all_reaches_split[[i]]$mean_NRMSE)
   best_models$model[i] <- best_model_across_all_reaches_split[[i]]$model[index_of_best]
   best_models$NRMSE[i] <- NRMSE_best_reach_only[[i]]$label[which(NRMSE_best_reach_only[[i]]$model == 
+                                                                   best_model_across_all_reaches_split[[i]]$model[index_of_best])]
+  best_models$rsquared[i] <- NRMSE_best_reach_only[[i]]$label_2[which(NRMSE_best_reach_only[[i]]$model == 
                                                                    best_model_across_all_reaches_split[[i]]$model[index_of_best])]
 }
 
@@ -347,6 +371,12 @@ for(i in 1:nrow(best_models)) {
                           # note size seems to be different for below than above, hence the low size
                           # will double-check in inkscape that it is correct
                           mapping = aes(x = as.Date("2023-06-30"), y = 91, label = NRMSE), size= 3) +
+                        geom_richtext(
+                          data = best_models[i,],
+                          # note size seems to be different for below than above, hence the low size
+                          # will double-check in inkscape that it is correct
+                          mapping = aes(x = as.Date("2023-06-25"), y = 78, label = rsquared), size= 3,
+                          fill = NA, label.color = NA) +
                         scale_color_manual(values = palette_w_cover[palette_index]) +
                         scale_fill_manual(values = palette_w_cover[palette_index])
   
@@ -372,9 +402,7 @@ mod_param_est <- param_est %>%
                                         TRUE ~ predicting)) %>%
   # change names to match up with best_models dataframe
   select(!c(predicting)) %>% 
-  dplyr::rename(predicting = predicting_w_cover) %>% 
-  filter(case_when(grepl("AC", predicting) ~ site_reach == best_reach_AC,
-                   grepl("M", predicting) ~ site_reach == best_reach_M))
+  dplyr::rename(predicting = predicting_w_cover)
 
 # get parameter estimates for best models
 best_model_param_est <- left_join(best_models, mod_param_est, by = c("predicting", "model"))
