@@ -1,6 +1,6 @@
 #### Main figure to show posterior NRMSEs
 ### Jordan Zabrecky
-## 10.27.2025
+## 10.30.2025
 
 ## This figure creates a main figure showing the posterior NRMSEs for 
 ## model predicting (a) Microcoleus vs. Anabaena/Cylindrospermum cover,
@@ -59,7 +59,7 @@ test_a_data <- test_a_data %>%
 
 # plot option 1
 cover_NRMSEs <- ggplot(data = test_a_data, aes(x = x, fill = interaction(model_f, predicting_f))) +
-  geom_density(alpha = 0.6) +
+  geom_density(alpha = 0.6, size = 0.25) +
   scale_fill_manual(values = c(m_palette, ac_palette)) +
   facet_wrap(~predicting_f, ncol = 1) +
   geom_vline(data = null_models %>% filter(predicting %in% c("M_cover", "AC_cover")),
@@ -71,7 +71,7 @@ cover_NRMSEs
 
 # plot option 2
 cover_NRMSEs2 <- ggplot(data = test_a_data, aes(x = x, fill = interaction(model_f, predicting_f))) +
-  geom_density(alpha = 0.6) +
+  geom_density(alpha = 0.6, size = 0.25) +
   scale_fill_manual(values = c(palette, palette)) +
   facet_wrap(~predicting_f, ncol = 1) +
   geom_vline(data = null_models %>% filter(predicting %in% c("M_cover", "AC_cover")),
@@ -92,7 +92,7 @@ NRMSE_list$M_atx <- NRMSE_list$M_atx %>%
 
 # plot option 1
 atx_m_NRMSEs <- ggplot(data = NRMSE_list$M_atx, aes(x = x, fill = model_base_f)) +
-                  geom_density(alpha = 0.6) +
+                  geom_density(alpha = 0.6, size = 0.25) +
                   scale_fill_manual(values = c(m_palette, m_palette)) +
                   geom_vline(xintercept = null_models$mean[which(null_models$predicting == "M_atx")],
                              linetype = "dashed", color = "#2e2e2e") +
@@ -104,7 +104,7 @@ atx_m_NRMSEs
 
 # plot option 2 
 atx_m_NRMSEs2 <- ggplot(data = NRMSE_list$M_atx, aes(x = x, fill = model_base_f)) +
-                  geom_density(alpha = 0.6) +
+                  geom_density(alpha = 0.6, size = 0.25) +
                   scale_fill_manual(values = c(palette, palette)) +
                   geom_vline(xintercept = null_models$mean[which(null_models$predicting == "M_atx")],
                              linetype = "dashed", color = "#2e2e2e") +
@@ -125,7 +125,7 @@ NRMSE_list$AC_atx <- NRMSE_list$AC_atx %>%
 
 # plot option 1
 atx_ac_NRMSEs <-  ggplot(data = NRMSE_list$AC_atx, aes(x = x, fill = model_base_f)) +
-                    geom_density(alpha = 0.6) +
+                    geom_density(alpha = 0.6, size = 0.25) +
                     scale_fill_manual(values = c(ac_palette, ac_palette)) +
                     geom_vline(xintercept = null_models$mean[which(null_models$predicting == "AC_atx")],
                                linetype = "dashed", color = "#2e2e2e") +
@@ -137,7 +137,7 @@ atx_ac_NRMSEs
 
 # plot option 2
 atx_ac_NRMSEs2 <-  ggplot(data = NRMSE_list$AC_atx, aes(x = x, fill = model_base_f)) +
-                    geom_density(alpha = 0.6) +
+                    geom_density(alpha = 0.6, size = 0.25) +
                     scale_fill_manual(values = c(palette, palette)) +
                     geom_vline(xintercept = null_models$mean[which(null_models$predicting == "AC_atx")],
                                linetype = "dashed", color = "#2e2e2e") +
@@ -191,7 +191,7 @@ null_values <- data.frame(y_axis = c("a", "a", "b", "b", "c", "c"),
 
 # plot!
 all_grid_NRMSEs <- ggplot(data = all_NRMSEs, aes(x = x, fill = model_base_w_taxa_f)) +
-  geom_density(alpha = 0.6) +
+  geom_density(alpha = 0.6, size = 0.25)) +
   scale_fill_manual(values = c(m_palette, ac_palette)) +
   geom_vline(data = null_values,
              aes(xintercept = value), linetype = "dashed", color = "#2e2e2e") +
@@ -218,7 +218,7 @@ ggsave("./figures/fig_NRMSEs_notfinal.tiff",
 
 # legend save
 cover_NRMSEs <- ggplot(data = test_a_data, aes(x = x, fill = interaction(model_f, predicting_f))) +
-  geom_density(alpha = 0.6) +
+  geom_density(alpha = 0.6, size = 0.25) +
   scale_fill_manual(values = c(m_palette, ac_palette)) +
   facet_wrap(~predicting_f, ncol = 1) +
   geom_vline(data = null_models %>% filter(predicting %in% c("M_cover", "AC_cover")),
