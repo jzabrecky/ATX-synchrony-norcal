@@ -6,6 +6,10 @@
 
 #### (1) Loading libraries & data
 
+# loading libraries
+lapply(c("tidyverse", "plyr"), 
+       require, character.only = T)
+
 # load NRMSEs
 NRMSEs <- ldply(list.files(path = "./data/predictive_models/", pattern = "NRMSE"), 
                 function(filename) {
@@ -90,4 +94,6 @@ max(performance_w_c$M_atx$mean) - min(performance_w_c$M_atx$mean) # 0.08
 max(performance_w_c$M_atx_w_cover$mean) - min(performance_w_c$M_atx_w_cover$mean) # 0.07
 max(performance_w_c$AC_atx$mean) - min(performance_w_c$AC_atx$mean) # 0.05
 max(performance_w_c$AC_atx_w_cover$mean) - min(performance_w_c$AC_atx_w_cover$mean) # 0.05
+
 max(performance$M_atx$mean) - min(performance$M_atx$mean) # 0.08
+max(performance$AC_atx$mean) - min(performance$AC_atx$mean) # 0.11

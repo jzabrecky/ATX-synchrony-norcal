@@ -1,6 +1,6 @@
 #### Supplemental figure to explore cover & ATX with biweekly 2022 data
 ### Jordan Zabrecky
-## last edited: 09.16.2025
+## last edited: 10.30.2025
 
 # This script creates a supplementary figure to explore the relationships
 # between taxa-specific cover and ATX for biweekly 2022 data
@@ -99,7 +99,6 @@ sfkeel_ana <- ggplot(data = data %>% filter(site == "SFE-M"),
   theme(legend.position = "top")
 sfkeel_ana # why is color weird
 
-
 rus_ana <- ggplot(data = data %>% filter(site == "RUS"),
                            aes(anabaena_cylindrospermum, TAC_ATX_all_ug_g)) +
   geom_point(size = 2, color = "#fff77a") +
@@ -117,7 +116,7 @@ rus_ana <- ggplot(data = data %>% filter(site == "RUS"),
                    yend = end_TAC_atx),
                arrow = arrow(type = "open", length = unit(0.15, "inches"))) +
   labs(y = NULL, x = NULL, title = "Anabaena/Cylindrospermum") +
-  scale_y_continuous(trans=scales::pseudo_log_trans(base = 10)) +
+  scale_y_continuous(limits = c(0, 1.5), trans=scales::pseudo_log_trans(base = 10)) +
   theme(legend.position = "top")
 rus_ana
 
@@ -163,7 +162,7 @@ sal_micro <- ggplot(data = data %>% filter(site == "SAL"),
                    yend = end_TM_atx),
                arrow = arrow(type = "open", length = unit(0.15, "inches"))) +
   labs(y = NULL, x = NULL, title = "Microcoleus") +
-  scale_y_continuous(trans=scales::pseudo_log_trans(base = 10)) +
+  scale_y_continuous(limits = c(0, 1.5), trans=scales::pseudo_log_trans(base = 10)) +
   theme(legend.position = "top")
 sal_micro
 
@@ -173,8 +172,17 @@ sal_micro
 all <- plot_grid(sfkeel_micro, sfkeel_ana, scale = 0.92) +
   theme(plot.background = element_rect(fill = "white", color = "white"))
 all 
-# dropping russian and salmon
+# dropping russian and salmon here (using this figure in main figure currently...)
 
 # save figure
 ggsave("./figures/sfig_cover_ATX_covary_2022_notfinal.tiff", dpi = 600, 
+       width=16, height=9, unit="cm")
+
+# deciding to include supplemental of Salmon and Russian
+sal_rus <- plot_grid(sal_micro, rus_ana, scale = 0.92) +
+  theme(plot.background = element_rect(fill = "white", color = "white"))
+sal_rus
+
+# save figure
+ggsave("./figures/sfig_cover_ATX_covary_salrus_2022_notfinal.tiff", dpi = 600, 
        width=16, height=9, unit="cm")
