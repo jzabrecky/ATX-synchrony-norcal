@@ -1,6 +1,6 @@
 #### getting field and lab data together for the EDI package
 ### Jordan Zabrecky
-## last edited: 01.16.2025
+## last edited: 11.04.2025
 
 # This code puts together raw field and lab data for release in the EDI package
 
@@ -346,32 +346,35 @@ metadata <- read.csv("./data/field_and_lab/raw_data/SUNY_ESF_metadata.csv")
 view(anatoxins_full)
 
 # columns 2, 26, 27, 31, 32, 33, 36, 38, 40, 42 are important
-anatoxins_reduced <- anatoxins_full[c(2, 26, 27, 34, 37, 39, 41, 43)]
-# (I already know all of our samples had none of the 
-# three cylindrospermopsin derivatives tested, so not including them here)
+# later edit (11/4/25): adding in cylindrospermopsins (despite all as non-detects)
+anatoxins_reduced <- anatoxins_full[c(2, 26, 27, 34, 37, 39, 41, 43, 47, 52)]
 
 # rename these columns to be more computer-legible
 labels <- c("ESF_ID", "MCY_ug_g", "MCY_det_limit_full", "ATX_det_limit_full", 
-            "ATXa_ug_g", "HTXa_ug_g", "dhATXa_ug_g", "dhHTXa_ug_g")
+            "ATXa_ug_g", "HTXa_ug_g", "dhATXa_ug_g", "dhHTXa_ug_g", "CYL_ug_g",
+            "CYL_det_limit_full")
 
 # adding labels as column names
 colnames(anatoxins_reduced) <- labels
 
 # convert columns that are character class to numeric 
 # (this will replace the "-" with NA)
-anatoxins_reduced[5:8] <- sapply(anatoxins_reduced[5:8], as.numeric)
+anatoxins_reduced[5:9] <- sapply(anatoxins_reduced[5:9], as.numeric)
 
 # parse detection limit column and convert to numeric
 anatoxins_reduced <- anatoxins_reduced %>%
   mutate(MCY_det_limit = as.numeric(str_sub(anatoxins_reduced$MCY_det_limit_full,3, 6)),
-         ATX_det_limit = as.numeric(str_sub(anatoxins_reduced$ATX_det_limit_full,3, 8))) %>% 
-  select(-MCY_det_limit_full, -ATX_det_limit_full)
+         ATX_det_limit = as.numeric(str_sub(anatoxins_reduced$ATX_det_limit_full,3, 8)),
+         CYL_det_limit = as.numeric(str_sub(anatoxins_reduced$CYL_det_limit_full,3, 8))) %>% 
+  select(-MCY_det_limit_full, -ATX_det_limit_full, -CYL_det_limit_full)
 
 # fill in missing values/non-detects with "ND"
 anatoxins_processed <- replace(anatoxins_reduced, is.na(anatoxins_reduced), "ND")
 
-# we have one sample where the microcystin detection limit was not reported
+# we have one sample where the microcystin detection limit was not reported and a 
+# few for cylindrospermompsins
 anatoxins_processed$MCY_det_limit[which(anatoxins_processed$MCY_det_limit == "ND")] <- "NA"
+anatoxins_processed$CYL_det_limit[which(anatoxins_processed$CYL_det_limit == "ND")] <- "NA"
 
 # match ESF_ID with metadata
 combined <- left_join(metadata, anatoxins_processed, by = "ESF_ID") %>% 
@@ -393,7 +396,8 @@ combined <- combined %>% replace(is.na(.), "NA")
 # put detection limit columns before values
 combined <- combined %>% 
   relocate(MCY_det_limit, .before = MCY_ug_g) %>% 
-  relocate(ATX_det_limit, .before = MCY_ug_g)
+  relocate(ATX_det_limit, .before = MCY_ug_g) %>% 
+  relocate(CYL_det_limit, .before = MCY_ug_g)
 
 # save csv
 write.csv(combined, './data/EDI_data_package/anatoxin_concentrations.csv', row.names = FALSE)
