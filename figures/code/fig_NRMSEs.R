@@ -1,6 +1,6 @@
 #### Main figure to show posterior NRMSEs
 ### Jordan Zabrecky
-## 10.30.2025
+## last edited: 11.03.2025
 
 ## This figure creates a main figure showing the posterior NRMSEs for 
 ## model predicting (a) Microcoleus vs. Anabaena/Cylindrospermum cover,
@@ -161,6 +161,9 @@ for(i in 1:length(NRMSE_list)) {
 # mutate this data frame to add columns for plotting
 all_NRMSEs <- all_NRMSEs %>% 
   mutate(model_base = str_remove(model, "_w_cover"),
+         model_base_f = factor(model_base, levels = c("physical", "chemical", "biological",
+                                                      "physicochemical", "ecohydrological",
+                                                      "biochemical", "all")),
          taxa = case_when(grepl("M_", predicting) ~ "M_",
                           grepl("AC_", predicting) ~ "AC_"),
          model_base_w_taxa = paste(taxa, model_base, sep = ""),
@@ -191,7 +194,7 @@ null_values <- data.frame(y_axis = c("a", "a", "b", "b", "c", "c"),
 
 # plot!
 all_grid_NRMSEs <- ggplot(data = all_NRMSEs, aes(x = x, fill = model_base_w_taxa_f)) +
-  geom_density(alpha = 0.6, size = 0.25)) +
+  geom_density(alpha = 0.6, size = 0.25) +
   scale_fill_manual(values = c(m_palette, ac_palette)) +
   geom_vline(data = null_values,
              aes(xintercept = value), linetype = "dashed", color = "#2e2e2e") +
@@ -199,6 +202,17 @@ all_grid_NRMSEs <- ggplot(data = all_NRMSEs, aes(x = x, fill = model_base_w_taxa
   labs(x = NULL, y = NULL) +
   theme(legend.position = "none")
 all_grid_NRMSEs
+
+# plot!
+all_grid_NRMSEs_2 <- ggplot(data = all_NRMSEs, aes(x = x, fill = model_base_f)) +
+  geom_density(alpha = 0.6, size = 0.25) +
+  scale_fill_manual(values = c(palette)) +
+  geom_vline(data = null_values,
+             aes(xintercept = value), linetype = "dashed", color = "#2e2e2e") +
+  facet_grid(x_axis ~ y_axis, scales = "free_x") +
+  labs(x = NULL, y = NULL) +
+  theme(legend.position = "none")
+all_grid_NRMSEs_2
 
 #### (4) Putting Figures Together ####
 
@@ -211,15 +225,15 @@ opt1
 opt2 <- plot_grid(cover_NRMSEs2, atx_m_NRMSEs2, atx_ac_NRMSEs2, align = "h", nrow = 1)
 opt2
 
-# going to just save the new facet grid one
-all_grid_NRMSEs
+# going to just save the new facet grid one with second color option
+all_grid_NRMSEs_2
 ggsave("./figures/fig_NRMSEs_notfinal.tiff", 
        dpi = 600, width = 18, height = 11, unit = "cm")
 
 # legend save
-cover_NRMSEs <- ggplot(data = test_a_data, aes(x = x, fill = interaction(model_f, predicting_f))) +
+cover_NRMSEs <- ggplot(data = test_a_data, aes(x = x, fill = model_f)) +
   geom_density(alpha = 0.6, size = 0.25) +
-  scale_fill_manual(values = c(m_palette, ac_palette)) +
+  scale_fill_manual(values = c(palette, palette)) +
   facet_wrap(~predicting_f, ncol = 1) +
   geom_vline(data = null_models %>% filter(predicting %in% c("M_cover", "AC_cover")),
              aes(xintercept = mean), linetype = "dashed", color = "#2e2e2e") +
