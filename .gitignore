@@ -13,6 +13,8 @@ data/predictive_models/M_cover_models/
 data/predictive_models/AC_cover_models/
 data/predictive_models/M_atx_models/
 data/predictive_models/AC_atx_models/
+# ignore folder with streamPULSE data to contextualize our GPPs
+data/other_gpp/
 # other folders that will be deleted
 data/predictive_models/july_stuff/
 data/predictive_models/log_tests/
