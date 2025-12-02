@@ -4,44 +4,30 @@
 .RData
 .RDataTmp
 .Ruserdata
-# ignore folders with large storage associated with metabolism modeling
+# ignore folders with large storage associated with data for metabolism modeling
 data/GLDAS/
 data/NLDAS/
 data/metab_model_outputs/
-# ignore folders with large storage associated with predictive modeling
+# ignore folders with large storage associated with RDS objects for predictive modeling
 data/predictive_models/M_cover_models/
 data/predictive_models/AC_cover_models/
 data/predictive_models/M_atx_models/
 data/predictive_models/AC_atx_models/
-# other folders that will be deleted
-data/predictive_models/july_stuff/
-data/predictive_models/log_tests/
-data/predictive_models/log_ver/
-data/predictive_models/M_cover_models_oddreachout/
-data/predictive_models/nrmse_M_cover_oddreachout.csv
-data/predictive_models/compare_sigma_prior/
-data/predictive_models/compare_zero_sub_values/
-data/predictive_models/warning_screenshots/
-data/predictive_models/other_temporary/
-data/predictive_models/predictions_M_cover_oddreachout.csv
-data/predictive_models/aug_2025/
+# ignore only the model objects in the omitted AC models folder
+data/predictive_models/omitted_AC_models/all_SFE-M-1S
+data/predictive_models/omitted_AC_models/biochemical_SFE-M-1S
+data/predictive_models/omitted_AC_models/biological_SFE-M-1S
+data/predictive_models/omitted_AC_models/ecohydrological_SFE-M-1S
 # cannot publicly release data collected by karuk tribe
 data/karuk_tribe_data
 data/external_DO/salmon_2022_karuk.csv
 data/external_DO/salmon_2023_karuk.csv
 data/metab_model_inputs/salmon_2022_karuk_modelinputs.csv
 data/metab_model_inputs/salmon_2023_karuk_modelinputs.csv
-# ignore only the model objects in the omitted AC models folder
-data/predictive_models/omitted_AC_models/all_SFE-M-1S
-data/predictive_models/omitted_AC_models/biochemical_SFE-M-1S
-data/predictive_models/omitted_AC_models/biological_SFE-M-1S
-data/predictive_models/omitted_AC_models/ecohydrological_SFE-M-1S
-# ignore old code & data (that may later be deleted!)
+# ignore streamLight work (decided not to use it)
 data/old_StreamLight_and_MODIS
-code/old_code_toDEL
-data/metab_model_inputs/old
-# ignore .rds, .png, .pdf, and .svg files
-*.rds
+# ignore any image related files
+*.jpg
 *.png
 *.pdf
 *.tiff
