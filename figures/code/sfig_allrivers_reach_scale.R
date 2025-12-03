@@ -2,8 +2,8 @@
 ### Jordan Zabrecky
 ## last edited: 07.25.2025
 
-# This script plots a supplemental figure taxa-specific cover and anatoxin concentrations
-# for each reach sampled on each river in 2022
+# This script plots a supplemental figure taxon-specific cover and anatoxin concentrations
+# for each reach sampled on each river in 2022 (rather than grouping all reaches together)
 
 #### (1) Loading in libraries and data ####
 

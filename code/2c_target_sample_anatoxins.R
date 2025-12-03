@@ -12,6 +12,10 @@
 # loading libraries
 lapply(c("tidyverse", "lubridate", "plyr"), require, character.only = T)
 
+# remove any dplyr masking
+filter <- dplyr::filter
+select <- dplyr::select
+
 ## (a) anatoxin data
 
 # read in data
@@ -20,12 +24,18 @@ anatoxins <- read.csv("./data/EDI_data_package/anatoxin_concentrations.csv") %>%
 
 ## where ND, fill in samples with 0
 # pivot longer
-anatoxins_longer <- pivot_longer(anatoxins, cols = c(11:15), names_to = "toxin", 
+anatoxins_longer <- pivot_longer(anatoxins, cols = c(13:16), names_to = "toxin", 
                                  values_to = "value")
 
 # replace ND with 0
 anatoxins_longer$value <- replace(anatoxins_longer$value, 
                             which(anatoxins_longer$value == "ND"), 0)
+
+# check blanks to make sure they had no anatoxin detections
+anatoxins_longer$value[which(anatoxins_longer$sample_type == "BLANK")]
+
+# blanks are zero- can remove them!
+anatoxins_longer <- anatoxins_longer[-which(anatoxins_longer$sample_type == "BLANK"),]
 
 # convert to numeric
 anatoxins_longer$value <- as.numeric(anatoxins_longer$value)
@@ -37,8 +47,6 @@ anatoxins <- pivot_wider(anatoxins_longer, names_from = "toxin", values_from = "
 # reporting those values, so let's replace them with 0
 anatoxins_processed <- anatoxins %>% 
   mutate(
-    MCY_ug_g = case_when(MCY_ug_g < MCY_det_limit ~ 0,
-                         TRUE ~ MCY_ug_g),
     ATXa_ug_g = case_when(ATXa_ug_g < ATX_det_limit ~ 0,
                           TRUE ~ ATXa_ug_g),
     HTXa_ug_g = case_when(HTXa_ug_g < ATX_det_limit ~ 0,
@@ -52,12 +60,6 @@ anatoxins_processed <- anatoxins %>%
 # calculate total anatoxins
 anatoxins_processed <- anatoxins_processed %>% 
   mutate(ATX_all_ug_g = ATXa_ug_g + HTXa_ug_g + dhATXa_ug_g + dhHTXa_ug_g)
-
-# check blanks to make sure they had no anatoxin detections
-anatoxins_processed$ATX_all_ug_g[which(anatoxins_processed$sample_type == "BLANK")]
-
-# blanks are zero- can remove them!
-anatoxins_processed <- anatoxins_processed[-which(anatoxins_processed$sample_type == "BLANK"),]
 
 ## (b) chlorophyll-a data
 
@@ -147,6 +149,7 @@ mean(triplicates_chl$rsd_chla) # average is 12.6%
 # to get plausible values on the fluorometer (i.e. no negative pheophytin)
 # it is highly possible that sometimes our sample is mostly sediment
 # and sometimes more mat material is included
+# we will focus on normalization with % organic matter
 
 # take dataset and select for columns we care about before merging
 triplicates_chl_final <- triplicates_chl %>% 

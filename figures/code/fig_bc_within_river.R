@@ -3,7 +3,9 @@
 ## last edited: 10.25.2025
 
 # This script creates a primary figure for Q2 focused on the relationships
-# between benthic cyanobacteria dynamics within the same river
+# between benthic cyanobacteria dynamics within the same river. Additionally,
+# at the end of the script a question- "How does peak magnitude differ at each 
+# reach?" is answered
 
 #### (1) Loading libraries and data ####
 

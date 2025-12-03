@@ -2,6 +2,9 @@
 ### Jordan Zabrecky (adapted from previous authors)
 ## last edited 06.18.2025
 
+# This script grabs and summarizes data to make table describing watershed
+# and water quality characteristics for all of our study rivers
+
 #### (1) Loading libraries & data ####
 
 # loading libraries
@@ -52,7 +55,7 @@ landcover_summary <- landcover_wider %>%
   select(site, developed, forest, shrub_grass, agriculture)
 
 # save as csv
-write.csv(landcover_summary, "./data/NLCD19_landcover/landcover_summary.csv",
+write.csv(landcover_summary, "./data/NLCD19_landcover/summary.csv",
           row.names = FALSE)
 
 #### (3) Discharge Range ####
@@ -105,4 +108,3 @@ water_quality_summary <- nutrients %>%
                    nitrate_max = max(nitrate_mg_N_L),
                    phos_min = min(oPhos_ug_P_L),
                    phos_max = max(oPhos_ug_P_L))
-

@@ -2,9 +2,9 @@
 ### Jordan Zabrecky
 ## last edited: 08.05.2025
 
-# These figures show (1) the proportion of anatoxin congeners for each sample,
-# (2) the difference between anatoxins normalized per organic matter vs. chl-a,
-# (3) the difference in mat concentrations on our single day riffle experiment
+# These supplemental figures show (1) the proportion of anatoxin congeners for each 
+# sample, (2) the difference between anatoxins normalized per organic matter vs. 
+# chl-a, (3) the difference in mat concentrations on our single day riffle experiment
 
 #### (1) Loading libraries and anatoxins data ####
 
@@ -127,7 +127,5 @@ riffle_fig <- ggplot(data = riffle_exp, aes(y = ATXa_ug_g, x = dhATXa_ug_g)) +
 riffle_fig
 
 # pair with photo in editing program
-# also use scale from blue to yellow because I think when it goes back it overlaps some colors
-# save figure; unsure about x and y axes at present
 ggsave("./figures/sfig_atx_riffle_notfinal.tiff", dpi = 600, 
        width=9, height=9, unit="cm")

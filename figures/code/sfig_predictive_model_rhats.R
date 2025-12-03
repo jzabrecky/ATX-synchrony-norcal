@@ -2,8 +2,8 @@
 ### Jordan Zabrecky
 ## last edited: 09.19.2025
 
-## This supplemental figure shows that the r-hat for all covariates in all
-## predictive models for every omitted reach is below 1.05
+# This supplemental figure shows that the r-hat for all covariates in all
+# sub-models is below 1.05
 
 #### (1) Loading libraries & data ####
 

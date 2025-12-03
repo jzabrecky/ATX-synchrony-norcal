@@ -24,8 +24,9 @@ data/external_DO/salmon_2022_karuk.csv
 data/external_DO/salmon_2023_karuk.csv
 data/metab_model_inputs/salmon_2022_karuk_modelinputs.csv
 data/metab_model_inputs/salmon_2023_karuk_modelinputs.csv
-# ignore streamLight work (decided not to use it)
+# ignore streamLight work (decided not to use it) and external reference gpp
 data/old_StreamLight_and_MODIS
+data/other_gpp
 # ignore any image related files
 *.jpg
 *.png

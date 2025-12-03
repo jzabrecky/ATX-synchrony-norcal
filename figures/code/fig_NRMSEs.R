@@ -2,12 +2,13 @@
 ### Jordan Zabrecky
 ## last edited: 11.03.2025
 
-## This figure creates a main figure showing the posterior NRMSEs for 
-## model predicting (a) Microcoleus vs. Anabaena/Cylindrospermum cover,
-## (b) Microcoleus anatoxins with and without cover as a covariate,
-## (c) Anabaena/Cylindrospermum anatoxins with and without cover as a covariate
+# This figure creates a main figure showing the posterior NRMSEs for 
+# model predicting (a) Microcoleus vs. Anabaena/Cylindrospermum cover,
+# (b) Microcoleus anatoxins with and without cover as a covariate,
+# (c) Anabaena/Cylindrospermum anatoxins with and without cover as a covariate
+# Two color palette options are also explored
 
-## note: requires being on a computer where model RDS objects are stored!
+# NOTE: requires being on a computer where model RDS objects are stored!
 
 #### (1) Loading libraries & data ####
 
@@ -43,6 +44,7 @@ theme_set(theme_bw() + theme(panel.grid.minor = element_blank(),
                              plot.title = ggtext::element_markdown(size = 10, hjust = 0.5),
                              strip.text = element_text(face="bold", size=10), strip.background = element_blank()))
 
+# other color options are commented out
 palette <- c("#E8DE48", "#B4D65E", "#8BCF6F", "#57C785", "#47A27E", "#387E77", "#1E426B")
 #m_palette <- c("#0D3665", "#2F63A0", "#5697E3", "#6180bb", "#72B0F9", "#A9CAF0", "#D9E7F5")
 m_palette <- c("#D9E7F5", "#A9CAF0", "#72B0F9", "#6180bb", "#5697E3", "#2F63A0", "#0D3665")

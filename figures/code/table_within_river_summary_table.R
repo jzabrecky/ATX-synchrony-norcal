@@ -1,4 +1,4 @@
-#### Q1: Table and Figure for within river reach-scale patterns
+#### Q2: Table and Figure for within river reach-scale patterns
 ### Jordan Zabrecky
 ## last edited: 06.10.2025
 

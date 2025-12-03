@@ -2,6 +2,10 @@
 ### Jordan Zabrecky
 ## last edited: 08.08.2025
 
+# This supplemental figure shows the discrepancy between cover estimation
+# (from quadrat placements) and presence/absence (taxon observed nearby
+# transect line) from benthic surveys roughly following SWAMP protocol
+
 #### (1) Loading libraries and data ####
 
 # loading libraries

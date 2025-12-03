@@ -41,7 +41,6 @@ fig <- ggplot(data = data, aes(x = date, y = ATXa_ug_L)) +
   theme(legend.position = "bottom")
 fig  
 
-# pair with photo of epiphyte in pool habitat
-# make sure it's not a photo we want to use with chapter 2!
+# pair with photo of epiphyte in pool habitat in Inkscape
 ggsave("./figures/sfig_atx_epiphyte_cobble_notfinal.tiff", dpi = 600, 
        width=9, height=9, unit="cm")

@@ -8,7 +8,7 @@
 #### (1) Loading libraries, our discharge data, and USGS discharge data ####
 
 # Loading libraries
-lapply(c("tidyverse", "lubridate", "dataRetrieval", "ldplyr"), require, 
+lapply(c("tidyverse", "lubridate", "dataRetrieval", "plyr"), require, 
        character.only = T)
 
 # Loading our discharge data measured with SonTek Flowmeter 2 and calculated

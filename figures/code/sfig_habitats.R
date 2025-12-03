@@ -2,7 +2,9 @@
 ### Jordan Zabrecky
 ## last edited: 07.21.2025
 
-# This figure shows the amount of 
+# This figure shows the amount the proportion of observations of each target taxon
+# in a quadrat during benthic surveys per month. Colors show different habitat (pool/run or
+# riffle/rapid). 
 
 #### (1) Loading libraries and anatoxins data ####
 
@@ -82,38 +84,8 @@ anacyl_summarized <- summarized %>%
   # while one reach had a single anabaena siting, it was not in quadrat
   filter(site != "SAL")
 
-## Trying with survey presence/absence
-
-# microcoleus
-presence_micro <- ggplot(data = micro_summarized, aes(x = month, y = prop_micro_transect, fill = riffle_rapid)) +
-  geom_bar(position="stack", stat = "identity") +
-  scale_x_discrete(labels = c("June", "July", "Aug", "Sept")) +
-  scale_fill_manual("Habitat:", labels = c("Pool or Run", "Riffle or Rapid"),
-                    values = c("#ebdf38", "#62a7f8")) +
-  facet_wrap(~site, labeller =  as_labeller(c(`SAL` = "Salmon River", 
-                                              `SFE-M`= "South Fork Eel River at Miranda",
-                                              `SFE-SH` = "South Fork Eel River at Standish Hickey"))) +
-  labs(x = NULL, y = "Proportion of Transects Present", title = "*Microcoleus* Presence")
-presence_micro
-
-# anabaena/cylindrospermum
-presence_ana <- ggplot(data = anacyl_summarized, aes(x = month, y = prop_anacyl_transect, fill = riffle_rapid)) +
-  geom_bar(position="stack", stat = "identity") +
-  scale_x_discrete(labels = c("June", "July", "Aug", "Sept")) +
-  scale_fill_manual("Habitat:", labels = c("Pool or Run", "Riffle or Rapid"),
-                    values = c("#ebdf38", "#62a7f8")) +
-  facet_wrap(~site, labeller =  as_labeller(c(`RUS` = "Russian River", 
-                                              `SFE-M`= "South Fork Eel River at Miranda",
-                                              `SFE-SH` = "South Fork Eel River at Standish Hickey"))) +
-  labs(x = NULL, y = "Proportion of Transects Present", title = "*Anabaena/Cylindrospermum* Presence")
-presence_ana
-
-# I think that since this presence/absence includes up to ~7.5-m
-# out from where quadrat was placed and habitat was recorded
-# so habitat could have changed and overall it sends a
-# less clear message than conveyed than using quadrat presence/absence
-
-## Trying with quadrat presence absence data
+## Using quadrat presence absence data 
+# (aka if taxon was in quadrat where habitat was recorded)
 
 # factor to get preferred ordering for ggplot
 micro_summarized$site_f <- factor(micro_summarized$site, levels = c("SFE-M", "SFE-SH",

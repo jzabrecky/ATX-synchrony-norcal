@@ -2,13 +2,13 @@
 ### Jordan Zabrecky
 ## last edited: 10.25.2025
 
-## This is a supplemental figure that shows the relative abundance of Microcoleus
-## and Anabaena/Cylindrospermum in targeted samples respectively (excluding non-algal portion)
+# This is a supplemental figure that shows the relative abundance of Microcoleus
+# and Anabaena/Cylindrospermum in targeted samples respectively (excluding non-algal portion)
 
-## Microscopy data was processed from EDI package in the ATX-community-norcal project
-## https://github.com/jzabrecky/ATX-community-norcal/blob/main/code/pre_EDI_data_gathering/pre_EDI_1a_putting_together_microscopy.R
-## exclusion of nonalgal portion was calculated here:
-## https://github.com/jzabrecky/ATX-community-norcal/blob/main/code/1b_processing_microscopy.R
+# Microscopy data was processed from EDI package in the ATX-community-norcal project
+# https://github.com/jzabrecky/ATX-community-norcal/blob/main/code/pre_EDI_data_gathering/pre_EDI_1a_putting_together_microscopy.R
+# exclusion of nonalgal portion was calculated here:
+# https://github.com/jzabrecky/ATX-community-norcal/blob/main/code/1b_processing_microscopy.R
 
 #### (1) Loading libraries & data ####
 
@@ -85,6 +85,7 @@ microscopy_fig
 ggsave("./figures/sfig_microscopy_composition_not_final.tiff", dpi = 600, 
        width=18, height=21, unit="cm")
 
+# separate legend to input in Inkscape
 microscopy_legend <- ggplot(microscopy_longer,
                          aes(fill = taxa_f, y = site_reach_date, x = percent)) + 
   geom_bar(stat="identity") +

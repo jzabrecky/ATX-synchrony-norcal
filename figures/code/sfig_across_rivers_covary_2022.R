@@ -3,7 +3,9 @@
 ## last edited: 10.30.2025
 
 # This script creates a supplementary figure to explore the relationships
-# between taxa-specific cover and ATX for biweekly 2022 data
+# between taxa-specific cover and ATX for biweekly 2022 data. Ultimately,
+# only Salmon and Russian are exported into the supplementary figure as 
+# the South Fork Eel is now incorporated into the main
 
 #### (1) Loading libraries and data ####
 

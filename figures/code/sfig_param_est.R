@@ -2,8 +2,8 @@
 ### Jordan Zabrecky
 ## last edited: 10.30.25
 
-## This code makes figures to show our parameter estimates for all models (supplemental)
-## and is used when pulling in data to make figures 6 & 7
+# This code makes figures to show our parameter estimates for all models (supplemental)
+# and is used when pulling in data to make figures 6 & 7
 
 #### (1) Loading libraries and data ####
 

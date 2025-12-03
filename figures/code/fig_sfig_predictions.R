@@ -2,16 +2,16 @@
 ### Jordan Zabrecky
 ## last edited: 10.30.25
 
-## This code makes figures showing our predictions vs. observed values for
-## (1) all models for a supplemental figure and (2) showing only the best models
-## for predicting cover, predicting anatoxins, and then predicting anatoxins
-## using cover as a covariate (for a total of 6) into two separate figures
-## joined with the corresponding parameter estimates
+# This code makes figures showing our predictions vs. observed values for
+# (1) all models for a supplemental figure and (2) showing only the best models
+# for predicting cover, predicting anatoxins, and then predicting anatoxins
+# using cover as a covariate (for a total of 6) into two separate figures
+# joined with the corresponding parameter estimates
 
 #### (1) Loading libraries and data ####
 
 # loading libraries
-lapply(c("tidyverse", "lubridate", "cowplot", "plyr", "ggtext"), 
+lapply(c("tidyverse", "lubridate", "cowplot", "plyr", "ggtext", "ggallin"), 
        require, character.only = T)
 
 ## loading data

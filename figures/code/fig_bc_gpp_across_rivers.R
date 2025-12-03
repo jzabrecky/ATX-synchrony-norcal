@@ -3,9 +3,8 @@
 ## last edited: 09.15.2025
 
 # This script creates a primary figure for Q1 focused on the relationships
-# between benthic cyanobacteria dynamics and GPP across rivers
-
-# Using option 2 (so commented out some code that is required for option 1)
+# between benthic cyanobacteria dynamics and GPP across rivers. Two options are
+# created- we are going with option 2 (so code required for option 1 is commented out)
 
 #### (1) Loading libraries and data ####
 

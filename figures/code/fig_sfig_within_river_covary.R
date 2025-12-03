@@ -2,8 +2,10 @@
 ### Jordan Zabrecky
 ## last edited: 10.29.2025
 
-# This script creates a supplementary figure to explore the relationships
-# between taxa-specific cover and ATX
+# This script creates part of a main fiure and an additional supplementary figure 
+# to explore the relationships between taxon-specific cover and ATX. Furthermore,
+# 2022 data is also pulled in at the end from "sfig_across_rivers_covary_2022.R"
+# to add to the main figure
 
 #### (1) Loading libraries and data ####
 

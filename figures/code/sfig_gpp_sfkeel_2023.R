@@ -164,16 +164,6 @@ sth_gpp <- ggplot(data = gpp %>% filter(site_year == "sfkeel_sth_2023"), aes(x =
   labs(y = NULL, x = NULL, title = "South Fork Eel Upper 2023")
 sth_gpp
 
-#### (3) Comparing Microcoleus cover & GPP ####
-
-# reload 
-sfkeel23 <- read.csv("./data/field_and_lab/sfkeel23_combined.csv") %>% 
-  mutate(field_date = ymd(field_date)) %>% 
-  filter(field_date > ymd("2023-08-01"))
-
-plot(sfkeel23$field_date, sfkeel23$GPP_median_tofourdaysprior)
-cor.test(sfkeel23$GPP_median_tofourdaysprior, sfkeel23$microcoleus)
-
 #### (3) Putting plots together & saving ####
 
 # putting two plots together
@@ -183,6 +173,3 @@ all
 # saving
 ggsave("./figures/sfig_gpp_sfkeel_peaks_notfinal.tiff", dpi = 600, 
        width=12, height=15, unit="cm") 
-
-# curious date of max GPP in SFE-Lower 2023?
-view(gpp %>% filter(site_year == "sfkeel_mir_2023")) # 08/16/2023 > 
