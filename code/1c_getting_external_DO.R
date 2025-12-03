@@ -11,7 +11,7 @@
 # loading libraries
 lapply(c("dataRetrieval", "lubridate", "tidyverse", "zoo"), require, character.only = T)
 
-# USGS dissolved oxygen in mg/L code and temperature 
+# USGS dissolved oxygen in mg/L and temperature codes
 param_do <- "00300"
 param_temp <- "00010"
 

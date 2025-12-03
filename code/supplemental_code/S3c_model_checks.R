@@ -2,8 +2,9 @@
 ### Jordan Zabrecky
 ## last edited: 09.23.2025
 
-## This code pulls the number of divergent transition and r-hats for all parameters
-## in all models to ensure convergence
+# This code pulls the number of divergent transition and r-hats for all parameters
+# in all models to ensure convergence. There is also a section at the end to load in
+# a model RDS object and troubleshoot using shinystan
 
 #### (1) Loading libraries ####
 
@@ -45,7 +46,8 @@ for(i in 1:length(folders)) {
     convergence_summary <- rbind(convergence_summary, new)
   }
 }
-# going to have to manually check console output because cannot seem to easily get warning to save
+# going to have to also manually check console output while running models 
+# because cannot seem to easily get warning to save
 
 #### (3) Open r-hat summaries and check to see if any are above 1.05 ####
 

@@ -4,7 +4,7 @@
 
 # This code reads in miniDOT data from the EDI package, removes flagged times,
 # and interpolates for removed time periods < 6 hours long; used in tandem with
-# script "1b visualizing miniDOT_data_cleaning.R" to visualize cleaning in dygraphs
+# script "1b_visualizing_miniDOT_data_cleaning.R" to visualize cleaning in dygraphs
 
 #### (1) Loading packages and reading in data #### 
 

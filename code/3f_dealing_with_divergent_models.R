@@ -2,9 +2,11 @@
 ### Jordan Zabrecky
 ## last edited: 10.14.2025
 
-## Had a few models (4) with divergent transitions for models predicting 
-## Anabaena/Cylindrospermum cover as identified in script 
-## "S3c_model_checks.R" in the "supplemental_code" folder
+# This script removed few models (4) with divergent transitions for models 
+# predicting Anabaena/Cylindrospermum cover as identified in script
+# "S3c_model_checks.R" in the "supplemental_code" folder
+# and moves them into another folder ("omitted_AC_models")
+# NOTE: once files are moved this script will not do anything if rerun
 
 #### (1) Create dataframe of these models ###
 

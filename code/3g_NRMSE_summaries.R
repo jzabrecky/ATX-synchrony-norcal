@@ -2,8 +2,8 @@
 ### Jordan Zabrecky
 ## last edited: 10.27.2025
 
-## This code reads in NRMSEs for all predictions for a type of model and 
-## summarizes them via mean & 95% confidence interval
+# This code reads in NRMSEs for all predictions for a type of model and 
+# summarizes them via mean & 95% confidence interval
 
 #### (1) Loading libraries ####
 
@@ -71,7 +71,7 @@ lapply(names(NRMSE_list_summary), function(x) write.csv(NRMSE_list_summary[[x]],
                                                                                        x, ".csv", sep = ""),
                                                         row.names = FALSE))
 
-# for supplemental figure showing each prediction, summarize by site_reach
+# for supplemental figure showing each prediction or sub-model, summarize by site_reach
 NRMSE_list_site_reach<- lapply(NRMSE_list, function(x) x <- x %>%
                                dplyr::group_by(model, site_reach) %>% 
                                dplyr::summarize(mean = mean(x),

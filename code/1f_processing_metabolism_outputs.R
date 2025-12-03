@@ -1,9 +1,11 @@
 #### processing metabolism outputs
 ### Jordan Zabrecky
-## last edited 06.16.2025
+## last edited 11.20.2025
 
 # This code processes metabolism outputs from the "streamMetabolizer" package
-# from script "1e_processing_metabolism_outputs.csv" and saves a csv
+# from script "1e_processing_metabolism_outputs.csv" and saves a csv.
+# Processing includes adding daily mean depth measurements and filtering for
+# quality of metabolism estimate (determined via r-hat and unrealistic values).
 
 #### (1) Loading packages and reading in data #### 
 
@@ -177,6 +179,7 @@ Q_depth_model_plot(x = log(kayak_standish$discharge_m3_s), y = log(kayak_standis
 
 # get russian river geomorphology
 geomorph_sal <- geomorph_data("11522500")
+#write.csv(geomorph_sal, "./data/USGS/salmon_geomorphology.csv", row.names = FALSE)
 
 # get salmon river kayak depth
 kayak_salmon <- read.csv("./data/EDI_data_package/kayak_depth_width.csv") %>% 
@@ -207,6 +210,7 @@ Q_depth_model_plot(x = log(geomorph_sal$discharge_m3_s), y = log(geomorph_sal$de
 
 # get russian river geomorphology
 geomorph_rus <- geomorph_data("11463000")
+#write.csv(geomorph_rus, "./data/USGS/russian_geomorphology.csv", row.names = FALSE)
 
 # get salmon river kayak depth
 kayak_russian <- read.csv("./data/EDI_data_package/kayak_depth_width.csv") %>% 
@@ -260,7 +264,8 @@ Q_depth_final_plot(USGS_daily_discharge$sfkeel_sth, kayak_standish, c(0,3), c(0,
 #### (3) Processing metabolism data ####
 
 # joining daily discharge with metabolism data
-# (doing it by individual because there is a lot of site matching regardless)
+# (doing it by individual because there is a lot of site matching and not perfect name matches
+# for DO data from external sources)
 daily_metab_list$russian <- left_join(daily_metab_list$russian, 
                                       USGS_daily_discharge$russian, by = "date")
 daily_metab_list$russian_USGS <- left_join(daily_metab_list$russian_USGS, 

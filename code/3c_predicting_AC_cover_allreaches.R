@@ -180,16 +180,16 @@ for(j in 2:length(predictions)) {
                     present = training_sites[[i]]$resp_AC_cover_norm,
                     covar = as.matrix(covariates[[j]]$training[[i]]))
     # run STAN model
-    #model <- stan(file = "./code/model_STAN_files/predicting_autoregressive.stan", 
-    #             data = mod_data,
-    #             chains = 3, iter = 10000, warmup = 5000, 
-    #             control = list(adapt_delta = 0.95, max_treedepth = 12))
+    model <- stan(file = "./code/model_STAN_files/predicting_autoregressive.stan", 
+                 data = mod_data,
+                 chains = 3, iter = 10000, warmup = 5000, 
+                 control = list(adapt_delta = 0.95, max_treedepth = 12))
     # save STAN model
-    #saveRDS(model, paste("./data/predictive_models/AC_cover_models/", model_name, 
-    #                     "_", names(test_sites)[i], sep = ""))
+    saveRDS(model, paste("./data/predictive_models/AC_cover_models/", model_name, 
+                         "_", names(test_sites)[i], sep = ""))
     # ALTERNATIVELY, option instead to read RDS object if model already built
-    model <- readRDS(paste("./data/predictive_models/AC_cover_models/", model_name, 
-                                                "_", names(test_sites)[i], sep = ""))
+    #model <- readRDS(paste("./data/predictive_models/AC_cover_models/", model_name, 
+    #                                            "_", names(test_sites)[i], sep = ""))
     # extract parameters
     params <- rstan::extract(model, c("sigma", "b0", "b"))
     # add mean parameter estimates to dataframe

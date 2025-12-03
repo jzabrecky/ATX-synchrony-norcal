@@ -48,10 +48,11 @@ average_per_reach <- function(data) {
       median_depth_cm_sampled = median(depth_cm, na.rm = TRUE)
     ) %>% 
     ungroup() %>% 
-    select(field_date, site_reach, site, green_algae, microcoleus,
-           anabaena_cylindrospermum, bare_biofilm, other_nfixers, micro_transects, ana_cyl_transects, 
-           total_transects, proportion_micro_transects, proportion_ana_cyl_transects,
-           proportion_riffle_rapid_transects, average_depth_cm_sampled, median_depth_cm_sampled) %>% 
+    dplyr::select(field_date, site_reach, site, green_algae, microcoleus,
+                  anabaena_cylindrospermum, bare_biofilm, other_nfixers, micro_transects, 
+                  ana_cyl_transects, total_transects, proportion_micro_transects, 
+                  proportion_ana_cyl_transects, proportion_riffle_rapid_transects, 
+                  average_depth_cm_sampled, median_depth_cm_sampled) %>% 
     distinct()
 }
 
@@ -86,10 +87,10 @@ average_per_site <- function(data) {
       proportion_ana_cyl_transects = mean(proportion_ana_cyl_transects),
     ) %>% 
     ungroup() %>% 
-    select(field_date, site, green_algae_mean, green_algae_sd, microcoleus_mean, 
-           microcoleus_sd, anabaena_cylindrospermum_mean, anabaena_cylindrospermum_sd, 
-           bare_biofilm_mean, bare_biofilm_sd, other_nfixers_mean, other_nfixers_sd,
-           proportion_micro_transects, proportion_ana_cyl_transects) %>% 
+    dplyr::select(field_date, site, green_algae_mean, green_algae_sd, microcoleus_mean, 
+                  microcoleus_sd, anabaena_cylindrospermum_mean, anabaena_cylindrospermum_sd, 
+                  bare_biofilm_mean, bare_biofilm_sd, other_nfixers_mean, other_nfixers_sd,
+                  proportion_micro_transects, proportion_ana_cyl_transects) %>% 
     distinct() 
 }
 
@@ -106,11 +107,11 @@ percover_site <- average_per_site(percover_reach)
 percover_site$site[12:18] <- "SFE-M_excl_site2"
 percover_site$site[33:47] <- "SFE-M_all_sites"
 
-# to be able to compare 2022 and 2023, let's recalculate for just those original sites in 2023
+# in case we to compare SFE-M in 2022 and 2023
+# so let's recalculate for just those original sites in 2023
 SFE_M_excl_site2 <- percover_reach %>% 
-  filter(site == "SFE-M",
-         site_reach != "SFE-M-2") %>% 
-  filter(field_date >= "2023-01-01 00:00:00")
+  dplyr::filter(site == "SFE-M" & site_reach != "SFE-M-2") %>% 
+  dplyr::filter(field_date >= "2023-01-01 00:00:00")
 
 # applying function to just this data
 SFE_M_excl_site2_calc <- average_per_site(SFE_M_excl_site2)

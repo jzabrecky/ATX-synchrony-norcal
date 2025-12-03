@@ -208,16 +208,16 @@ for(j in 2:length(predictions)) {
     # run STAN model
     # if there are warning issues, code may stop if running through whole script 
     # (if using cntl+shift+enter)
-    # model <- stan(file = "./code/model_STAN_files/predicting_NOT_autoregressive.stan", 
-    #              data = mod_data,
-    #              chains = 3, iter = 10000, warmup = 5000, 
-    #              control = list(adapt_delta = 0.95, max_treedepth = 13))
-    # # save STAN model
-    # saveRDS(model, paste("./data/predictive_models/AC_atx_models/", model_name, 
-    #                      "_", names(test_sites)[i], sep = ""))
+    model <- stan(file = "./code/model_STAN_files/predicting_NOT_autoregressive.stan", 
+                  data = mod_data,
+                  chains = 3, iter = 10000, warmup = 5000, 
+                  control = list(adapt_delta = 0.95, max_treedepth = 13))
+    # save STAN model
+    saveRDS(model, paste("./data/predictive_models/AC_atx_models/", model_name, 
+                          "_", names(test_sites)[i], sep = ""))
     # ALTERNATIVELY, option instead to read RDS object if model already built
-    model <- readRDS(paste("./data/predictive_models/AC_atx_models/", model_name, 
-                           "_", names(test_sites)[i], sep = ""))
+    #model <- readRDS(paste("./data/predictive_models/AC_atx_models/", model_name, 
+    #                       "_", names(test_sites)[i], sep = ""))
     # extract parameters
     params <- rstan::extract(model, c("sigma", "b0", "b"))
     # add mean parameter estimates to dataframe

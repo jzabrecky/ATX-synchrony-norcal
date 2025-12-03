@@ -3,12 +3,12 @@
 ## last edited 06.16.2025
 
 # This code gathers the necessary components for metabolism modeling
-# including the (1) cleaned miniDOT data from "1a_reading_and_cleaning_miniDOT_data.R"
-# and applies calibration offsets calculated from "1c_sensor_intercalibrations.R"
-# (2) USGS gage discharge data, (3) GLDAS pressure data, 
-# (4) NLDAS light data, and (5) temporary depth of m = 1. 
-# In step (6) a final csv is created with all this information to be used to 
-# model metabolism in "1e_metabolism_estimates.R"
+# including the (1) cleaned miniDOT data from "1a_reading_and_cleaning_miniDOT_data.R",
+# and applies calibration offsets found in EDI data package,
+# (2) USGS gage discharge data, (3) GLDAS pressure data (that is adjusted with
+# more local barometric pressure measurements), (4) NLDAS light data, 
+# and (5) temporary depth of m = 1. In step (6 & 7) all data is put together for 
+# a final csv to be used to model metabolism in "1e_metabolism_estimates.R"
 
 #### (1) Loading packages and reading in data #### 
 
@@ -30,8 +30,7 @@ rename <- dplyr::rename
 ## you can obtain an old version of the package as follows:
 #url <- "https://cran.r-project.org/src/contrib/Archive/rgdal/rgdal_1.6-6.tar.gz"
 #install.packages(url, type = "source", repos = NULL)
-# However, there may be issues doing this with later version of R 
-# (I had issues with R 4.4.0, but it works with 4.2.3 and 4.3.2)
+# may have less issues with an earlier version of R
 
 ## (a) reading in miniDOT data
 miniDOT_data <- ldply(list.files(path = "./data/miniDOT/", pattern = "_miniDOT.csv"), function(filename) {
@@ -100,6 +99,7 @@ discharge <- lapply(USGS_gages, function(x) readNWISuv(x, param, "2022-06-15","2
 # adding names of each river to list
 site_names <- c("russian", "salmon", "sfkeel_mir", "sfkeel_sth")
 names(discharge) <- site_names
+
 ## Create 5-minute filled time series to match miniDOT and tidy up dataframes
 
 # use "create_filled_TS" function from other script
@@ -141,14 +141,14 @@ supporting <- paste(base_wd, "/code/supplemental_code/", sep = "")
 
 # downloading GLDAS .asc file and processing it into a saved .csv file
 # ONLY NEED TO RUN ONCE
-baro_dwld_processing("russian", 38.806883, -123.007017, "2022-06-15", 
-                     "2022-10-01", path, "America/Los_Angeles")
-baro_dwld_processing("salmon", 41.3771369, -123.4770326, "2022-06-15",
-                     "2023-10-01", path, "America/Los_Angeles")
-baro_dwld_processing("sfkeel_mir", 40.198173, -123.775930, "2022-06-15", 
-                     "2023-10-01", path, "America/Los_Angeles")
-baro_dwld_processing("sfkeel_sth", 39.876268, -123.727924, "2023-06-15", 
-                     "2023-10-01", path, "America/Los_Angeles")
+#baro_dwld_processing("russian", 38.806883, -123.007017, "2022-06-15", 
+#                     "2022-10-01", path, "America/Los_Angeles")
+#baro_dwld_processing("salmon", 41.3771369, -123.4770326, "2022-06-15",
+#                     "2023-10-01", path, "America/Los_Angeles")
+#baro_dwld_processing("sfkeel_mir", 40.198173, -123.775930, "2022-06-15", 
+#                     "2023-10-01", path, "America/Los_Angeles")
+#baro_dwld_processing("sfkeel_sth", 39.876268, -123.727924, "2023-06-15", 
+#                     "2023-10-01", path, "America/Los_Angeles")
 
 # making 5-min interpolated data frames
 GLDAS_processed <- lapply(site_names, function(x) baro_make_df(path, x, "America/Los_Angeles", supporting))
@@ -262,8 +262,8 @@ site_table$Lon <- as.numeric(site_table$Lon)
 
 # downloading site NLDAS data with function from "StreamLightUtils"
 # ONLY NEED TO RUN ONCE
-NLDAS_DL_bulk(save_dir = "data/NLDAS",
-              site_locs = site_table, startDate = "2022-06-15")
+#NLDAS_DL_bulk(save_dir = "data/NLDAS",
+#              site_locs = site_table, startDate = "2022-06-15")
 
 # making list of downloaded sites from above (getting list from folder and removing "_NLDAS.asc")
 site_list <- stringr::str_sub(list.files("data/NLDAS"), 1, -11)
@@ -280,7 +280,7 @@ NLDAS_formatted <- lapply(NLDAS_processed, function(x) NLDAS_formatting(x, suppo
 
 #### (5) Adding temporary depth_m = 1 ####
 
-# instead of rerunning the metabolism model over and over again with our updated depths
+# instead of rerunning the metabolism model over and over again with our finalized depths
 # we will just run the model with m = 1 and apply the depth after metabolism models
 # thus, as we are not dividing GPP by anything, our GPP will be in units g O2 m^-3 d^-1
 # so to get it in g O2 m^-2 d^-1 we will multiply by depth (m/m^-3 = 1/m^-2)
@@ -310,7 +310,7 @@ for(i in 1:length(miniDOT_list)) {
   combined <- rbind(combined, single_site)
 }
 
-## putting together external data frames
+## putting together external DO data frames
 
 # left join data together separately as indexes won't line up
 russian_2022_USGS <- (list(external_DO_list$russian_2022_USGS, discharge$russian, GLDAS_adjusted$russian, 

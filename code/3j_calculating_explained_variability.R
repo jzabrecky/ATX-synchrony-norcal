@@ -2,10 +2,10 @@
 ### Jordan Zabrecky
 ## last edited: 10.25.2025
 
-## This script calculates the r^2 statistic (i.e.,  proportion of the variance 
-## in the dependent variable that is predictable from the independent variables)
-## aka "coefficient of determination" 
-## for each prediction by both (1) using the cor() function and (2) using lm() function
+# This script calculates the r^2 statistic (i.e.,  proportion of the variance 
+# in the dependent variable that is predictable from the independent variables)
+# aka "coefficient of determination" 
+# for each prediction by both (1) using the cor() function and (2) using lm() function
 
 #### (1) Loading libraries and data ####
 
@@ -96,6 +96,7 @@ test <- together %>%
   filter(predicting == "M_cover" & model == "physical" & site_reach == "SFE-Lower-1S")
 # lm version
 summary(lm(test$mean ~ test$observed))$r.squared # 0.628
+# cor() version
 cor(x = test$observed, y = test$mean) ^ 2 # 0.628
 
 # calculate for each submodel

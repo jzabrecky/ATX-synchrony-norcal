@@ -13,7 +13,6 @@ source("code/1f_processing_metabolism_outputs.R")
 
 # need to also get geomorphology data for South Fork Eel at Miranda and Standish Hickey
 geomorph_sfkeel_mir <- geomorph_data("11476500")
-  
 geomorph_sfkeel_sth <- geomorph_data("11475800")
 
 #### (2) Getting slope information ####

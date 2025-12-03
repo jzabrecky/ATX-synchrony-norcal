@@ -2,10 +2,9 @@
 ### Jordan Zabrecky
 ## last edited: 04.25.2025
 
-# This code combines in-situ water chemistry measurements, AQ400 nitrate, ammonium,
-# and orthophosphate values, Shimadzu total dissolved carbon, dissolved organic
-# carbon, and Ion Chromatography anions & cations (2022 only) for water samples
-# and also processes duplicates
+# This code combines in-situ water chemistry measurements, AQ400 (nitrate, ammonium,
+# and orthophosphate values), and Shimadzu (total dissolved carbon and dissolved organic
+# carbon) for water samples and also processes duplicates
 
 #### (1) Loading libraries and reach data ####
 
@@ -30,28 +29,33 @@ field_params <- read_data("in_situ")
 aq400 <- read_data("nutrient") %>% 
   dplyr::rename(ammonium_mg_N_L = calculated_ammonium_mg_N_L )
 shimadzu <- read_data("carbon")
-IC <- read_data("anion_cation")
+
+## get rid of dplyr masking
+filter <- dplyr::filter
+select <- dplyr::select
+rename <- dplyr::rename
+summarize <- dplyr::summarize
 
 #### (2) Processing AQ400 values ####
 
 ## (a) analyzing instrument duplicates
 aq400_instrument_dups <- aq400 %>%
   filter(instrument_duplicate == "y") %>% 
-  dplyr::group_by(site_reach, field_date, assumed_pH) %>% 
-  dplyr::summarize(mean_ophos = mean(oPhos_ug_P_L),
-                   sd_ophos = sd(oPhos_ug_P_L),
-                   rsd_ophos = sd_ophos * 100 / mean_ophos,
-                   mean_nitrate = mean(nitrate_mg_N_L),
-                   sd_nitrate = sd(nitrate_mg_N_L),
-                   rsd_nitrate = sd_nitrate * 100 / mean_nitrate,
-                   mean_amm = mean(ammonium_mg_N_L), 
-                   sd_amm = sd(ammonium_mg_N_L),
-                   rsd_amm = sd_amm * 100 / mean_amm,
-                   # preserved keeps value if it was only a duplicate for a
-                   # different nutrient (for when we join this back in)
-                   preserve_ophos = mean(na.omit(oPhos_ug_P_L)),
-                   preserve_nitrate = mean(na.omit(nitrate_mg_N_L)),
-                   preserve_amm = mean(na.omit(ammonium_mg_N_L)))
+  group_by(site_reach, field_date, assumed_pH) %>% 
+  summarize(mean_ophos = mean(oPhos_ug_P_L),
+            sd_ophos = sd(oPhos_ug_P_L),
+            rsd_ophos = sd_ophos * 100 / mean_ophos,
+            mean_nitrate = mean(nitrate_mg_N_L),
+            sd_nitrate = sd(nitrate_mg_N_L),
+            rsd_nitrate = sd_nitrate * 100 / mean_nitrate,
+            mean_amm = mean(ammonium_mg_N_L), 
+            sd_amm = sd(ammonium_mg_N_L),
+            rsd_amm = sd_amm * 100 / mean_amm,
+            # preserved keeps value if it was only a duplicate for a
+            # different nutrient (for when we join this back in)
+            preserve_ophos = mean(na.omit(oPhos_ug_P_L)),
+            preserve_nitrate = mean(na.omit(nitrate_mg_N_L)),
+            preserve_amm = mean(na.omit(ammonium_mg_N_L)))
 
 # look at instrument duplicate results
 view(aq400_instrument_dups) #ophos and nitrate more consistent than ammonium
@@ -62,16 +66,16 @@ mean(na.omit(aq400_instrument_dups$rsd_amm)) # average 11.31%
 ## (b) analyzing field_duplicates
 aq400_field_dups <- aq400 %>%
   filter(field_duplicate == "y") %>% 
-  dplyr::group_by(site_reach, field_date, assumed_pH) %>% 
-  dplyr::summarize(mean_ophos = mean(oPhos_ug_P_L),
-                   sd_ophos = sd(oPhos_ug_P_L),
-                   rsd_ophos = sd_ophos * 100 / mean_ophos,
-                   mean_nitrate = mean(nitrate_mg_N_L),
-                   sd_nitrate = sd(nitrate_mg_N_L),
-                   rsd_nitrate = sd_nitrate * 100 / mean_nitrate,
-                   mean_amm = mean(ammonium_mg_N_L), 
-                   sd_amm = sd(ammonium_mg_N_L),
-                   rsd_amm = sd_amm * 100 / mean_amm)
+  group_by(site_reach, field_date, assumed_pH) %>% 
+  summarize(mean_ophos = mean(oPhos_ug_P_L),
+            sd_ophos = sd(oPhos_ug_P_L),
+            rsd_ophos = sd_ophos * 100 / mean_ophos,
+            mean_nitrate = mean(nitrate_mg_N_L),
+            sd_nitrate = sd(nitrate_mg_N_L),
+            rsd_nitrate = sd_nitrate * 100 / mean_nitrate,
+            mean_amm = mean(ammonium_mg_N_L), 
+            sd_amm = sd(ammonium_mg_N_L),
+            rsd_amm = sd_amm * 100 / mean_amm)
 
 # look at field duplicate results
 view(aq400_field_dups) #ophos more consistent than nitrate and ammonium
@@ -89,17 +93,17 @@ nutrients <- aq400 %>%
 
 # instrument duplicates
 aq400_instrument_dups <- aq400_instrument_dups %>% 
-  dplyr::rename(oPhos_ug_P_L = preserve_ophos,
-                nitrate_mg_N_L = preserve_nitrate,
-                ammonium_mg_N_L = preserve_amm) %>% 
+  rename(oPhos_ug_P_L = preserve_ophos,
+         nitrate_mg_N_L = preserve_nitrate,
+         ammonium_mg_N_L = preserve_amm) %>% 
   select(site_reach, field_date, oPhos_ug_P_L, nitrate_mg_N_L,
          ammonium_mg_N_L, assumed_pH)
 
 # field duplicates
 aq400_field_dups <- aq400_field_dups %>% 
-  dplyr::rename(oPhos_ug_P_L = mean_ophos,
-                nitrate_mg_N_L = mean_nitrate,
-                ammonium_mg_N_L = mean_amm) %>% 
+  rename(oPhos_ug_P_L = mean_ophos,
+         nitrate_mg_N_L = mean_nitrate,
+         ammonium_mg_N_L = mean_amm) %>% 
   select(site_reach, field_date, oPhos_ug_P_L, nitrate_mg_N_L,
          ammonium_mg_N_L, assumed_pH)
 
@@ -112,16 +116,18 @@ water_chemistry <- left_join(field_params, nutrients, by = c("field_date",
 
 #### (3) Processing Shimadzu data ####
 
+## (probably will not use this data!)
+
 ## (a) analyzing field duplicates
 shimadzu_field_dups <- shimadzu %>%
   filter(field_duplicate == "y") %>% 
-  dplyr::group_by(site_reach, field_date) %>% 
-  dplyr::summarize(mean_TDC = mean(TDC_mg_L),
-                   sd_TDC = sd(TDC_mg_L),
-                   rsd_TDC = sd_TDC * 100 / mean_TDC,
-                   mean_DOC = mean(DOC_mg_L),
-                   sd_DOC = sd(DOC_mg_L),
-                   rsd_DOC = sd_DOC * 100 / mean_DOC)
+  group_by(site_reach, field_date) %>% 
+  summarize(mean_TDC = mean(TDC_mg_L),
+            sd_TDC = sd(TDC_mg_L),
+            rsd_TDC = sd_TDC * 100 / mean_TDC,
+            mean_DOC = mean(DOC_mg_L),
+            sd_DOC = sd(DOC_mg_L),
+            rsd_DOC = sd_DOC * 100 / mean_DOC)
 
 # look at field duplicate results
 view(shimadzu_field_dups) #DOC worse than TDC but again field duplicates not instrument 
@@ -137,8 +143,8 @@ carbon <- shimadzu %>%
 
 # field duplicates
 shimadzu_field_dups <- shimadzu_field_dups %>% 
-  dplyr::rename(TDC_mg_L = mean_TDC,
-                DOC_mg_L = mean_DOC) %>% 
+  rename(TDC_mg_L = mean_TDC,
+         DOC_mg_L = mean_DOC) %>% 
   select(site_reach, field_date, TDC_mg_L, DOC_mg_L)
 
 # merging together data frames
@@ -147,39 +153,5 @@ carbon <- rbind(carbon, shimadzu_field_dups)
 # join with water chemistry
 water_chemistry <- left_join(water_chemistry, carbon, by = c("field_date",
                                                              "site_reach"))
-
-#### (4) Processing IC data ####
-
-## (a) analyzing field duplicates
-IC_field_dups <- IC %>%
-  filter(field_duplicate == "y")
-
-# just looking at them visually since there is only three and will 
-# probably not use this data anyways
-view(IC_field_dups)
-
-# average out duplicates
-IC_field_dups <- IC_field_dups %>% 
-  dplyr::group_by(field_date, site_reach) %>% 
-  dplyr::summarize(Cl_mg_L = mean(Cl_mg_L),
-                   SO4_mg_L = mean(SO4_mg_L),
-                   Br_mg_L = mean(Br_mg_L),
-                   Na_mg_L = mean(Na_mg_L),
-                   K_mg_L = mean(K_mg_L),
-                   Mg_mg_L = mean(Mg_mg_L),
-                   Ca_mg_L = mean(Ca_mg_L))
-
-# original data that does not contain duplicates
-anions_cations <- IC %>% 
-  filter(field_duplicate == "n") %>% 
-  select(!Br_below_detection & !field_duplicate)
-
-# join in data
-anions_cations <- rbind(anions_cations, IC_field_dups)
-
-# join with water chemistry
-water_chemistry <- left_join(water_chemistry, anions_cations, by = c("field_date",
-                                                             "site_reach"))
-
 # save csv
 write.csv(water_chemistry, "./data/field_and_lab/water_chemistry.csv", row.names = FALSE)

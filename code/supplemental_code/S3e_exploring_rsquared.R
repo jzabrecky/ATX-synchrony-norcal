@@ -2,7 +2,7 @@
 ### Jordan Zabrecky
 ## last edited: 10.25.2025
 
-## This code explores the r-squared of each model
+# This code explores the r-squared of each model
 
 #### (1) Loading libraries & data ####
 

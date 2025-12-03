@@ -2,10 +2,10 @@
 ### Jordan Zabrecky
 ## last edited: 10.25.2025
 
-## This code goes back to open previously ran models and saves their parameter estimates
-## (mean and 95% credible interval) into one csv for each prediction type for
-## each RDS object and also grouping multiple parameter estimates for one model
-## across the five RDS objects (e.g., all RDS objects for "physical" models predicting M cover)
+# This code goes back to open previously ran models and saves their parameter estimates
+# (mean and 95% credible interval) into one csv for each prediction type for
+# each RDS object and also grouping multiple parameter estimates for one model
+# across the five RDS objects (e.g., all RDS objects for "physical" models predicting M cover)
 
 #### (1) Loading libraries ####
 
@@ -187,4 +187,3 @@ write.csv(param_list, "./data/predictive_models/parameter_est_allmodels.csv",
           row.names = FALSE)
 write.csv(param_list_site_reach, "./data/predictive_models/parameter_est_allmodels_by_site_reach.csv",
           row.names = FALSE)
-

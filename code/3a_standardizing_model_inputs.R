@@ -2,7 +2,7 @@
 ### Jordan Zabrecky
 ## last edited: 07.24.2025
 
-# This script standardizes (and, in some cases, normalizes) South Fork
+# This script standardizes covariates and normalizes responses for South Fork
 # Eel 2023 data before predictive modeling and makes an additional column for
 # "future" response variables and removes last day of observations (as there
 # is no "future" to forecast for those observations)
@@ -27,12 +27,12 @@ data <- data %>%
 
 # new dataframe for standardizing covariates
 data_cov <- data %>%  # remove columns that won't be used as covariates
-  select(!c(proportion_micro_transects, proportion_ana_cyl_transects,
-         proportion_riffle_rapid_transects, TM_ATX_all_ug_g, TM_ATX_all_ug_orgmat_g,
-         TM_ATX_all_ug_chla_ug, TM_Chla_ug_g, TM_Pheo_ug_g,
-         TM_percent_organic_matter, TAC_ATX_all_ug_g, TAC_ATX_all_ug_orgmat_g, 
-         TAC_ATX_all_ug_chla_ug, TAC_Chla_ug_g, TAC_Pheo_ug_g,
-         TAC_percent_organic_matter))
+  dplyr::select(!c(proportion_micro_transects, proportion_ana_cyl_transects,
+                   proportion_riffle_rapid_transects, TM_ATX_all_ug_g, TM_ATX_all_ug_orgmat_g,
+                   TM_ATX_all_ug_chla_ug, TM_Chla_ug_g, TM_Pheo_ug_g,
+                   TM_percent_organic_matter, TAC_ATX_all_ug_g, TAC_ATX_all_ug_orgmat_g, 
+                   TAC_ATX_all_ug_chla_ug, TAC_Chla_ug_g, TAC_Pheo_ug_g,
+                   TAC_percent_organic_matter))
          
 
 # standardize all covariates by reach
@@ -133,10 +133,10 @@ final <- final[-which(final$field_date == "2023-09-24"),]
 # do two checks to make sure indexes lined up correctly
 # check to make sure it's both the future value and the reaches don't cross data
 check1 <- final %>% 
-  select(field_date, site_reach, resp_M_cover_norm, future_M_cover_norm)
+  dplyr::select(field_date, site_reach, resp_M_cover_norm, future_M_cover_norm)
 view(check1)
 check2 <- final %>% 
-  select(field_date, site_reach, resp_AC_atx_norm, future_AC_atx_norm)
+  dplyr::select(field_date, site_reach, resp_AC_atx_norm, future_AC_atx_norm)
 view(check2)
 
 ## (c) save

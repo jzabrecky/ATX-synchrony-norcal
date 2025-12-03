@@ -43,7 +43,7 @@ inputs_prepped <- lapply(inputs_prepped, function(x) remove_siteyear(x))
 # loading k600 prior estimates
 k600_priors <- read.csv("./data/metab_model_inputs/k600_estimates.csv")
 
-#### (3) Functions to visualize outputs and calculate gof and bins ####
+#### (2) Functions to visualize outputs and calculate gof and bins ####
 
 # function to visualize all inputs on separate plots
 visualize_inputs_full <- function(df){
@@ -228,7 +228,7 @@ plot_Q_bins <- function(discharge, specs_poolBinned) {
   abline(v = specs_poolBinned$K600_lnQ_nodes_centers)
 }
 
-#### (4) Running streamMetabolizer for all sites and visualizing outputs ####
+#### (3) Running streamMetabolizer for all sites and visualizing outputs ####
 
 # set working directory
 setwd("data/metab_model_outputs")
@@ -491,8 +491,7 @@ visualize_inputs_full(inputs_prepped$salmon_karuk)
 visualize_inputs_full(inputs_prepped$salmon_2022_karuk)
 visualize_inputs_full(inputs_prepped$salmon_2023_karuk)
 visualize_inputs_zoomed(inputs_prepped$salmon_karuk, "2022-07-01 00:00:00", "2022-07-03 00:00:00")
-visualize_inputs_zoomed(inputs_prepped$salmon_karuk, "2023-08-16 00:00:00", "2023-08-18 00:00:00")
-
+visualize_inputs_zoomed(inputs_prepped$salmon_karuk, "2023-08-14 00:00:00", "2023-08-16 00:00:00")
 
 # set model specs (need more with this data to converge)
 specs_salmon_karuk <- specs(bayesian_mm, burnin_steps = 6000, saved_steps = 3000, 

@@ -2,7 +2,7 @@
 ### Jordan Zabrecky
 ## last edited: 10.27.2025
 
-## This code explores the NRMSEs of predictive models
+# This code explores the NRMSEs of predictive models
 
 #### (1) Loading libraries & data
 

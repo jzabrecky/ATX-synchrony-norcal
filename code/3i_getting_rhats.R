@@ -2,8 +2,8 @@
 ### Jordan Zabrecky
 ## last edited: 10.15.2025
 
-## This code pulls r-hats from all models and saves them into a single csv file
-## to easily make a supplemental figure
+# This code pulls r-hats from all models and saves them into a single csv file
+# to easily make a supplemental figure
 
 #### (1) Loading libraries ####
 
