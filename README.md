@@ -5,3 +5,4 @@ This project contains the code for a WIP evaluating the synchrony between whole 
 1.  Modeling metabolism using *StreamMetabolizer*
 2.  Processing field and lab data (benthic survey data, water chemistry data, anatoxin concentrations, and metabolism estimates)
 3.  Predicting taxon-specific benthic cyanobacteria cover and anatoxin concentrations
+4.  Quantifying the relative uncertainty contributions from parameter, process, and intial conditions error
