@@ -124,3 +124,85 @@ NRMSE_summary <- function(preds_matrix, observed) {
   # return vector to be saved in main script
   return(NRMSE_vector)
 }
+
+#### (4) Functions for predictions to determine uncertainty ####
+
+# make cover predictions without parameter uncertainty
+preds_cover_processuncertainty <- function(params, y, covar) {
+  n.pred <- nrow(y) # includes initial day where we used 0
+  preds <- matrix(NA, length(params$sigma), n.pred) # empty prediction matrix
+  preds[,1] <- 0.05 # assign first values to our version of 0; hard-coded bc all predictions start with 0
+  # again, our zero here is >0 as when making the model we need a number >0 to make it increase
+  
+  # get mean parameter estimates (hold all constant because we are not interested in parameter uncertainty)
+  mean_params <- list()
+  mean_params$sigma <- mean(params$sigma)
+  mean_params$b0 <- mean(params$b0)
+  mean_params$b <- apply(params$b, 2, function(x) mean(x))
+  # the above works (tested with first values using both this and the original prediction function
+  # [used function(x) return x[1] above to get that] and get the same value)
+  
+  # make predictions
+  for(j in 2:n.pred) {
+    for(i in 1:length(params$sigma)) {
+      preds[i,j] <- rtruncnorm(n = 1, a = 0, b = 100, mean = (mean_params$b0 + covar[j-1,]%*%mean_params$b) 
+                               * preds[i,j-1],
+                               # using previous prediction and covariates (j-1)
+                               # to predict next time step
+                               sd = mean_params$sigma) # process error
+    }
+  }
+  
+  # return filled predictions matrix
+  return(preds)
+}
+
+# for predictions of anatoxins (i.e. does not include autoregressive term) without parameter uncertainty
+preds_anatoxins_processuncertainty <- function(params, y, covar) {
+  n.pred <- nrow(y) # includes initial day where we used 0
+  preds <- matrix(NA, length(params$sigma), n.pred) # empty prediction matrix
+  preds[,1] <- 0 # assign first values to zero (hard-coded because we start all w/ zero)
+  
+  # get mean parameter estimates (hold all constant because we are not interested in parameter uncertainty)
+  mean_params <- list()
+  mean_params$sigma <- mean(params$sigma)
+  mean_params$b0 <- mean(params$b0)
+  mean_params$b <- apply(params$b, 2, function(x) mean(x))
+  # the above works (tested with first values using both this and the original prediction function
+  # [used function(x) return x[1] above to get that] and get the same value)
+  
+  # make predictions
+  for(j in 2:n.pred) {
+    for(i in 1:length(params$sigma)) {
+      preds[i,j] <- rtruncnorm(n = 1, a = 0, b = 100, mean = (mean_params$b0 + covar[j-1,]%*%mean_params$b),
+                               # using previous prediction and covariates (j-1)
+                               # to predict next time step
+                               sd = params$sigma[i]) # process error
+    }
+  }
+  
+  # return filled predictions matrix
+  return(preds)
+}
+
+# for predictions of cover with initial condition uncertainty
+preds_cover_with_IC_uncertainty <- function(params, y, covar) {
+  n.pred <- nrow(y) # includes initial day where we used 0
+  preds <- matrix(NA, length(params$sigma), n.pred) # empty prediction matrix
+  preds[,1] <- rtruncnorm(1, a = 0.05, mean = 0.05, sd = 1) 
+  # distribution for initial condition uncertainty hard-coded above, we know it is low...
+  
+  # make predictions
+  for(j in 2:n.pred) {
+    for(i in 1:length(params$sigma)) {
+      preds[i,j] <- rtruncnorm(n = 1, a = 0, b = 100, mean = (params$b0[i] + covar[j-1,]%*%params$b[i,]) 
+                               * preds[i,j-1],
+                               # using previous prediction and covariates (j-1)
+                               # to predict next time step
+                               sd = params$sigma[i]) # process error
+    }
+  }
+  
+  # return filled predictions matrix
+  return(preds)
+}

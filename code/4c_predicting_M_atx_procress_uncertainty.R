@@ -1,11 +1,11 @@
-#### predicting to determine process uncertainty in models predicting Microcoleus cover
+#### predicting to determine process uncertainty in models predicting Microcoleus anatoxins
 ### Jordan Zabrecky
 ## last edited: 01.13.2026
 
-# This script uses previously built models (see script 3b) to predict 
-# Microcoleus cover WITH incorporating initial condition uncertainty 
-# (rather than fixed value of 0.05, the starting value is pulled from a distribution)
-# to make predictions to determine initial condition uncertainty
+# This script uses previously built models (see script 3d) to predict 
+# Microcoleus anatoxins WITHOUT incorporating parameter uncertainty (by holding
+# parameter estimates consistent) to make predictions to 
+# determine process uncertainty
 
 #### (1) Loading data and libraries ####
 
@@ -15,19 +15,12 @@ lapply(c("tidyverse", "rstan", "StanHeaders", "truncnorm", "Metrics"),
 
 # loading in data and select only columns we care about
 raw_data <- read.csv("./data/predictive_models/inputs.csv") %>% 
-  select(field_date, site_reach, resp_M_cover_norm, future_M_cover_norm, temp_C,
+  select(field_date, site_reach, resp_M_atx_norm, future_M_atx_norm, temp_C,
          discharge_m3_s, DIN_mg_N_L, oPhos_ug_P_L, cond_uS_cm,
-         GPP_median_tofourdaysprior)
+         GPP_median_tofourdaysprior, microcoleus)
 
 # make another data frame for edited data
 data <- raw_data
-
-# when cover = 0, add 0.05 (so model can increase as we multiply by this value)
-data <- data %>%
-  mutate(resp_M_cover_norm = case_when(resp_M_cover_norm == 0 ~ 0.05,
-                                       TRUE ~ resp_M_cover_norm),
-         future_M_cover_norm = case_when(future_M_cover_norm == 0 ~ 0.05,
-                                         TRUE ~ future_M_cover_norm))
 
 # lastly, double check there is no NA for STAN purposes
 any(is.na(data)) # nope!
@@ -60,8 +53,10 @@ field_dates <- split(field_dates, field_dates$site_reach)
 #### (3) Create empty tables for predictions ####
 
 # empty dataframes for predictions (list of model types and then list within per reach)
-model_names <- c("null", "physical", "chemical", "biological", "physicochemical",
-                 "ecohydrological", "biochemical", "all")
+model_names <- c("null", "physical", "physical_w_cover", "chemical", "chemical_w_cover", 
+                 "biological", "biological_w_cover", "physicochemical", "physicochemical_w_cover",
+                 "ecohydrological", "ecohydrological_w_cover", "biochemical", "biochemical_w_cover", 
+                 "all", "all_w_cover")
 predictions <- list() # empty list, excludes first day as we are not making predictions for that day
 for(j in 1:length(model_names)) {
   # for each model (j) create a list for each reach (i)
@@ -87,22 +82,23 @@ names(predictions) <- model_names
 # ecohydrological = autoregressive w/ temperature, flow, and GPP
 # biochemical = autoregressive w/ GPP, nutrients, and conductivity
 # all = autoregressive w/ all covariates
+# w_cover includes the addition of cover at the end!!
 
-#### (4) Predicting Microcoleus Cover ####
+#### (4) Predicting Microcoleus Mat Anatoxins ####
 
 # get prediction functions
 source("./code/supplemental_code/S3b_pred_functions.R")
 
-## (a) null - mean of all cover data
+## (a) null - mean of all Microcoleus atx data
 
 # calculate mean to use for null model (this ignores first day which we are not predicting)
-mean_cover <- mean(data$future_M_cover_norm)
+mean_atx <- mean(data$future_M_atx_norm)
 
 # add to predictions for each site and calculate NRMSE
 for(i in 1:length(test_sites)) {
-  predictions$null[[i]]$mean <- rep(mean_cover, nrow(predictions$null[[i]]))
-  predictions$null[[i]]$ci_lower <- rep(mean_cover, nrow(predictions$null[[i]]))
-  predictions$null[[i]]$ci_upper <- rep(mean_cover, nrow(predictions$null[[i]]))
+  predictions$null[[i]]$mean <- rep(mean_atx, nrow(predictions$null[[i]]))
+  predictions$null[[i]]$ci_lower <- rep(mean_atx, nrow(predictions$null[[i]]))
+  predictions$null[[i]]$ci_upper <- rep(mean_atx, nrow(predictions$null[[i]]))
 }
 
 # empty vector for null NMRSE
@@ -111,13 +107,12 @@ NRMSE <- c(rep(NA, length(test_sites)))
 # calculate NRMSE 
 for(i in 1:length(test_sites)) {
   # (removing first row of prediction which is first day that we are not predicting!)
-  NRMSE[i] <- calc_NRMSE(predictions$null[[i]]$mean[-1], test_sites[[i]]$future_M_cover_norm,
-                         max(test_sites[[i]]$future_M_cover_norm), min(test_sites[[i]]$future_M_cover_norm))
+  NRMSE[i] <- calc_NRMSE(predictions$null[[i]]$mean[-1], test_sites[[i]]$future_M_atx_norm,
+                         max(test_sites[[i]]$future_M_atx_norm), min(test_sites[[i]]$future_M_atx_norm))
 }
 
 # save null NMRSE
-write.csv(NRMSE, "./data/predictive_models/initialcondition_uncertainty/M_cover_models/NRMSE_vectors/null.csv", row.names = FALSE)
-
+write.csv(NRMSE, "./data/predictive_models/process_uncertainty/M_atx_models/NRMSE_vectors/null.csv", row.names = FALSE)
 
 ## (b) all others (putting data together and then run through big for loop)
 
@@ -132,28 +127,57 @@ covariates[[1]] <- NA # holder for null model
 # make list of covariates for physical (temp + discharge)
 covariates[[2]] <- make_covariates(c("temp_C", "discharge_m3_s"))
 
+# make list of covariates for physical w/cover (temp + discharge + cover)
+covariates[[3]] <- make_covariates(c("temp_C", "discharge_m3_s", "microcoleus"))
+
 # make list of covariates for chemical (din + ophos + conductivity)
-covariates[[3]] <- make_covariates(c("DIN_mg_N_L", "oPhos_ug_P_L", "cond_uS_cm"))
+covariates[[4]] <- make_covariates(c("DIN_mg_N_L", "oPhos_ug_P_L", "cond_uS_cm"))
+
+# make list of covariates for chemical w/ cover (din + ophos + conductivity + cover)
+covariates[[5]] <- make_covariates(c("DIN_mg_N_L", "oPhos_ug_P_L", "cond_uS_cm", "microcoleus"))
 
 # make list of covariates for biological (GPP)
-covariates[[4]] <- make_covariates(c("GPP_median_tofourdaysprior"))
+covariates[[6]] <- make_covariates(c("GPP_median_tofourdaysprior"))
+
+# make list of covariates for biological (GPP) w/ cover
+covariates[[7]] <- make_covariates(c("GPP_median_tofourdaysprior", "microcoleus"))
 
 # make list of covariates for physicochemical (temp + flow + din + ophos + cond)
-covariates[[5]] <- make_covariates(c("temp_C", "discharge_m3_s",
+covariates[[8]] <- make_covariates(c("temp_C", "discharge_m3_s",
                                      "DIN_mg_N_L", "oPhos_ug_P_L",
                                      "cond_uS_cm"))
 
+# make list of covariates for physicochemical w/ cover (temp + flow + din + ophos + cond + cover)
+covariates[[9]] <- make_covariates(c("temp_C", "discharge_m3_s",
+                                     "DIN_mg_N_L", "oPhos_ug_P_L",
+                                     "cond_uS_cm", "microcoleus"))
+
 # make list of covariates for ecohydrological (temp + disc + gpp)
-covariates[[6]] <- make_covariates(c("temp_C", "discharge_m3_s",
-                                     "GPP_median_tofourdaysprior"))
+covariates[[10]] <- make_covariates(c("temp_C", "discharge_m3_s",
+                                      "GPP_median_tofourdaysprior"))
+
+# make list of covariates for ecohydrological w/ cover (temp + disc + gpp + cover)
+covariates[[11]] <- make_covariates(c("temp_C", "discharge_m3_s",
+                                      "GPP_median_tofourdaysprior", "microcoleus"))
 
 # make list of covariates for biochemical (din + ophos + cond + GPP)
-covariates[[7]] <- make_covariates(c("DIN_mg_N_L", "oPhos_ug_P_L",
-                                     "cond_uS_cm", "GPP_median_tofourdaysprior"))
+covariates[[12]] <- make_covariates(c("DIN_mg_N_L", "oPhos_ug_P_L",
+                                      "cond_uS_cm", "GPP_median_tofourdaysprior"))
+
+# make list of covariates for biochemical w/ cover (din + ophos + cond + GPP + cover)
+covariates[[13]] <- make_covariates(c("DIN_mg_N_L", "oPhos_ug_P_L",
+                                      "cond_uS_cm", "GPP_median_tofourdaysprior",
+                                      "microcoleus"))
 
 # make list of covariates for all (temp + dis + din + ophos + cond + GPP)
-covariates[[8]] <- make_covariates(c("temp_C", "discharge_m3_s", "DIN_mg_N_L", 
-                                     "oPhos_ug_P_L", "cond_uS_cm", "GPP_median_tofourdaysprior"))
+covariates[[14]] <- make_covariates(c("temp_C", "discharge_m3_s", "DIN_mg_N_L", 
+                                      "oPhos_ug_P_L", "cond_uS_cm", "GPP_median_tofourdaysprior"))
+
+
+# make list of covariates for all w/ cover (temp + dis + din + ophos + cond + GPP + cover)
+covariates[[15]] <- make_covariates(c("temp_C", "discharge_m3_s", "DIN_mg_N_L", 
+                                      "oPhos_ug_P_L", "cond_uS_cm", "GPP_median_tofourdaysprior",
+                                      "microcoleus"))
 
 # giving list names for clarification
 names(covariates) <- names(predictions)
@@ -162,7 +186,7 @@ names(covariates) <- names(predictions)
 # start at 2 because we did null model separately
 for(j in 2:length(predictions)) {
   
-  # get model name string (for loading files)
+  # get model name string (for saving files)
   model_name <- names(covariates)[j]
   
   # build models and make predictions for each reach
@@ -170,31 +194,29 @@ for(j in 2:length(predictions)) {
     # gather data
     mod_data = list(N = nrow(training_sites[[i]]),
                     c = ncol(covariates[[j]]$training[[i]]),
-                    future = training_sites[[i]]$future_M_cover_norm,
-                    present = training_sites[[i]]$resp_M_cover_norm,
+                    future = training_sites[[i]]$future_M_atx_norm,
                     covar = as.matrix(covariates[[j]]$training[[i]]))
-    # read in model previously built (script 3b)
-    model <- readRDS(paste("./data/predictive_models/M_cover_models/", model_name, 
-                                                "_", names(test_sites)[i], sep = ""))
+    # read in model previously built (script 3d)
+    model <- readRDS(paste("./data/predictive_models/M_atx_models/", model_name, 
+                           "_", names(test_sites)[i], sep = ""))
     # extract parameters
     params <- rstan::extract(model, c("sigma", "b0", "b"))
     # make predictions matrix
-    preds_matrix <- preds_cover_with_IC_uncertainty (params = params,
-                                                     y = predictions[[j]][[i]],
-                                                     covar = as.matrix(covariates[[j]]$testing[[i]]))
+    preds_matrix <- preds_anatoxins_processuncertainty(params = params,
+                                    y = predictions[[j]][[i]],
+                                    covar = as.matrix(covariates[[j]]$testing[[i]]))
     # save matrix (to compare standard deviations for uncertainty)
-    write.csv(preds_matrix, paste("./data/predictive_models/initialcondition_uncertainty/M_cover_models/pred_matrices/",
+    write.csv(preds_matrix, paste("./data/predictive_models/process_uncertainty/M_atx_models/pred_matrices/",
                                   model_name, "_", names(test_sites)[i], "_predsmatrix.csv", sep = ""))
     # save summary of prediction; make sure to assign globally
     predictions[[j]][[i]][,2:4] <- preds_summary(preds_matrix)
     # calculate NRMSE of model
-    NRMSE <- NRMSE_summary(preds_matrix, observed = test_sites[[i]]$future_M_cover_norm)
+    NRMSE <- NRMSE_summary(preds_matrix, observed = test_sites[[i]]$future_M_atx_norm)
     # save NRMSE vector
-    write.csv(NRMSE, paste("./data/predictive_models/initialcondition_uncertainty/M_cover_models/NRMSE_vectors/",
+    write.csv(NRMSE, paste("./data/predictive_models/process_uncertainty/M_atx_models/NRMSE_vectors/",
                            model_name, "_", names(test_sites)[i], "_NRMSE.csv", sep = ""), 
               row.names = FALSE)
-    }
-  
+  }
 }
 
 #### (5) Saving Prediction Summary ####
@@ -218,5 +240,5 @@ for(j in 1:length(test_sites)) {
 }
 
 # saving final predictions
-write.csv(final_predictions, "./data/predictive_models/initialcondition_uncertainty/predictions_M_cover.csv",
+write.csv(final_predictions, "./data/predictive_models/process_uncertainty/predictions_M_atx.csv",
           row.names = FALSE)

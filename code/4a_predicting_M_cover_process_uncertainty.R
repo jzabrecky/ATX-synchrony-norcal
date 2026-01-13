@@ -1,11 +1,11 @@
-#### models to predict cover for Microcoleus
+#### predicting to determine process uncertainty in models predicting Microcoleus cover
 ### Jordan Zabrecky
-## last edited: 01.08.2026
+## last edited: 01.13.2026
 
-# This script builds models to predict cover of benthic Microcoleus cover
-# as determined by benthic cover surveys WITHOUT INCORPORATING process uncertainty
-# to quantify parameter uncertainty. Each model is built using 4 of 
-# 5 reaches, then the model is tested using the withheld fifth reach
+# This script uses previously built models (see script 3b) to predict 
+# Microcoleus cover WITHOUT incorporating parameter uncertainty (by holding
+# parameter estimates consistent) to make predictions to 
+# determine process uncertainty
 
 #### (1) Loading data and libraries ####
 
@@ -31,6 +31,10 @@ data <- data %>%
 
 # lastly, double check there is no NA for STAN purposes
 any(is.na(data)) # nope!
+
+# set seed for consistent predictions!
+# (NOTE: setting this up post-model creation...)
+set.seed(2026)
 
 #### (2) Separating out data for modeling ####
 
@@ -112,8 +116,7 @@ for(i in 1:length(test_sites)) {
 }
 
 # save null NMRSE
-write.csv(NRMSE, "./data/predictive_models/M_cover_models/NRMSE_vectors/null.csv", row.names = FALSE)
-
+write.csv(NRMSE, "./data/predictive_models/process_uncertainty/M_cover_models/NRMSE_vectors/null.csv", row.names = FALSE)
 
 ## (b) all others (putting data together and then run through big for loop)
 
@@ -158,75 +161,38 @@ names(covariates) <- names(predictions)
 # start at 2 because we did null model separately
 for(j in 2:length(predictions)) {
   
-  # empty list to save parameter estimates for each model
-  # and parameter r-hats for each model
-  # number of covariates plus 3 (for b0, sigma, and lp)
-  # ncol = 5 (hard-coded; number of reaches)
-  param_est <- data.frame(matrix(NA, nrow = ncol(covariates[[j]]$training[[1]]) 
-                                 # just using reach 1, all will have same number of columns 
-                                 + 3, ncol = 5)) # plus 3 includes b0, sigma, & lp
-  rhats <- data.frame(matrix(NA, nrow = ncol(covariates[[j]]$training[[1]]) 
-                             + 3, ncol = 5))
-  colnames(param_est) = names(test_sites)
-  colnames(rhats) = names(test_sites)
-  
-  # get model name string (for saving files)
+  # get model name string (for loading files)
   model_name <- names(covariates)[j]
   
   # build models and make predictions for each reach
   for(i in 1:length(training_sites)) {
-    # gather data
+    # gather data (MAY NOT NEED THIS)
     mod_data = list(N = nrow(training_sites[[i]]),
                     c = ncol(covariates[[j]]$training[[i]]),
                     future = training_sites[[i]]$future_M_cover_norm,
                     present = training_sites[[i]]$resp_M_cover_norm,
                     covar = as.matrix(covariates[[j]]$training[[i]]))
-    # run STAN model
-    model <- stan(file = "./code/model_STAN_files/predicting_autoregressive_PARAMUNCERTAINTY.stan", 
-                  data = mod_data,
-                  chains = 3, iter = 10000, warmup = 5000, 
-                  control = list(adapt_delta = 0.98, max_treedepth = 14))
-    # save STAN model
-    saveRDS(model, paste("./data/predictive_models/M_cover_models/", model_name, 
-                         "_", names(test_sites)[i], sep = ""))
-    # ALTERNATIVELY, option instead to read RDS object if model already built
-    #model <- readRDS(paste("./data/predictive_models/M_cover_models/", model_name, 
-    #                                            "_", names(test_sites)[i], sep = ""))
-    # extract parameters
+    # read in model previously built (script 3b)
+    model <- readRDS(paste("./data/predictive_models/M_cover_models/", model_name, 
+                                                "_", names(test_sites)[i], sep = ""))
+    # extract parameters to make predictions
     params <- rstan::extract(model, c("sigma", "b0", "b"))
-    # add mean parameter estimates to dataframe
-    rownames(param_est) <- rownames(get_posterior_mean(model))
-    param_est[i] <- get_posterior_mean(model)[,"mean-all chains"]
-    # add r-hats to dataframe
-    rownames(rhats) <- names(summary(model)$summary[,"Rhat"])
-    rhats[i] <- summary(model)$summary[,"Rhat"]
-    # make predictions matrix
-    preds_matrix <- preds_cover(params = params,
-                                y = predictions[[j]][[i]],
-                                covar = as.matrix(covariates[[j]]$testing[[i]]))
+    # make predictions matrix using process uncertainty prediction function (holds parameter est. constant!)
+    preds_matrix <- preds_cover_processuncertainty(params = params,
+                                                   y = predictions[[j]][[i]],
+                                                   covar = as.matrix(covariates[[j]]$testing[[i]]))
+    # save matrix (to compare standard deviations for uncertainty)
+    write.csv(preds_matrix, paste("./data/predictive_models/process_uncertainty/M_cover_models/pred_matrices/",
+                                  model_name, "_", names(test_sites)[i], "_predsmatrix.csv", sep = ""))
     # save summary of prediction; make sure to assign globally
     predictions[[j]][[i]][,2:4] <- preds_summary(preds_matrix)
     # calculate NRMSE of model
     NRMSE <- NRMSE_summary(preds_matrix, observed = test_sites[[i]]$future_M_cover_norm)
     # save NRMSE vector
-    write.csv(NRMSE, paste("./data/predictive_models/M_cover_models/NRMSE_vectors/",
+    write.csv(NRMSE, paste("./data/predictive_models/process_uncertainty/M_cover_models/NRMSE_vectors/",
                            model_name, "_", names(test_sites)[i], "_NRMSE.csv", sep = ""), 
               row.names = FALSE)
   }
-  
-  # save rhats and mean parameter estimates
-  write.csv(rhats, paste("./data/predictive_models/M_cover_models/model_attributes/",
-                         model_name, "_rhats.csv", sep = ""), row.names = TRUE)
-  write.csv(param_est,  paste("./data/predictive_models/M_cover_models/model_attributes/",
-                              model_name, "_param_est.csv", sep = ""), 
-            row.names = TRUE)
-  
-  # lastly, print if all models converged <1.05 or not!
-  if(any(rhats > 1.05)) {
-    print(paste(model_name, " models did not converge :(", sep = ""))} else {
-      print(paste(model_name, " models did converge :)", sep = ""))
-    }
-  
 }
 
 #### (5) Saving Prediction Summary ####
@@ -250,5 +216,5 @@ for(j in 1:length(test_sites)) {
 }
 
 # saving final predictions
-write.csv(final_predictions, "./data/predictive_models/predictions_M_cover.csv",
+write.csv(final_predictions, "./data/predictive_models/process_uncertainty/predictions_M_cover.csv",
           row.names = FALSE)

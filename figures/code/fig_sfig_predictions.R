@@ -207,7 +207,6 @@ for(i in cover_indices) {
         geom_point(aes(y = mean, color = model_f), size = 2) +
         geom_point(data = observed_list[[i]], aes(x = field_date, y = observed), 
                    color = "#262626", size = 2, shape = 18) +
-        #geom_point(data = observed, aes(x = field_date, y = value)) deal with this later, will probably put in list
         facet_grid(model_f~site_reach) +
         labs(x = NULL, y = ylabels[i], title = titles[i]) +
         theme(legend.position = "none") +
@@ -215,12 +214,12 @@ for(i in cover_indices) {
         geom_text(
           data = NRMSE_list[[i]],
           # note size seems to be different for below than above, hence the low size
-          # will double-check in inkscape that it is correct
+          # will double-check in inkscape that it is correct (it is!)
           mapping = aes(x = NRMSE_locations[i], y = NRMSE_locations_y[i], label = label), size= 2) +
         geom_richtext(
           data = NRMSE_list[[i]],
           # note size seems to be different for below than above, hence the low size
-          # will double-check in inkscape that it is correct
+          # will double-check in inkscape that it is correct (it is!)
           mapping = aes(x = rsquared_locations[i], y = rsquared_locations_y[i], label = label_2), size= 2,
           fill = NA, label.color = NA) +
         scale_color_manual(values = palette) +
@@ -246,7 +245,6 @@ for(i in atx_indices) {
     geom_point(aes(y = mean, color = model_f), size = 2) +
     geom_point(data = observed_list[[i]], aes(x = field_date, y = observed), 
                color = "#262626", size = 2, shape = 18) +
-    #geom_point(data = observed, aes(x = field_date, y = value)) deal with this later, will probably put in list
     facet_grid(model_f~site_reach) +
     labs(x = NULL, y = ylabels[i], title = titles[i]) +
     theme(legend.position = "none") +
@@ -254,12 +252,12 @@ for(i in atx_indices) {
     geom_text(
       data = NRMSE_list[[i]],
       # note size seems to be different for below than above, hence the low size
-      # will double-check in inkscape that it is correct
+      # will double-check in inkscape that it is correct (it is!)
       mapping = aes(x = NRMSE_locations[i], y = NRMSE_locations_y[i], label = label), size= 2) +
     geom_richtext(
       data = NRMSE_list[[i]],
       # note size seems to be different for below than above, hence the low size
-      # will double-check in inkscape that it is correct
+      # will double-check in inkscape that it is correct (it is!)
       mapping = aes(x = rsquared_locations[i], y = rsquared_locations_y[i], label = label_2), size= 2,
       fill = NA, label.color = NA) +
     scale_color_manual(values = palette_w_cover) +

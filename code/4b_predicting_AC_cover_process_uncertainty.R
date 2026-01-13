@@ -1,11 +1,11 @@
-#### predicting to determine process uncertainty in models predicting Microcoleus cover
+#### predicting to determine process uncertainty in models predicting Anabaena/Cylindrospermum cover
 ### Jordan Zabrecky
 ## last edited: 01.13.2026
 
-# This script uses previously built models (see script 3b) to predict 
-# Microcoleus cover WITH incorporating initial condition uncertainty 
-# (rather than fixed value of 0.05, the starting value is pulled from a distribution)
-# to make predictions to determine initial condition uncertainty
+# This script uses previously built models (see script 3c) to predict 
+# Anabaena/Cylindrospermum cover WITHOUT incorporating parameter uncertainty (by holding
+# parameter estimates consistent) to make predictions to 
+# determine process uncertainty
 
 #### (1) Loading data and libraries ####
 
@@ -15,7 +15,7 @@ lapply(c("tidyverse", "rstan", "StanHeaders", "truncnorm", "Metrics"),
 
 # loading in data and select only columns we care about
 raw_data <- read.csv("./data/predictive_models/inputs.csv") %>% 
-  select(field_date, site_reach, resp_M_cover_norm, future_M_cover_norm, temp_C,
+  select(field_date, site_reach, resp_AC_cover_norm, future_AC_cover_norm, temp_C,
          discharge_m3_s, DIN_mg_N_L, oPhos_ug_P_L, cond_uS_cm,
          GPP_median_tofourdaysprior)
 
@@ -24,10 +24,10 @@ data <- raw_data
 
 # when cover = 0, add 0.05 (so model can increase as we multiply by this value)
 data <- data %>%
-  mutate(resp_M_cover_norm = case_when(resp_M_cover_norm == 0 ~ 0.05,
-                                       TRUE ~ resp_M_cover_norm),
-         future_M_cover_norm = case_when(future_M_cover_norm == 0 ~ 0.05,
-                                         TRUE ~ future_M_cover_norm))
+  mutate(resp_AC_cover_norm = case_when(resp_AC_cover_norm == 0 ~ 0.05,
+                                        TRUE ~ resp_AC_cover_norm),
+         future_AC_cover_norm = case_when(future_AC_cover_norm == 0 ~ 0.05,
+                                          TRUE ~ future_AC_cover_norm))
 
 # lastly, double check there is no NA for STAN purposes
 any(is.na(data)) # nope!
@@ -96,7 +96,7 @@ source("./code/supplemental_code/S3b_pred_functions.R")
 ## (a) null - mean of all cover data
 
 # calculate mean to use for null model (this ignores first day which we are not predicting)
-mean_cover <- mean(data$future_M_cover_norm)
+mean_cover <- mean(data$future_AC_cover_norm)
 
 # add to predictions for each site and calculate NRMSE
 for(i in 1:length(test_sites)) {
@@ -111,13 +111,12 @@ NRMSE <- c(rep(NA, length(test_sites)))
 # calculate NRMSE 
 for(i in 1:length(test_sites)) {
   # (removing first row of prediction which is first day that we are not predicting!)
-  NRMSE[i] <- calc_NRMSE(predictions$null[[i]]$mean[-1], test_sites[[i]]$future_M_cover_norm,
-                         max(test_sites[[i]]$future_M_cover_norm), min(test_sites[[i]]$future_M_cover_norm))
+  NRMSE[i] <- calc_NRMSE(predictions$null[[i]]$mean[-1], test_sites[[i]]$future_AC_cover_norm,
+                         max(test_sites[[i]]$future_AC_cover_norm), min(test_sites[[i]]$future_AC_cover_norm))
 }
 
 # save null NMRSE
-write.csv(NRMSE, "./data/predictive_models/initialcondition_uncertainty/M_cover_models/NRMSE_vectors/null.csv", row.names = FALSE)
-
+write.csv(NRMSE, "./data/predictive_models/process_uncertainty/AC_cover_models/NRMSE_vectors/null.csv", row.names = FALSE)
 
 ## (b) all others (putting data together and then run through big for loop)
 
@@ -162,39 +161,47 @@ names(covariates) <- names(predictions)
 # start at 2 because we did null model separately
 for(j in 2:length(predictions)) {
   
-  # get model name string (for loading files)
+  # get model name string (for saving files)
   model_name <- names(covariates)[j]
   
   # build models and make predictions for each reach
   for(i in 1:length(training_sites)) {
+    
+    # NOTE: for this script, we are missing models that did not converge
+    # to allow script to run uninterrupted, we will have to skip trying to load these files
+    # (it's always SFE-M-1S which is i = 1)
+    if((model_name == "biological" | model_name == "biochemical" | 
+        model_name == "all" | model_name == "ecohydrological") & i == 1) {
+      i = 2 # skip to next
+    }
+    
     # gather data
     mod_data = list(N = nrow(training_sites[[i]]),
                     c = ncol(covariates[[j]]$training[[i]]),
-                    future = training_sites[[i]]$future_M_cover_norm,
-                    present = training_sites[[i]]$resp_M_cover_norm,
+                    future = training_sites[[i]]$future_AC_cover_norm,
+                    present = training_sites[[i]]$resp_AC_cover_norm,
                     covar = as.matrix(covariates[[j]]$training[[i]]))
-    # read in model previously built (script 3b)
-    model <- readRDS(paste("./data/predictive_models/M_cover_models/", model_name, 
+    # read in model previously built (script 3c)
+    model <- readRDS(paste("./data/predictive_models/AC_cover_models/", model_name, 
                                                 "_", names(test_sites)[i], sep = ""))
     # extract parameters
     params <- rstan::extract(model, c("sigma", "b0", "b"))
     # make predictions matrix
-    preds_matrix <- preds_cover_with_IC_uncertainty (params = params,
-                                                     y = predictions[[j]][[i]],
-                                                     covar = as.matrix(covariates[[j]]$testing[[i]]))
-    # save matrix (to compare standard deviations for uncertainty)
-    write.csv(preds_matrix, paste("./data/predictive_models/initialcondition_uncertainty/M_cover_models/pred_matrices/",
-                                  model_name, "_", names(test_sites)[i], "_predsmatrix.csv", sep = ""))
+    preds_matrix <- preds_cover_processuncertainty(params = params,
+                                                   y = predictions[[j]][[i]],
+                                                   covar = as.matrix(covariates[[j]]$testing[[i]]))
     # save summary of prediction; make sure to assign globally
     predictions[[j]][[i]][,2:4] <- preds_summary(preds_matrix)
+    # save matrix (to compare standard deviations for uncertainty)
+    write.csv(preds_matrix, paste("./data/predictive_models/process_uncertainty/AC_cover_models/pred_matrices/",
+                                  model_name, "_", names(test_sites)[i], "_predsmatrix.csv", sep = ""))
     # calculate NRMSE of model
-    NRMSE <- NRMSE_summary(preds_matrix, observed = test_sites[[i]]$future_M_cover_norm)
+    NRMSE <- NRMSE_summary(preds_matrix, observed = test_sites[[i]]$future_AC_cover_norm)
     # save NRMSE vector
-    write.csv(NRMSE, paste("./data/predictive_models/initialcondition_uncertainty/M_cover_models/NRMSE_vectors/",
+    write.csv(NRMSE, paste("./data/predictive_models/process_uncertainty/AC_cover_models/NRMSE_vectors/",
                            model_name, "_", names(test_sites)[i], "_NRMSE.csv", sep = ""), 
               row.names = FALSE)
-    }
-  
+  }
 }
 
 #### (5) Saving Prediction Summary ####
@@ -218,5 +225,5 @@ for(j in 1:length(test_sites)) {
 }
 
 # saving final predictions
-write.csv(final_predictions, "./data/predictive_models/initialcondition_uncertainty/predictions_M_cover.csv",
+write.csv(final_predictions, "./data/predictive_models/process_uncertainty/predictions_AC_cover.csv",
           row.names = FALSE)
