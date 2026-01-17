@@ -1,6 +1,6 @@
 #### models to predict anatoxins for Microcoleus
 ### Jordan Zabrecky
-## last edited: 10.14.2025
+## last edited: 01.16.2025
 
 # This script builds models to predict benthic Microcoleus anatoxins
 # as determined by composite Microcoleus sample anatoxin concentrations. 
@@ -24,6 +24,10 @@ data <- raw_data
 
 # lastly, double check there is no NA for STAN purposes
 any(is.na(data)) # nope!
+
+# set seed for consistent predictions!
+# (NOTE: setting this up post-model creation...)
+set.seed(2026)
 
 #### (2) Separating out data for modeling ####
 
@@ -207,16 +211,16 @@ for(j in 2:length(predictions)) {
     # run STAN model
     # if there are warning issues, code may stop if running through whole script 
     # (if using cntl+shift+enter)
-    model <- stan(file = "./code/model_STAN_files/predicting_NOT_autoregressive.stan", 
-                  data = mod_data,
-                  chains = 3, iter = 10000, warmup = 5000, 
-                  control = list(adapt_delta = 0.95, max_treedepth = 13))
+    #model <- stan(file = "./code/model_STAN_files/predicting_NOT_autoregressive.stan", 
+    #              data = mod_data,
+    #              chains = 3, iter = 10000, warmup = 5000, 
+    #              control = list(adapt_delta = 0.95, max_treedepth = 13))
     # save STAN model
-    saveRDS(model, paste("./data/predictive_models/M_atx_models/", model_name, 
-                         "_", names(test_sites)[i], sep = ""))
+    #saveRDS(model, paste("./data/predictive_models/M_atx_models/", model_name, 
+    #                     "_", names(test_sites)[i], sep = ""))
     # ALTERNATIVELY, option instead to read RDS object if model already built
-    #model <- readRDS(paste("./data/predictive_models/M_atx_models/", model_name, 
-    #                       "_", names(test_sites)[i], sep = ""))
+    model <- readRDS(paste("./data/predictive_models/M_atx_models/", model_name, 
+                           "_", names(test_sites)[i], sep = ""))
     # extract parameters
     params <- rstan::extract(model, c("sigma", "b0", "b"))
     # add mean parameter estimates to dataframe
@@ -229,6 +233,9 @@ for(j in 2:length(predictions)) {
     preds_matrix <- preds_anatoxins(params = params,
                                y = predictions[[j]][[i]],
                                covar = as.matrix(covariates[[j]]$testing[[i]]))
+    # save matrix (to compare standard deviations for uncertainty)
+    write.csv(preds_matrix, paste("./data/predictive_models/M_atx_models/pred_matrices/",
+                                  model_name, "_", names(test_sites)[i], "_predsmatrix.csv", sep = ""))
     # save summary of prediction; make sure to assign globally
     predictions[[j]][[i]][,2:4] <- preds_summary(preds_matrix)
     # calculate NRMSE of model
