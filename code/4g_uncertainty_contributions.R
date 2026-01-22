@@ -37,7 +37,7 @@ calc_pred_sd <- function(uncertainty, uncertainty_path) {
                                     "_models/pred_matrices/", sep = ""), pattern = "predsmatrix")
     
     # get model names
-    modelnames = unique(unlist(lapply(str_split(files, "_"), function(x) return (x[1]))))
+    modelnames = unique(unlist(lapply(str_split(files, "_SFE"), function(x) return (x[1]))))
     
     # go through each model & load in each prediction matrix
     for(j in 1:length(modelnames)) {
