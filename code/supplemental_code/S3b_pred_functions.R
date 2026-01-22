@@ -1,10 +1,12 @@
 #### functions to make predictions with STAN models
 ### Jordan Zabrecky
-## last edited: 10.14.2025
+## last edited: 01.22.2025
 
 # This script hosts function to make covariates for each model, 
 # make predictions using STAN models, and returns predictions 
 # (mean, lower bound of 95% confidence interval, and upper bound of 95% confidence interval)
+# and also includes functions to make predictions without parameter uncertainty
+# and with initial condition uncertainty
 
 #### (1) Function to make covariates for each model ####
 
@@ -127,7 +129,7 @@ NRMSE_summary <- function(preds_matrix, observed) {
 
 #### (4) Functions for predictions to determine uncertainty ####
 
-# make cover predictions without parameter uncertainty
+# make cover predictions without parameter uncertainty (by holding parameter constant)
 preds_cover_processuncertainty <- function(params, y, covar) {
   n.pred <- nrow(y) # includes initial day where we used 0
   preds <- matrix(NA, length(params$sigma), n.pred) # empty prediction matrix
@@ -189,7 +191,7 @@ preds_anatoxins_processuncertainty <- function(params, y, covar) {
 preds_cover_with_IC_uncertainty <- function(params, y, covar) {
   n.pred <- nrow(y) # includes initial day where we used 0
   preds <- matrix(NA, length(params$sigma), n.pred) # empty prediction matrix
-  preds[,1] <- rtruncnorm(1, a = 0.05, mean = 0.05, sd = 1) 
+  preds[,1] <- rtruncnorm(1, a = 0.05, mean = 0.05, sd = 2) 
   # distribution for initial condition uncertainty hard-coded above, we know it is low...
   
   # make predictions

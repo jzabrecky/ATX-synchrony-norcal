@@ -209,7 +209,8 @@ for(j in 2:length(predictions)) {
                                covar = as.matrix(covariates[[j]]$testing[[i]]))
     # save matrix (to compare standard deviations for uncertainty)
     write.csv(preds_matrix, paste("./data/predictive_models/M_cover_models/pred_matrices/",
-                                  model_name, "_", names(test_sites)[i], "_predsmatrix.csv", sep = ""))
+                                  model_name, "_", names(test_sites)[i], "_predsmatrix.csv", sep = ""),
+              row.names = FALSE)
     # save summary of prediction; make sure to assign globally
     predictions[[j]][[i]][,2:4] <- preds_summary(preds_matrix)
     # calculate NRMSE of model

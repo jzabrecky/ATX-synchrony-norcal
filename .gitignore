@@ -8,7 +8,8 @@
 data/GLDAS/
 data/NLDAS/
 data/metab_model_outputs/
-# ignore folders with large storage associated with RDS objects for predictive modeling
+# ignore folders with large storage associated with RDS objects
+# and large matrices used in predictive modeling
 data/predictive_models/M_cover_models/
 data/predictive_models/AC_cover_models/
 data/predictive_models/M_atx_models/
@@ -19,6 +20,7 @@ data/predictive_models/process_uncertainty/M_atx_models/
 data/predictive_models/process_uncertainty/AC_atx_models/
 data/predictive_models/initialcondition_uncertainty/M_cover_models/
 data/predictive_models/initialcondition_uncertainty/AC_cover_models/
+data/predictive_models/pre_set_seed/
 # ignore only the model objects in the omitted AC models folder
 data/predictive_models/omitted_AC_models/all_SFE-M-1S
 data/predictive_models/omitted_AC_models/biochemical_SFE-M-1S
@@ -33,9 +35,7 @@ data/metab_model_inputs/salmon_2023_karuk_modelinputs.csv
 # ignore streamLight work (decided not to use it) and external reference gpp
 data/old_StreamLight_and_MODIS
 data/other_gpp
-# ignore any image related files
-*.jpg
+# ignore image files
 *.png
-*.pdf
 *.tiff
-*.svg
+*.jpg

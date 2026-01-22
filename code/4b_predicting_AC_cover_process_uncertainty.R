@@ -194,7 +194,8 @@ for(j in 2:length(predictions)) {
     predictions[[j]][[i]][,2:4] <- preds_summary(preds_matrix)
     # save matrix (to compare standard deviations for uncertainty)
     write.csv(preds_matrix, paste("./data/predictive_models/process_uncertainty/AC_cover_models/pred_matrices/",
-                                  model_name, "_", names(test_sites)[i], "_predsmatrix.csv", sep = ""))
+                                  model_name, "_", names(test_sites)[i], "_predsmatrix.csv", sep = ""),
+              row.names = FALSE)
     # calculate NRMSE of model
     NRMSE <- NRMSE_summary(preds_matrix, observed = test_sites[[i]]$future_AC_cover_norm)
     # save NRMSE vector
