@@ -18,7 +18,7 @@ predicting <- c("M_cover", "AC_cover", "M_atx", "AC_atx")
 # original meaning incorporating BOTH process & parameter uncertainty
 # (but not initial condition!)
 
-# function to load prediction matrices, calculate sd, and add to dataframe
+# function to load prediction matrices, calculate sd & NRMSE, and add to dataframe
 # uncertainty is a string (e.g. "process_error_only")
 # uncertainty_path is the file path to the folder holding each model subfolder (also string)
 calc_pred_sd <- function(uncertainty, uncertainty_path) {
@@ -29,7 +29,8 @@ calc_pred_sd <- function(uncertainty, uncertainty_path) {
                                predicting = NA,
                                model = NA,
                                site_reach = NA,
-                               standard_dev = NA)
+                               standard_dev = NA,
+                               nrmse = NA)
   
   for(i in 1:length(predicting)) {
     files = list.files(path = paste(uncertainty_path, predicting[i], 
@@ -49,12 +50,18 @@ calc_pred_sd <- function(uncertainty, uncertainty_path) {
                                      "_models/pred_matrices/", filename, sep = ""))
               # calculate sd for submodel (remove first column which is intial 0.05)
               sd = sd(as.matrix(preds)[,-1])
+              # read in NRMSE vector
+              nrmse_vector = read.csv(paste(uncertainty_path, predicting[i], 
+                                            "_models/NRMSE_vectors/", 
+                                            str_replace(filename, "predsmatrix", "NRMSE"), sep = ""))
+              nrmse = mean(nrmse_vector$x) # gets read in as a dataframe, not a vector ('x' is only column)
               # add submodel sd to site_reach dataframe
               sd_submodel <- data.frame(uncertainty = uncertainty,
                                         predicting = predicting[i],
                                         model = modelnames[j],
                                         site_reach = str_split(filename, "_")[[1]][2],
-                                        standard_dev = sd)
+                                        standard_dev = sd,
+                                        nrmse = nrmse)
             })
       sds_site_reach <- rbind(sds_site_reach, sd_model)
       }
@@ -79,6 +86,12 @@ write.csv(std_devs_all, "./data/predictive_models/predictive_uncertainty.csv",
 
 #### (3) Quickly, Pre-Visualize Uncertainty ####
 
+# predictive uncertainty
 ggplot(data = std_devs_all, aes(x = model, y = standard_dev, fill = uncertainty)) +
+  geom_boxplot() +
+  facet_wrap(~predicting)
+
+# nrmse
+ggplot(data = std_devs_all, aes(x = model, y = nrmse, fill = uncertainty)) +
   geom_boxplot() +
   facet_wrap(~predicting)

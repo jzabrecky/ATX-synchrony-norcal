@@ -112,3 +112,20 @@ for(i in 1:nrow(divergent_models)) {
                              divergent_models$model[i], "_rhats.csv", sep = ""),
             row.names = FALSE)
 }
+
+#### (7) Remove prediction matrices ####
+
+# move & remove NRMSE files
+for(i in 1:nrow(divergent_models)) {
+  
+  # copy file to new location
+  file.copy(from = paste("./data/predictive_models/AC_cover_models/pred_matrices/", 
+                         divergent_models$model_name[i], "_predsmatrix.csv", sep = ""),
+            to = paste("./data/predictive_models/omitted_AC_models/", 
+                       divergent_models$model_name[i], "_predsmatrix.csv", sep = ""))
+  
+  # remove file in old location
+  file.remove(paste("./data/predictive_models/AC_cover_models/pred_matrices/", 
+                    divergent_models$model_name[i], "_predsmatrix.csv", sep = ""))
+  
+}
