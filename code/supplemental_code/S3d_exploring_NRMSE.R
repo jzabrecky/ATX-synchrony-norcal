@@ -11,11 +11,11 @@ lapply(c("tidyverse", "plyr"),
        require, character.only = T)
 
 # load NRMSEs
-NRMSEs <- ldply(list.files(path = "./data/predictive_models/", pattern = "NRMSE"), 
+NRMSEs <- ldply(list.files(path = "./data/predictive_models/", pattern = "nrmse"), 
                 function(filename) {
                   d <- read.csv(paste("./data/predictive_models/", filename, sep = "")) %>% 
                     # add in what we are predicting from file name
-                    mutate(predicting = str_remove(filename, "NRMSE_" )) %>% 
+                    mutate(predicting = str_remove(filename, "nrmse_" )) %>% 
                     mutate(predicting = str_remove(predicting, ".csv")) %>% 
                     # remove null models
                     filter(model != "null") %>% 
