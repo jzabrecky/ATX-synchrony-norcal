@@ -98,7 +98,7 @@ test_a <- count(eval((NRMSE_list$M_cover %>% filter(!(model %in% divergent_model
                                       & site_reach %in% divergent_models$site_reach)))$x <
        NRMSE_list$AC_cover$x))
 # 107545 false and 357455 true
-test_a$freq[which(test_a$x == "TRUE")] / length(NRMSE_list$AC_cover$x) # 76.87% of M models outperform AC models
+test_a$freq[which(test_a$x == "TRUE")] / length(NRMSE_list$AC_cover$x) # 76.92% of M models outperform AC models
 
 # join to one dataframe
 test_a_data <- rbind((NRMSE_list$AC_cover %>% mutate(predicting = "AC_cover")),
@@ -133,7 +133,7 @@ ggplot(data = test_a_data, aes(x = x, fill = predicting)) +
 # (as determined by the % of NRMSE posterior where AC atx NRMSE is lower than M atx NRMSE)
 test_b <- count(eval((NRMSE_list$AC_atx$x < NRMSE_list$M_atx$x)))
 # 400633 false and 649367 true
-test_b$freq[which(test_b$x == "TRUE")] / length(NRMSE_list$M_atx$x) # 61.84% of AC atx models outperform M atx models
+test_b$freq[which(test_b$x == "TRUE")] / length(NRMSE_list$M_atx$x) # 61.80% of AC atx models outperform M atx models
 
 # Compare with a Mann Whitney test
 # join to one dataframe
@@ -174,7 +174,7 @@ test_c <- count(eval((NRMSE_list$M_atx$x[which(NRMSE_list$M_atx$w_cover == TRUE)
 # 233675 false and 291325 true
 test_c$freq[which(test_c$x == "TRUE")] / length(NRMSE_list$M_atx$x
                                                 [which(NRMSE_list$M_atx$w_cover == TRUE)]) 
-# 55.49% of M models w/ cover outperform M models w/o cover
+# 55.67% of M models w/ cover outperform M models w/o cover
 
 # density plot
 ggplot(data = NRMSE_list$M_atx %>% mutate(base = case_when(grepl("cover", model) ~
@@ -202,7 +202,7 @@ test_d <- count(eval((NRMSE_list$AC_atx$x[which(NRMSE_list$AC_atx$w_cover == TRU
 # 128565 false and 396435 true
 test_d$freq[which(test_c$x == "TRUE")] / length(NRMSE_list$M_atx$x
                                                 [which(NRMSE_list$M_atx$w_cover == TRUE)]) 
-# 75.51% of AC models w/ cover outperform M models w/o cover
+# 75.58% of AC models w/ cover outperform M models w/o cover
 
 # density plot
 ggplot(data = NRMSE_list$AC_atx %>% mutate(base = case_when(grepl("cover", model) ~
