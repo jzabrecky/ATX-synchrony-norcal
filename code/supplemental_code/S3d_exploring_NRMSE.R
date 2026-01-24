@@ -13,24 +13,26 @@ lapply(c("tidyverse", "plyr"),
 # load NRMSEs
 NRMSEs <- ldply(list.files(path = "./data/predictive_models/", pattern = "NRMSE"), 
                 function(filename) {
-                  d <- read.csv(paste("./data/predictive_models/", filename, sep = "")) %>% 
-                    # add in what we are predicting from file name
-                    mutate(predicting = str_remove(filename, "NRMSE_" )) %>% 
-                    mutate(predicting = str_remove(predicting, ".csv")) %>% 
-                    # remove null models
-                    filter(model != "null") %>% 
-                    # remove NMRSEs where site_reach predicted are separated out
-                    filter(predicting %in% c("AC_atx", "AC_cover", "M_atx", "M_cover")) %>% 
-                    # model base (excluding with cover argument) 
-                    mutate(model_base = case_when(grepl("_w_cover", model) ~ str_remove(model, "_w_cover"),
-                                                  TRUE ~ model)) %>% 
-                    # add column (T/F) if cover is included as covariate
-                    mutate(cover_covariate = case_when(grepl("w_cover", model) ~ TRUE,
-                                                       TRUE ~ FALSE),
-                           # make a final column that tells both what we are predicting and if cover
-                           # is a covariate
-                           predicting_w_cover = case_when(cover_covariate == TRUE ~ paste(predicting, "_w_cover", sep = ""),
-                                                          TRUE ~ predicting))
+                  if(!(grepl("site_reach", filename))) {
+                    d <- read.csv(paste("./data/predictive_models/", filename, sep = "")) %>% 
+                      # add in what we are predicting from file name
+                      mutate(predicting = str_remove(filename, "NRMSE_" )) %>% 
+                      mutate(predicting = str_remove(predicting, ".csv")) %>% 
+                      # remove null models
+                      filter(model != "null") %>% 
+                      # remove NMRSEs where site_reach predicted are separated out
+                      filter(predicting %in% c("AC_atx", "AC_cover", "M_atx", "M_cover")) %>% 
+                      # model base (excluding with cover argument) 
+                      mutate(model_base = case_when(grepl("_w_cover", model) ~ str_remove(model, "_w_cover"),
+                                                    TRUE ~ model)) %>% 
+                      # add column (T/F) if cover is included as covariate
+                      mutate(cover_covariate = case_when(grepl("w_cover", model) ~ TRUE,
+                                                         TRUE ~ FALSE),
+                             # make a final column that tells both what we are predicting and if cover
+                             # is a covariate
+                             predicting_w_cover = case_when(cover_covariate == TRUE ~ paste(predicting, "_w_cover", sep = ""),
+                                                            TRUE ~ predicting))
+                  }
                 })
 
 # calculate mean of mean and ci's (without cover models separated out)
