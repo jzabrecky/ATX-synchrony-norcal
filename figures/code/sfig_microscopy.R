@@ -1,6 +1,6 @@
 #### Supplemental figure showing relative abundance of M and A/C in target samples
 ### Jordan Zabrecky
-## last edited: 10.25.2025
+## last edited: 06.16.2026
 
 # This is a supplemental figure that shows the relative abundance of Microcoleus
 # and Anabaena/Cylindrospermum in targeted samples respectively (excluding non-algal portion)
@@ -47,7 +47,7 @@ theme_set(theme_bw() + theme(legend.position = "top",
                              panel.grid.minor = element_blank(),
                              panel.border = element_rect(linewidth = 1.2), axis.ticks = element_line(linewidth = 1),
                              text = element_text(size = 10), axis.ticks.length=unit(.25, "cm"),
-                             axis.text.y = element_text(size = 9), axis.text.x = element_text(size = 10)))
+                             axis.text.y = element_text(size = 8), axis.text.x = element_text(size = 10)))
 
 # pivot longer and trim down categories
 microscopy_longer <- microscopy %>% 
