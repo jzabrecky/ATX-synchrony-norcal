@@ -1,6 +1,6 @@
 #### Exploring NRMSEs
 ### Jordan Zabrecky
-## last edited: 10.27.2025
+## last edited: 06.16.2026
 
 # This code explores the NRMSEs of predictive models
 
@@ -11,12 +11,12 @@ lapply(c("tidyverse", "plyr"),
        require, character.only = T)
 
 # load NRMSEs
-NRMSEs <- ldply(list.files(path = "./data/predictive_models/", pattern = "nrmse"), 
+NRMSEs <- ldply(list.files(path = "./data/predictive_models/", pattern = "NRMSE"), 
                 function(filename) {
                   if(!(grepl("site_reach", filename))) {
                     d <- read.csv(paste("./data/predictive_models/", filename, sep = "")) %>% 
                       # add in what we are predicting from file name
-                      mutate(predicting = str_remove(filename, "nrmse_" )) %>% 
+                      mutate(predicting = str_remove(filename, "NRMSE_" )) %>% 
                       mutate(predicting = str_remove(predicting, ".csv")) %>% 
                       # remove null models
                       filter(model != "null") %>% 
