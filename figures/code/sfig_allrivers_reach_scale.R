@@ -1,6 +1,6 @@
 #### Taxa-specific cover and anatoxin relationships per reach all rivers (2022 data)
 ### Jordan Zabrecky
-## last edited: 07.25.2025
+## last edited: 08.22.2026
 
 # This script plots a supplemental figure taxon-specific cover and anatoxin concentrations
 # for each reach sampled on each river in 2022 (rather than grouping all reaches together)
@@ -74,7 +74,7 @@ rus_figs <- ggplot(data = cover_list$RUS, aes(x = field_date)) +
              size = 2, stroke = 1.5, position = position_dodge(width = 1.5)) +
   scale_color_manual("Group", values = c("#8f8504","#2871c7"),
                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_linetype_manual("Group", values = c("dotted", "dashed"),
+  scale_linetype_manual("Group", values = c("dotted", "dotted"),
                         labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
   scale_shape_manual("Present / Quadrat", values = c(4, 16)) +
   scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
@@ -116,7 +116,7 @@ sal_figs <- ggplot(data = cover_list$SAL) +
             fill = "#ededed") +
   scale_color_manual("Group", values = c("#8f8504","#2871c7"),
                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_linetype_manual("Group", values = c("dotted", "dashed"),
+  scale_linetype_manual("Group", values = c("dotted", "dotted"),
                         labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
   scale_shape_manual("Present / Quadrat", values = c(4, 16)) +
   scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
@@ -144,7 +144,7 @@ eel_figs <- ggplot(data = cover_list$`SFE-M`, aes(x = field_date)) +
              size = 2, stroke = 1.5, position = position_dodge(width = 1.5)) +
   scale_color_manual("Group", values = c("#8f8504","#2871c7"),
                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_linetype_manual("Group", values = c("dotted", "dashed"),
+  scale_linetype_manual("Group", values = c("dotted", "dotted"),
                         labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
   scale_shape_manual("Present / Quadrat", values = c(4, 16)) +
   scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),

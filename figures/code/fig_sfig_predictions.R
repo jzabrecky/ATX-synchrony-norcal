@@ -1,6 +1,6 @@
 #### Main figure and supplemental figures showing our predictions
 ### Jordan Zabrecky
-## last edited: 10.30.25
+## last edited: 08.22.26
 
 # This code makes figures showing our predictions vs. observed values for
 # (1) all models for a supplemental figure and (2) showing only the best models
@@ -180,12 +180,12 @@ palette_w_cover <- c("#E8DE48", "#F0E985", "#B4D65E", "#CDE494", "#8BCF6F", "#B2
                      "#7AA9A4", "#1E426B", "#69819C")
 
 # title labels
-titles <- c("*Anabaena/Cylindrospermum* Anatoxin Concentration Predictions",
-            "*Anabaena/Cylindrospermum* Cover Predictions",
+titles <- c("*Anabaena* Anatoxin Concentration Predictions",
+            "*Anabaena* Cover Predictions",
             "*Microcoleus* Anatoxin Concentration Predictions",
             "*Microcoleus* Cover Predictions")
-ylabels <- c("*Anabaena/Cylindrospermum* anatoxin concentrations (normalized to maximum of reach)",
-             "*Anabaena/Cylindrospermum* cover (normalized to maximum of reach)",
+ylabels <- c("*Anabaena* anatoxin concentrations (normalized to maximum of reach)",
+             "*Anabaena* cover (normalized to maximum of reach)",
              "*Microcoleus* anatoxin concentrations (normalized to maximum of reach)",
              "*Microcoleus* cover (normalized to maximum of reach)")
 NRMSE_locations <- c(as.Date("2023-07-12"), as.Date("2023-09-01"), as.Date("2023-07-12"),
@@ -334,15 +334,15 @@ for(i in 1:length(NRMSE_best_reach_only)) {
 best_plots <- list()
 
 # labels/titles in order of plots here
-titles_w_cover <- c("*Anabaena/Cylindrospermum* Anatoxin Concentration Predictions",
-                    "*Anabaena/Cylindrospermum* Anatoxin Concentration Predictions",
-            "*Anabaena/Cylindrospermum* Cover Predictions",
+titles_w_cover <- c("*Anabaena* Anatoxin Concentration Predictions",
+                    "*Anabaena* Anatoxin Concentration Predictions",
+            "*Anabaena* Cover Predictions",
             "*Microcoleus* Anatoxin Concentration Predictions",
             "*Microcoleus* Anatoxin Concentration Predictions",
             "*Microcoleus* Cover Predictions")
-ylabels_w_cover <- c("*Anabaena/Cylindrospermum* anatoxin concentration normalized to maximum of reach",
-                     "*Anabaena/Cylindrospermum* anatoxin concentration normalized to maximum of reach",
-                      "*Anabaena/Cylindrospermum* cover normalized to maximum of reach",
+ylabels_w_cover <- c("*Anabaena* anatoxin concentration normalized to maximum of reach",
+                     "*Anabaena* anatoxin concentration normalized to maximum of reach",
+                      "*Anabaena* cover normalized to maximum of reach",
                       "*Microcoleus* anatoxin concentration normalized to maximum of reach",
                      "*Microcoleus* anatoxin concentration normalized to maximum of reach",
                       "*Microcoleus* cover normalized to maximum of reach")

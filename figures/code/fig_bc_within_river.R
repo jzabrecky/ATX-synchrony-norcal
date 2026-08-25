@@ -1,6 +1,6 @@
 #### Primary figure for taxa-specific cover & anatoxins and GPP on each river
 ### Jordan Zabrecky
-## last edited: 10.25.2025
+## last edited: 08.22.2026
 
 # This script creates a primary figure for Q2 focused on the relationships
 # between benthic cyanobacteria dynamics within the same river. Additionally,
@@ -74,7 +74,7 @@ sfe_all <- ggplot(data = data_longer, aes(x = field_date)) +
              size = 1.5, stroke = 1, position = position_dodge(width = 1.8)) +
   scale_color_manual("Taxa", values = c("#8f8504","#2871c7"),
                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_linetype_manual("Taxa", values = c("dotted", "dashed"),
+  scale_linetype_manual("Taxa", values = c("dotted", "dotted"),
                         labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
   scale_shape_manual("Present / Quadrat", values = c(4, 16)) +
   scale_fill_manual("Taxa", values = c("#d1c960","#5a88bf"),
