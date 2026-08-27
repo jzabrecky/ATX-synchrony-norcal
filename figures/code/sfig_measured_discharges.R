@@ -1,6 +1,6 @@
 #### USGS gage discharge vs. our discharge measurements
 ### Jordan Zabrecky
-## last edited: 07.21.2025
+## last edited: 08.18.2026
 
 # This figure shows that our discharge measurements are in rough accordance 
 # with nearby USGS gage discharge measurements
@@ -64,12 +64,13 @@ discharge_all$site_f <- factor(discharge_all$site, levels = c("SFE-M", "SFE-SH",
 # make figure
 figure <- ggplot(data = discharge_all, aes(x = date_time, y = discharge_m3_s.x)) +
   geom_area(fill = "#d9ecff") +
-  geom_point(aes(y = discharge_m3_s.y, fill = site), size = 4, alpha = 0.8, stroke = 1, shape = 21) +
+  geom_point(aes(y = discharge_m3_s.y), size = 4, alpha = 0.8, stroke = 1, shape = 21,
+             fill = "#416f16") +
   facet_wrap(~site_f, ncol = 1, scales = "free", 
              labeller = as_labeller(c(`RUS` = "Russian River (RUS)", 
                                       `SFE-M` = "South Fork Eel River Lower (SFE-Lower)",
                                       `SFE-SH` = "South Fork Eel River Upper (SFE-Upper)"))) +
-  scale_fill_manual(values = c("#bdb000", "#416f16", "#bfe079")) +
+  #scale_fill_manual(values = c("#bdb000", "#416f16", "#bfe079")) +
   labs(x = NULL, y = expression("Discharge (m"^3~"s"^-1*")")) +
   theme_bw() +
   theme(strip.background = element_blank()) +
@@ -80,4 +81,4 @@ figure <- ggplot(data = discharge_all, aes(x = date_time, y = discharge_m3_s.x))
 figure
 
 ggsave("./figures/sfig_measured_discharge_notfinal.tiff", dpi = 600, 
-       width=12, height=12, unit="cm")
+       width=12, height=10.5, unit="cm")

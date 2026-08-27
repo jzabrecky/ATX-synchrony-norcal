@@ -1,6 +1,6 @@
 #### Primary figure for taxa-specific cover & anatoxins and GPP on each river
 ### Jordan Zabrecky
-## last edited: 09.15.2025
+## last edited: 08.22.2026
 
 # This script creates a primary figure for Q1 focused on the relationships
 # between benthic cyanobacteria dynamics and GPP across rivers. Two options are
@@ -155,7 +155,7 @@ bc_sfkeel2 <- ggplot(data = cover_list$`SFE-M`, aes(x = field_date)) +
              size = 2, stroke = 1.5, position = position_dodge(width = 1.5)) +
   scale_color_manual("Group", values = c("#8f8504","#2871c7"),
                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_linetype_manual("Group", values = c("dotted", "dashed"),
+  scale_linetype_manual("Group", values = c("dotted", "dotted"),
                         labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
   scale_shape_manual("Present / Quadrat", values = c(4, 16)) +
   scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
@@ -214,7 +214,7 @@ bc_russian2 <- ggplot(data = cover_list$RUS, aes(x = field_date)) +
              size = 2, stroke = 1.5, position = position_dodge(width = 1.5)) +
   scale_color_manual("Group", values = c("#8f8504","#2871c7"),
                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_linetype_manual("Group", values = c("dotted", "dashed"),
+  scale_linetype_manual("Group", values = c("dotted", "dotted"),
                         labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
   scale_shape_manual("Present / Quadrat", values = c(4, 16)) +
   scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),
@@ -303,7 +303,7 @@ bc_salmon2 <- ggplot(data = cover_list$SAL) +
              size = 2, stroke = 1.5, position = position_dodge(width = 1.5)) +
   scale_color_manual("Group", values = c("#8f8504", "#2871c7"),
                      labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
-  scale_linetype_manual("Group", values = c("dotted", "dashed"),
+  scale_linetype_manual("Group", values = c("dotted", "dotted"),
                         labels = c("Anabaena & Cylindrospermum", "Microcoleus")) +
   scale_shape_manual("Present/Quadrat", values = c(4, 16)) +
   scale_fill_manual("Group", values = c("#d1c960","#5a88bf"),

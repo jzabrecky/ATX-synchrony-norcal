@@ -64,12 +64,17 @@ mean_data[which(mean_data$field_date == ymd("2023-09-24")),
 ## the mean behavior and each reach in a lighter color and the one with reach 
 ## reach in its own highlight will go to supplement
 
+# add in month for reviewer comment
+data <- data %>% 
+  mutate(month = as.character(month(field_date)))
+# okay after trial and error, changing shapes, alpha and size for month make this confusing
+
 ## anabaena/cylindrospermum
 
 # all reaches
 ana_cov_atx_reach <- ggplot(data = data, aes(anabaena_cylindrospermum, TAC_ATX_all_ug_g)) +
-  geom_point(aes(color = site_reach), size = 2.5) +
-  geom_segment(data = data, linewidth = 1, alpha = 0.8,
+  geom_point(aes(color = site_reach, size = month), size = 2.5) +
+  geom_segment(data = data, alpha = 0.8,
                aes(xend = end_anacyl_cover,
                    yend = end_TAC_atx,
                    color = site_reach),
@@ -80,9 +85,24 @@ ana_cov_atx_reach <- ggplot(data = data, aes(anabaena_cylindrospermum, TAC_ATX_a
                                 "SFE-Lower-4", "SFE-Upper-1S"))+ 
   labs(y = NULL, x = NULL, title = "Anabaena/Cylindrospermum") +
   scale_y_continuous(trans=scales::pseudo_log_trans(base = 10)) +
+  scale_size_manual(values = c(0.5, 1, 1.5, 2)) +
   theme(legend.position = "right")
 ana_cov_atx_reach
 # have one odd reach out at the moment
+
+# all reaches- reviewer comment (deciding to facet wrap instead)
+ana_cov_atx_reach_grid <- ggplot(data = data, aes(anabaena_cylindrospermum, TAC_ATX_all_ug_g)) +
+  geom_point(size = 2.5, color = "#8f8504") +
+  geom_segment(data = data, linewidth = 0.8,
+               aes(xend = end_anacyl_cover,
+                   yend = end_TAC_atx), color = "#8f8504",
+               arrow = arrow(type = "open", length = unit(0.15, "inches"))) + 
+  labs(y = NULL, x = NULL, title = "Anabaena/Cylindrospermum") +
+  scale_y_continuous(trans=scales::pseudo_log_trans(base = 10)) +
+  facet_grid(~site_reach) + 
+  scale_size_manual(values = c(0.5, 1, 1.5, 2)) +
+  theme(legend.position = "none")
+ana_cov_atx_reach_grid
 
 # all reaches- mean behavior- option 1
 ana_cov_atx_mean <- ggplot(data = data, aes(anabaena_cylindrospermum, TAC_ATX_all_ug_g)) +
@@ -124,6 +144,20 @@ micro_cov_atx_reach <- ggplot(data = data, aes(microcoleus, TM_ATX_all_ug_g)) +
   scale_y_continuous(trans=scales::pseudo_log_trans(base = 10)) +
   theme(legend.position = "right")
 micro_cov_atx_reach
+
+# for reviewer comment
+micro_cov_atx_reach_grid <- ggplot(data = data, aes(microcoleus, TM_ATX_all_ug_g)) +
+  geom_point(color = "#2871c7", size = 2.5) +
+  geom_segment(data = data,
+               linewidth = 0.8,
+               aes(xend = end_micro_cover,
+                   yend = end_TM_atx), color = "#2871c7",
+               arrow = arrow(length = unit(3, "mm"))) +
+  facet_grid(~site_reach) + 
+  labs(y = NULL, x = NULL, title = "Microcoleus") +
+  scale_y_continuous(trans=scales::pseudo_log_trans(base = 10)) +
+  theme(legend.position = "none")
+micro_cov_atx_reach_grid
 
 # all reaches- mean behavior- option 1
 micro_cov_atx_mean <- ggplot(data = data, aes(microcoleus, TM_ATX_all_ug_g)) +
@@ -171,12 +205,12 @@ ggsave("./figures/fig_cover_ATX_covary_AC_notfinal.tiff", dpi = 600,
        width=6.25, height=4.25, unit="cm") # testing new dimensions
 
 # supplemental figure
-sup <- plot_grid(micro_cov_atx_reach, ana_cov_atx_reach, ncol = 1,
+sup <- plot_grid(micro_cov_atx_reach_grid, ana_cov_atx_reach_grid, ncol = 1,
                  align = "v")
 sup
 
 ggsave("./figures/sfig_cover_ATX_covary_notfinal.tiff", dpi = 600, 
-       width=12, height=14, unit="cm")
+       width=17.5, height=12, unit="cm")
 
 
 # adding in 2022 data into main figure as suggested by Keith
