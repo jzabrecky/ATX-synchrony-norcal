@@ -1,6 +1,6 @@
 #### Calculating standard deviations of predictions to determine uncertainty contributions
 ### Jordan Zabrecky
-## last edited: 01.22.2026
+## last edited: 08.27.2026
 
 # This script pulls in the prediction matrices and calculates the standard 
 # deviation for each model
@@ -48,8 +48,9 @@ calc_pred_sd <- function(uncertainty, uncertainty_path) {
               # read in prediction matrix for submodel
               preds = read.csv(paste(uncertainty_path, predicting[i], 
                                      "_models/pred_matrices/", filename, sep = ""))
-              # calculate sd for submodel (remove first column which is intial 0.05)
-              sd = sd(as.matrix(preds)[,-1])
+              # calculate sd for submodel by calculating sd for each prediction point 
+              # and then average across (excluding first row which was a given initial value)
+              sd = mean(apply(as.matrix(preds), MARGIN = 2, FUN = sd)[-1])
               # read in NRMSE vector
               nrmse_vector = read.csv(paste(uncertainty_path, predicting[i], 
                                             "_models/NRMSE_vectors/", 
