@@ -1,6 +1,6 @@
 #### processing metabolism outputs
 ### Jordan Zabrecky
-## last edited 08.18.2026
+## last edited 08.31.2026
 
 # This code processes metabolism outputs from the "streamMetabolizer" package
 # from script "1e_processing_metabolism_outputs.csv" and saves a csv.
@@ -262,6 +262,11 @@ Q_depth_final_plot(USGS_daily_discharge$russian, kayak_russian, c(0,5), c(0,3))
 Q_depth_final_plot(USGS_daily_discharge$salmon, kayak_salmon, c(0, 24), c(0,3))
 Q_depth_final_plot(USGS_daily_discharge$sfkeel_mir, kayak_miranda, c(0,3), c(0,2))
 Q_depth_final_plot(USGS_daily_discharge$sfkeel_sth, kayak_standish, c(0,3), c(0,2))
+
+# save calculated depths (in case for later use, such as plotting figure latter)
+#lapply(names(USGS_daily_discharge), function(x) 
+#  write.csv(USGS_daily_discharge[[x]], paste("./data/USGS/", x, "_est_depth.csv", sep = ""),
+#  row.names = FALSE))
 
 #### (3) Processing metabolism data ####
 
