@@ -1,13 +1,13 @@
 #### Supplemental figures to represent uncertainty in predictions
 ### Jordan Zabrecky
-## last edited: 01.22.2026
+## last edited: 09.10.2026
 
-# insert description here
+# Main figure displaying mean plus or minus one standard deviation for each model type
 
 #### (1) Loading libraries & data ####
 
 # loading libraries
-lapply(c("tidyverse", "lubridate", "plyr"), 
+lapply(c("tidyverse", "lubridate", "plyr", "ggtext"), 
        require, character.only = T)
 
 ## loading data
@@ -83,7 +83,7 @@ sd_plot <- ggplot(data = pred_unc_summary, aes(y = model_f)) +
 sd_plot
 
 # save figure
-ggsave("./figures/fig_uncertainty)notfinal.tiff", dpi = 600, 
+ggsave("./figures/fig_uncertainty_notfinal.tiff", dpi = 600, 
        width=8.5, height=22, unit="cm")
 # will add in legend separately
 
@@ -166,9 +166,33 @@ added_uncertainty_summary <- added_uncertainty %>%
   dplyr::summarize(mean_perct_inc_param = mean(perct_inc_param),
                    mean_perct_inc_ic = mean(perct_inc_ic)) %>% 
   dplyr::ungroup()
-mean(added_uncertainty_summary$mean_perct_inc_param) # 0.96%
-mean(added_uncertainty_summary$mean_perct_inc_ic, na.rm = TRUE) # 0.12%
+mean(added_uncertainty_summary$mean_perct_inc_param) # 11.3
+mean(added_uncertainty_summary$mean_perct_inc_ic, na.rm = TRUE) # -0.43
 
-## What was the average predictive uncertainty for each predicted category?
-taxa_pred_unc <- pred_unc_summary %>% 
-  group_by(predicting_f, uncertainty_f)
+#### (4) Exploring Stacked Bar Plot Option ####
+
+# need to calculate percentage for each (similar to added uncertainty above)
+uncertainty_percentage <- added_uncertainty %>% 
+  select(predicting_f, model_f, process_only, parameter_added_uncertainty, initialcondition_added_uncertainty) %>% 
+  pivot_longer(c("process_only", "parameter_added_uncertainty", "initialcondition_added_uncertainty"), values_to = "sd_contrib",
+               names_to = "uncertainty_source")
+
+# make plot
+sb_plot <- ggplot(data = uncertainty_percentage, aes(y = model_f)) +
+  geom_bar(aes(x = sd_contrib, fill = uncertainty_source), stat = "identity", position = "fill") +
+  scale_color_manual(labels = c("Process Uncertainty Only",
+                                "Parameter and Process Uncertainty",
+                                "Parameter, Process, and Initial Condition Uncertainty"),
+                     values = palette) +
+  labs(y = "Model", x = "Predictive Uncertainty") +
+  facet_wrap(~predicting_f, 
+             labeller = as_labeller(c(`M_cover` = "Models Predicting *Microcoleus* Cover ", 
+                                      `AC_cover`= "Models Predicting *Anabaena/Cylindrospermum* Cover",
+                                      `M_atx` = "Models Predicting *Microcoleus* Anatoxins",
+                                      `AC_atx` = "Models Predicting *Anabaena/Cylindrospermum* Anatoxins")),
+             ncol = 1, scales = "free_y") +
+  theme(strip.background = element_blank(), legend.position = "none",
+        axis.text.y = element_markdown()) # will add in legend separately
+sb_plot
+
+# as expected - issue as sometimes IC reduces uncertainty!
